@@ -1,0 +1,188 @@
+{
+  "hotels": [
+    {
+      "id": "h001",
+      "name": "Grand Istanbul Hotel",
+      "location": {
+        "city": "Istanbul",
+        "country": "TR",
+        "district": "Beyoglu",
+        "coordinates": { "lat": 41.0082, "lng": 28.9784 }
+      },
+      "rank": 5,
+      "pricePerNight": 450,
+      "currency": "USD",
+      "amenities": ["wifi", "pool", "spa", "restaurant", "gym", "parking", "room_service"],
+      "roomTypes": ["standard", "deluxe", "suite"],
+      "rating": 4.7,
+      "reviewCount": 1250,
+      "images": ["grand_istanbul_1.jpg", "grand_istanbul_2.jpg"],
+      "contactInfo": {
+        "phone": "+90-212-555-0001",
+        "email": "info@grandistanbul.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h002",
+      "name": "Luxury Palace Istanbul",
+      "location": {
+        "city": "Istanbul",
+        "country": "TR",
+        "district": "Sisli",
+        "coordinates": { "lat": 41.0602, "lng": 28.9877 }
+      },
+      "rank": 5,
+      "pricePerNight": 400,
+      "currency": "USD",
+      "amenities": ["wifi", "pool", "spa", "restaurant", "concierge"],
+      "roomTypes": ["standard", "deluxe", "suite", "penthouse"],
+      "rating": 4.5,
+      "reviewCount": 980,
+      "images": ["luxury_palace_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-212-555-0002",
+        "email": "info@luxurypalace.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h003",
+      "name": "Budget Inn Istanbul",
+      "location": {
+        "city": "Istanbul",
+        "country": "TR",
+        "district": "Fatih",
+        "coordinates": { "lat": 41.0186, "lng": 28.9497 }
+      },
+      "rank": 3,
+      "pricePerNight": 150,
+      "currency": "USD",
+      "amenities": ["wifi", "breakfast"],
+      "roomTypes": ["standard", "double"],
+      "rating": 4.0,
+      "reviewCount": 520,
+      "images": ["budget_inn_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-212-555-0003",
+        "email": "info@budgetinn.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h004",
+      "name": "Sea View Resort",
+      "location": {
+        "city": "Izmir",
+        "country": "TR",
+        "district": "Cesme",
+        "coordinates": { "lat": 38.3246, "lng": 26.3032 }
+      },
+      "rank": 4,
+      "pricePerNight": 300,
+      "currency": "USD",
+      "amenities": ["wifi", "pool", "beach", "restaurant", "water_sports"],
+      "roomTypes": ["standard", "sea_view", "suite"],
+      "rating": 4.6,
+      "reviewCount": 750,
+      "images": ["sea_view_1.jpg", "sea_view_2.jpg"],
+      "contactInfo": {
+        "phone": "+90-232-555-0004",
+        "email": "info@seaviewresort.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h005",
+      "name": "Ankara Business Hotel",
+      "location": {
+        "city": "Ankara",
+        "country": "TR",
+        "district": "Cankaya",
+        "coordinates": { "lat": 39.9334, "lng": 32.8597 }
+      },
+      "rank": 4,
+      "pricePerNight": 250,
+      "currency": "USD",
+      "amenities": ["wifi", "conference", "restaurant", "gym", "business_center"],
+      "roomTypes": ["standard", "business", "executive"],
+      "rating": 4.3,
+      "reviewCount": 420,
+      "images": ["ankara_business_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-312-555-0005",
+        "email": "info@ankarabusiness.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h006",
+      "name": "Cappadocia Cave Hotel",
+      "location": {
+        "city": "Nevsehir",
+        "country": "TR",
+        "district": "Goreme",
+        "coordinates": { "lat": 38.6431, "lng": 34.8283 }
+      },
+      "rank": 5,
+      "pricePerNight": 350,
+      "currency": "USD",
+      "amenities": ["wifi", "spa", "restaurant", "terrace", "balloon_tours", "cave_rooms"],
+      "roomTypes": ["cave_standard", "cave_deluxe", "cave_suite"],
+      "rating": 4.9,
+      "reviewCount": 890,
+      "images": ["cappadocia_cave_1.jpg", "cappadocia_cave_2.jpg"],
+      "contactInfo": {
+        "phone": "+90-384-555-0006",
+        "email": "info@cappadociacave.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h007",
+      "name": "Antalya Beach Resort",
+      "location": {
+        "city": "Antalya",
+        "country": "TR",
+        "district": "Lara",
+        "coordinates": { "lat": 36.8529, "lng": 30.7963 }
+      },
+      "rank": 5,
+      "pricePerNight": 500,
+      "currency": "USD",
+      "amenities": ["wifi", "pool", "beach", "spa", "all_inclusive", "kids_club", "water_park"],
+      "roomTypes": ["standard", "family", "suite", "villa"],
+      "rating": 4.8,
+      "reviewCount": 2100,
+      "images": ["antalya_beach_1.jpg", "antalya_beach_2.jpg", "antalya_beach_3.jpg"],
+      "contactInfo": {
+        "phone": "+90-242-555-0007",
+        "email": "info@antalyabeach.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h008",
+      "name": "Bodrum Boutique Hotel",
+      "location": {
+        "city": "Mugla",
+        "country": "TR",
+        "district": "Bodrum",
+        "coordinates": { "lat": 37.0344, "lng": 27.4305 }
+      },
+      "rank": 4,
+      "pricePerNight": 280,
+      "currency": "USD",
+      "amenities": ["wifi", "pool", "restaurant", "bar", "yacht_tours"],
+      "roomTypes": ["standard", "garden_view", "sea_view"],
+      "rating": 4.4,
+      "reviewCount": 380,
+      "images": ["bodrum_boutique_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-252-555-0008",
+        "email": "info@bodrumboutique.com"
+      },
+      "available": true
+    }
+  ]
+}
