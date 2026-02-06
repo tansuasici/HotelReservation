@@ -12,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Hotel Provider Role - Implements the CNP participant behavior.
@@ -30,6 +32,11 @@ import java.util.Random;
             name = "ReservationManagement",
             description = "Process reservation acceptances and confirmations",
             actions = {"handleAcceptMessage", "handleRejectMessage"}
+        ),
+        @Responsibility(
+            name = "Negotiation",
+            description = "Handle price negotiations with customers",
+            actions = {"handleNegotiateStartMessage", "handleCounterOfferMessage", "handleNegotiateAcceptMessage"}
         )
     },
     llm = @LLMSpec(
@@ -73,6 +80,15 @@ public class HotelProviderRole extends Role {
     @State(description = "Whether hotel has available rooms")
     private boolean available = true;
 
+    // Negotiation parameters
+    @State(description = "Minimum acceptable price (basePrice * 0.85)")
+    private double minAcceptablePrice;
+
+    @State(description = "How flexible the hotel is in negotiation (0.0-1.0)")
+    private double negotiationFlexibility;
+
+    private final Map<String, Integer> currentNegotiations = new ConcurrentHashMap<>();
+
     public HotelProviderRole(Agent owner, String envName,
                              String hotelId, String hotelName, String location,
                              int rank, double basePrice) {
@@ -82,6 +98,8 @@ public class HotelProviderRole extends Role {
         this.location = location;
         this.rank = rank;
         this.basePrice = basePrice;
+        this.minAcceptablePrice = basePrice * 0.85;
+        this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
     }
 
     /**
@@ -220,6 +238,153 @@ public class HotelProviderRole extends Role {
         LOGGER.info("[{}] Proposal REJECTED by {}: {}",
             getOwner().getName(), message.getSender(), message.getPayload());
         // Clean up if needed
+    }
+
+    // ==========================================
+    // NEGOTIATION HANDLERS
+    // ==========================================
+
+    /**
+     * Handle NegotiateStart message - Customer initiates price negotiation.
+     */
+    @Action(type = ActionType.LOCAL, description = "Process customer's negotiation start request")
+    public void handleNegotiateStartMessage(Message<NegotiationOffer> message) {
+        NegotiationOffer offer = message.getPayload();
+        LOGGER.info("[{}] Received NegotiateStart from {}: offered ${} for {} (original ${})",
+            getOwner().getName(), message.getSender(), offer.getOfferedPrice(),
+            hotelName, offer.getOriginalPrice());
+
+        currentNegotiations.put(offer.getProposalId(), 1);
+
+        if (offer.getOfferedPrice() >= minAcceptablePrice) {
+            // Customer's offer is acceptable - accept negotiation
+            LOGGER.info("[{}] Customer offer ${} is acceptable (min: ${}). Accepting negotiation.",
+                getOwner().getName(), offer.getOfferedPrice(), minAcceptablePrice);
+
+            NegotiationOffer acceptance = new NegotiationOffer(
+                offer.getProposalId(), hotelId, hotelName,
+                offer.getOfferedPrice(), offer.getOriginalPrice(),
+                1, offer.getMaxRounds(),
+                String.format("We accept your offer of $%.2f per night.", offer.getOfferedPrice())
+            );
+            sendMessage(MessageTypes.MSG_NEGOTIATE_ACCEPT, acceptance, message.getSender());
+            currentNegotiations.remove(offer.getProposalId());
+        } else {
+            // Counter-offer: start from basePrice and reduce based on flexibility
+            double counterPrice = calculateHotelCounterOffer(1, offer.getMaxRounds());
+            LOGGER.info("[{}] Counter-offering ${} (customer offered ${})",
+                getOwner().getName(), counterPrice, offer.getOfferedPrice());
+
+            NegotiationOffer counter = new NegotiationOffer(
+                offer.getProposalId(), hotelId, hotelName,
+                counterPrice, offer.getOriginalPrice(),
+                1, offer.getMaxRounds(),
+                String.format("We can offer $%.2f per night for %s.", counterPrice, hotelName)
+            );
+            sendMessage(MessageTypes.MSG_COUNTER_OFFER, counter, message.getSender());
+        }
+    }
+
+    /**
+     * Handle CounterOffer message - Customer sends a counter-offer.
+     */
+    @Action(type = ActionType.LOCAL, description = "Process customer's counter-offer during negotiation")
+    public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
+        NegotiationOffer offer = message.getPayload();
+        int round = offer.getRound();
+        LOGGER.info("[{}] Received CounterOffer from {}: ${} (round {}/{})",
+            getOwner().getName(), message.getSender(), offer.getOfferedPrice(),
+            round, offer.getMaxRounds());
+
+        currentNegotiations.put(offer.getProposalId(), round);
+
+        if (offer.getOfferedPrice() >= minAcceptablePrice) {
+            // Accept the counter-offer
+            LOGGER.info("[{}] Accepting counter-offer of ${}", getOwner().getName(), offer.getOfferedPrice());
+
+            NegotiationOffer acceptance = new NegotiationOffer(
+                offer.getProposalId(), hotelId, hotelName,
+                offer.getOfferedPrice(), offer.getOriginalPrice(),
+                round, offer.getMaxRounds(),
+                String.format("Deal! We accept $%.2f per night.", offer.getOfferedPrice())
+            );
+            sendMessage(MessageTypes.MSG_NEGOTIATE_ACCEPT, acceptance, message.getSender());
+            currentNegotiations.remove(offer.getProposalId());
+        } else if (round >= offer.getMaxRounds()) {
+            // Last round - send final offer or reject
+            double finalPrice = minAcceptablePrice;
+            LOGGER.info("[{}] Final round. Sending last offer: ${}", getOwner().getName(), finalPrice);
+
+            NegotiationOffer finalOffer = new NegotiationOffer(
+                offer.getProposalId(), hotelId, hotelName,
+                finalPrice, offer.getOriginalPrice(),
+                round, offer.getMaxRounds(),
+                String.format("Our final offer: $%.2f per night. This is the best we can do.", finalPrice)
+            );
+            sendMessage(MessageTypes.MSG_COUNTER_OFFER, finalOffer, message.getSender());
+            currentNegotiations.remove(offer.getProposalId());
+        } else {
+            // Counter with a lower price
+            double counterPrice = calculateHotelCounterOffer(round, offer.getMaxRounds());
+            LOGGER.info("[{}] Counter-offering ${} in round {}", getOwner().getName(), counterPrice, round);
+
+            NegotiationOffer counter = new NegotiationOffer(
+                offer.getProposalId(), hotelId, hotelName,
+                counterPrice, offer.getOriginalPrice(),
+                round, offer.getMaxRounds(),
+                String.format("How about $%.2f per night?", counterPrice)
+            );
+            sendMessage(MessageTypes.MSG_COUNTER_OFFER, counter, message.getSender());
+        }
+    }
+
+    /**
+     * Handle NegotiateAccept message - Customer accepted a negotiated price.
+     * Creates reservation confirmation with the negotiated price.
+     */
+    @Action(type = ActionType.LOCAL, description = "Process negotiation acceptance and confirm reservation")
+    public void handleNegotiateAcceptMessage(Message<ReservationRequest> message) {
+        ReservationRequest request = message.getPayload();
+        LOGGER.info("[{}] Received NegotiateAccept from {}: {}",
+            getOwner().getName(), message.getSender(), request);
+
+        double negotiatedPrice = request.getNegotiatedPrice() > 0
+            ? request.getNegotiatedPrice() : basePrice;
+
+        ReservationConfirmation confirmation = new ReservationConfirmation(
+            request.getRequestId(),
+            request.getCustomerId(),
+            hotelId,
+            hotelName,
+            negotiatedPrice,
+            request.getNumberOfNights()
+        );
+        confirmation.setRoomType("standard");
+        confirmation.setCheckInDate(request.getCheckInDate());
+        confirmation.setCheckOutDate(request.getCheckOutDate());
+        confirmation.setOriginalPrice(basePrice);
+        if (basePrice > 0) {
+            confirmation.setDiscountPercent(((basePrice - negotiatedPrice) / basePrice) * 100);
+        }
+
+        LOGGER.info("[{}] Negotiated reservation CONFIRMED: {} - ${}/night (was ${}, {}% off)",
+            getOwner().getName(), confirmation.getConfirmationNumber(),
+            negotiatedPrice, basePrice, String.format("%.1f", confirmation.getDiscountPercent()));
+
+        sendMessage(MessageTypes.MSG_CONFIRM, confirmation, message.getSender());
+        currentNegotiations.remove(request.getProposalId());
+    }
+
+    /**
+     * Calculate the hotel's counter-offer price based on round progress.
+     * Strategy: start from basePrice, reduce towards minAcceptablePrice as rounds progress.
+     * Higher flexibility = faster price reduction.
+     */
+    private double calculateHotelCounterOffer(int round, int maxRounds) {
+        double progress = (double) round / maxRounds;
+        double reduction = (basePrice - minAcceptablePrice) * progress * negotiationFlexibility;
+        double counterPrice = basePrice - reduction;
+        return Math.max(counterPrice, minAcceptablePrice);
     }
 
     // Configuration methods

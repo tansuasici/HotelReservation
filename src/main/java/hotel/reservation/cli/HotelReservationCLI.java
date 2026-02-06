@@ -1,68 +1,80 @@
 package hotel.reservation.cli;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.scop.core.Conversation;
+import ai.scop.core.ExecutionState;
+import ai.scop.ui.config.Configurator;
+import hotel.reservation.HotelReservationPlayground;
+import hotel.reservation.agent.CustomerAgent;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Interactive CLI for Hotel Reservation System.
- * Connects to the REST API server.
+ * Directly creates a Playground and uses CustomerAgent's Conversation role for chat.
  */
 public class HotelReservationCLI {
 
-    private static final String BASE_URL = "http://localhost:8080/api";
-    private static final HttpClient httpClient = HttpClient.newHttpClient();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
     public static void main(String[] args) {
         System.out.println();
-        System.out.println("╔════════════════════════════════════════════════════════╗");
-        System.out.println("║   OTEL REZERVASYON SİSTEMİ - İnteraktif CLI            ║");
-        System.out.println("║   LLM: glm-4.7 (Customer) + minimax-m2.1 (Hotels)      ║");
-        System.out.println("╚════════════════════════════════════════════════════════╝");
+        System.out.println("========================================================");
+        System.out.println("   OTEL REZERVASYON SISTEMI - Interaktif CLI");
+        System.out.println("   SCOP + TNSAI Multi-Agent System");
+        System.out.println("========================================================");
         System.out.println();
 
-        // Check if server is running
-        if (!checkServer()) {
-            System.out.println("❌ Server çalışmıyor! Önce başlat:");
-            System.out.println("   mvn spring-boot:run");
+        // 1. Load config
+        System.out.println("[CLI] Konfigurasyon yukleniyor...");
+        Configurator.getInstance().load("config.json");
+
+        // 2. Create playground and run on executor
+        System.out.println("[CLI] Playground olusturuluyor...");
+        HotelReservationPlayground playground = new HotelReservationPlayground();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(playground);
+        executor.shutdown();
+
+        // 3. Wait for paused state
+        try {
+            System.out.println("[CLI] Simulasyon baslatiliyor...");
+            playground.getPausedStateLatch().await();
+        } catch (InterruptedException e) {
+            System.err.println("[CLI] Bekleme kesildi: " + e.getMessage());
             return;
         }
 
-        // Setup simulation
-        System.out.println("🔧 Simülasyon başlatılıyor...");
-        if (!setupSimulation()) {
-            System.out.println("❌ Simülasyon başlatılamadı!");
+        // 4. Set state to RUNNING
+        playground.setExecutionState(ExecutionState.RUNNING);
+        System.out.println("[CLI] Simulasyon calisiyor!");
+
+        // 5. Find CustomerAgent and get Conversation role
+        CustomerAgent customer = (CustomerAgent) playground.findAgent("Customer-1");
+        if (customer == null) {
+            System.err.println("[CLI] Customer-1 agent bulunamadi!");
+            playground.setExecutionState(ExecutionState.ENDED);
             return;
         }
 
-        System.out.println("✅ Sistem hazır!");
+        Conversation conversation = customer.as(Conversation.class);
+        if (conversation == null) {
+            System.err.println("[CLI] Conversation role bulunamadi!");
+            playground.setExecutionState(ExecutionState.ENDED);
+            return;
+        }
+
         System.out.println();
-        System.out.println("💬 Ne aramak istiyorsun? (çıkmak için 'exit' yaz)");
-        System.out.println("   Örnek: Ankarada 4 yildizli otel bul, butcem 300 dolar");
+        System.out.println("Hazir! Otel hakkinda sorularinizi yazin.");
+        System.out.println("Cikmak icin 'exit' yazin.");
         System.out.println();
 
+        // 6. Chat loop
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
-            // Check for pending question
-            String pendingQuestion = getPendingQuestion();
-            if (pendingQuestion != null && !pendingQuestion.isEmpty()) {
-                System.out.println("❓ Agent soruyor: " + pendingQuestion);
-                System.out.print("🧑 Cevabın: ");
-            } else {
-                System.out.print("🧑 Sen: ");
-            }
-
+            System.out.print("Siz > ");
             String input = scanner.nextLine().trim();
 
-            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("quit") || input.equalsIgnoreCase("q")) {
-                System.out.println("\n👋 Görüşürüz!");
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("quit")) {
                 break;
             }
 
@@ -70,187 +82,15 @@ public class HotelReservationCLI {
                 continue;
             }
 
-            if (input.equalsIgnoreCase("history") || input.equalsIgnoreCase("h")) {
-                showConversation();
-                continue;
-            }
-
-            // Send message
-            if (pendingQuestion != null && !pendingQuestion.isEmpty()) {
-                sendResponse(input);
-            } else {
-                sendChat(input);
-            }
-
-            // Wait and show conversation
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            showLatestMessages();
+            String response = conversation.chat(input);
+            System.out.println();
+            System.out.println("Asistan > " + response);
             System.out.println();
         }
 
+        // 7. Stop
         scanner.close();
-    }
-
-    private static boolean checkServer() {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/simulation/status"))
-                .GET()
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 200;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static boolean setupSimulation() {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/simulation?action=setup"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode json = objectMapper.readTree(response.body());
-                int hotels = json.path("registeredHotels").asInt();
-                System.out.println("   " + hotels + " otel yüklendi");
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            System.err.println("Setup error: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private static void sendChat(String message) {
-        try {
-            String body = objectMapper.writeValueAsString(java.util.Map.of("message", message));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/chat"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                JsonNode json = objectMapper.readTree(response.body());
-                System.out.println("⚠️  " + json.path("error").asText());
-            }
-        } catch (Exception e) {
-            System.err.println("Chat error: " + e.getMessage());
-        }
-    }
-
-    private static void sendResponse(String response) {
-        try {
-            String body = objectMapper.writeValueAsString(java.util.Map.of("response", response));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/respond"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (Exception e) {
-            System.err.println("Response error: " + e.getMessage());
-        }
-    }
-
-    private static String getPendingQuestion() {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/llm-status"))
-                .GET()
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode json = objectMapper.readTree(response.body());
-                if (json.path("hasPendingQuestion").asBoolean()) {
-                    return json.path("pendingQuestion").asText();
-                }
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return null;
-    }
-
-    private static void showLatestMessages() {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/conversation"))
-                .GET()
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode json = objectMapper.readTree(response.body());
-                JsonNode history = json.path("history");
-
-                // Show last 5 messages
-                int start = Math.max(0, history.size() - 5);
-                for (int i = start; i < history.size(); i++) {
-                    JsonNode entry = history.get(i);
-                    String from = entry.path("from").asText();
-                    String to = entry.path("to").asText();
-                    String msg = entry.path("message").asText();
-
-                    String icon = getIcon(from);
-                    System.out.println(icon + " " + from + " → " + to + ": \"" + msg + "\"");
-                }
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-    }
-
-    private static void showConversation() {
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/conversation"))
-                .GET()
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode json = objectMapper.readTree(response.body());
-                JsonNode history = json.path("history");
-
-                System.out.println("\n📜 Konuşma Geçmişi:");
-                System.out.println("─".repeat(50));
-
-                for (JsonNode entry : history) {
-                    String from = entry.path("from").asText();
-                    String to = entry.path("to").asText();
-                    String msg = entry.path("message").asText();
-
-                    String icon = getIcon(from);
-                    System.out.println(icon + " " + from + " → " + to);
-                    System.out.println("   \"" + msg + "\"");
-                }
-                System.out.println("─".repeat(50));
-            }
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
-
-    private static String getIcon(String from) {
-        if (from.startsWith("Hotel") || from.contains("Hotel")) return "🏨";
-        if (from.startsWith("Customer")) return "🤖";
-        if (from.equals("User")) return "🧑";
-        return "📨";
+        playground.setExecutionState(ExecutionState.ENDED);
+        System.out.println("[CLI] Simulasyon durduruldu. Gorusuruz!");
     }
 }

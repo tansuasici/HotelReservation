@@ -18,6 +18,8 @@ public class ConfirmationDTO {
     private String checkOutDate;
     private int numberOfNights;
     private String status;
+    private double originalPrice;
+    private double discountPercent;
 
     public ConfirmationDTO() {}
 
@@ -35,6 +37,8 @@ public class ConfirmationDTO {
         dto.checkOutDate = conf.getCheckOutDate();
         dto.numberOfNights = conf.getNumberOfNights();
         dto.status = conf.getStatus();
+        dto.originalPrice = conf.getOriginalPrice();
+        dto.discountPercent = conf.getDiscountPercent();
         return dto;
     }
 
@@ -74,4 +78,10 @@ public class ConfirmationDTO {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public double getOriginalPrice() { return originalPrice; }
+    public void setOriginalPrice(double originalPrice) { this.originalPrice = originalPrice; }
+
+    public double getDiscountPercent() { return discountPercent; }
+    public void setDiscountPercent(double discountPercent) { this.discountPercent = discountPercent; }
 }

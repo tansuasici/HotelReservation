@@ -2,6 +2,7 @@ package hotel.reservation.message;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Proposal message payload.
@@ -22,6 +23,8 @@ public class RoomProposal implements Serializable {
     private List<String> amenities;
     private double rating;
     private long timestamp;  // For FCFS ordering
+    private Double negotiatedPrice;  // Price after negotiation (null if not negotiated)
+    private boolean negotiated = false;  // Whether price was negotiated
 
     public RoomProposal() {
         this.timestamp = System.currentTimeMillis();
@@ -31,7 +34,7 @@ public class RoomProposal implements Serializable {
     public RoomProposal(String hotelId, String hotelName, String location, int rank,
                         double pricePerNight, String roomType) {
         this();
-        this.proposalId = "prop-" + System.currentTimeMillis();
+        this.proposalId = UUID.randomUUID().toString();
         this.hotelId = hotelId;
         this.hotelName = hotelName;
         this.location = location;
@@ -73,6 +76,19 @@ public class RoomProposal implements Serializable {
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public Double getNegotiatedPrice() { return negotiatedPrice; }
+    public void setNegotiatedPrice(Double negotiatedPrice) { this.negotiatedPrice = negotiatedPrice; }
+
+    public boolean isNegotiated() { return negotiated; }
+    public void setNegotiated(boolean negotiated) { this.negotiated = negotiated; }
+
+    /**
+     * Get the effective price (negotiated if available, otherwise original).
+     */
+    public double getEffectivePrice() {
+        return negotiated && negotiatedPrice != null ? negotiatedPrice : pricePerNight;
+    }
 
     @Override
     public String toString() {

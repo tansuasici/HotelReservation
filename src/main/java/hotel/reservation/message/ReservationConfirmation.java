@@ -24,6 +24,8 @@ public class ReservationConfirmation implements Serializable {
     private int numberOfNights;
     private String status;  // CONFIRMED, PENDING, CANCELLED
     private long timestamp;
+    private double originalPrice;   // Price before negotiation
+    private double discountPercent; // Discount percentage from negotiation
 
     public ReservationConfirmation() {
         this.timestamp = System.currentTimeMillis();
@@ -86,6 +88,12 @@ public class ReservationConfirmation implements Serializable {
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public double getOriginalPrice() { return originalPrice; }
+    public void setOriginalPrice(double originalPrice) { this.originalPrice = originalPrice; }
+
+    public double getDiscountPercent() { return discountPercent; }
+    public void setDiscountPercent(double discountPercent) { this.discountPercent = discountPercent; }
 
     /**
      * Calculate total price based on nights and price per night.

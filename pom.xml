@@ -149,18 +149,10 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>cli</id>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <mainClass>hotel.reservation.cli.HotelReservationCLI</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
+                <version>3.6.0</version>
+                <configuration>
+                    <mainClass>hotel.reservation.cli.HotelReservationCLI</mainClass>
+                </configuration>
             </plugin>
 
             <!-- Maven JAR Plugin -->
@@ -174,16 +166,6 @@
                             <mainClass>hotel.reservation.api.HotelReservationApplication</mainClass>
                         </manifest>
                     </archive>
-                </configuration>
-            </plugin>
-
-            <!-- Exec Maven Plugin for CLI -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <mainClass>hotel.reservation.api.HotelReservationApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

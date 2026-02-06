@@ -66,6 +66,21 @@ public class HotelReservationController {
         try {
             LOGGER.info("[API] Setting up simulation...");
 
+            // Stop previous playground if exists (re-entrancy protection)
+            if (playground != null) {
+                LOGGER.info("[API] Stopping previous simulation...");
+                try {
+                    playground.setExecutionState(ExecutionState.ENDED);
+                } catch (Exception e) {
+                    LOGGER.warn("[API] Error stopping previous simulation: {}", e.getMessage());
+                }
+                playground = null;
+            }
+            if (executor != null) {
+                executor.shutdownNow();
+                executor = null;
+            }
+
             // Create playground
             playground = new HotelReservationPlayground();
 
@@ -132,10 +147,19 @@ public class HotelReservationController {
 
     private SimulationStatusDTO getSimulationStatus() {
         DirectoryFacilitator df = playground.getDirectoryFacilitator();
+        int agentCount = 0;
+        try {
+            var agents = playground.getScenarioAgents();
+            if (agents != null) {
+                agentCount = agents.size();
+            }
+        } catch (Exception e) {
+            // Simulation ended, agents cleaned up
+        }
         return new SimulationStatusDTO(
             playground.getExecutionState().name(),
             playground.getTick().now().longValue(),
-            playground.getScenarioAgents().size(),
+            agentCount,
             df != null ? df.getRegisteredCount() : 0,
             "OK"
         );
@@ -158,6 +182,10 @@ public class HotelReservationController {
         }
 
         DirectoryFacilitator df = playground.getDirectoryFacilitator();
+        if (df == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
         List<DFEntryDTO> entries = df.getAllEntries().stream()
             .map(DFEntryDTO::from)
             .collect(Collectors.toList());
@@ -183,6 +211,10 @@ public class HotelReservationController {
         }
 
         DirectoryFacilitator df = playground.getDirectoryFacilitator();
+        if (df == null) {
+            return ResponseEntity.ok(List.of());
+        }
+
         List<DFEntryDTO> results = df.search(location, minRank, maxPrice).stream()
             .map(DFEntryDTO::from)
             .collect(Collectors.toList());
@@ -202,7 +234,7 @@ public class HotelReservationController {
     public ResponseEntity<Map<String, Object>> startSearch(@RequestBody SearchRequestDTO request) {
         LOGGER.info("[API] POST /api/search: {}", request);
 
-        if (playground == null) {
+        if (playground == null || playground.getScenarioAgents() == null) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "Simulation not set up"));
         }
@@ -213,7 +245,12 @@ public class HotelReservationController {
             customerId = "Customer-1";
         }
 
-        CustomerAgent customer = (CustomerAgent) playground.findAgent(customerId);
+        CustomerAgent customer = null;
+        try {
+            customer = (CustomerAgent) playground.findAgent(customerId);
+        } catch (Exception e) {
+            LOGGER.warn("[API] Error finding agent: {}", e.getMessage());
+        }
         if (customer == null) {
             // Create new customer if not exists
             customer = playground.addCustomer(
@@ -244,11 +281,16 @@ public class HotelReservationController {
 
         LOGGER.info("[API] GET /api/proposals?customerId={}", customerId);
 
-        if (playground == null) {
+        if (playground == null || playground.getScenarioAgents() == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        CustomerAgent customer = (CustomerAgent) playground.findAgent(customerId);
+        CustomerAgent customer = null;
+        try {
+            customer = (CustomerAgent) playground.findAgent(customerId);
+        } catch (Exception e) {
+            LOGGER.warn("[API] Error finding agent: {}", e.getMessage());
+        }
         if (customer == null) {
             return ResponseEntity.notFound().build();
         }
@@ -294,6 +336,50 @@ public class HotelReservationController {
 
         CustomerRole role = customer.as(CustomerRole.class);
         return ResponseEntity.ok(CustomerStatusDTO.from(customer, role));
+    }
+
+    // ==========================================
+    // NEGOTIATION ENDPOINTS
+    // ==========================================
+
+    /**
+     * GET /api/customer/{id}/negotiations
+     * Get negotiation history for a customer.
+     */
+    @GetMapping("/customer/{id}/negotiations")
+    public ResponseEntity<?> getCustomerNegotiations(@PathVariable String id) {
+        LOGGER.info("[API] GET /api/customer/{}/negotiations", id);
+
+        if (playground == null) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Playground not initialized"));
+        }
+
+        if (playground.getScenarioAgents() == null) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("error", "Simulation has ended"));
+        }
+
+        CustomerAgent customer = (CustomerAgent) playground.findAgent(id);
+        if (customer == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        CustomerRole role = customer.as(CustomerRole.class);
+        if (role == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<NegotiationDTO> history = NegotiationDTO.fromList(role.getNegotiationHistory());
+
+        return ResponseEntity.ok(Map.of(
+            "customerId", id,
+            "state", role.getCustomerState().name(),
+            "negotiationRound", role.getNegotiationRound(),
+            "maxRounds", role.getMaxNegotiationRounds(),
+            "negotiatingHotel", role.getNegotiatingWith() != null ? role.getNegotiatingWith().getHotelName() : "",
+            "history", history
+        ));
     }
 
     // ==========================================

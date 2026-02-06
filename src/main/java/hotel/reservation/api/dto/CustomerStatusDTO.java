@@ -1,9 +1,12 @@
 package hotel.reservation.api.dto;
 
 import hotel.reservation.agent.CustomerAgent;
+import hotel.reservation.message.NegotiationOffer;
 import hotel.reservation.message.ReservationConfirmation;
 import hotel.reservation.message.RoomProposal;
 import hotel.reservation.role.CustomerRole;
+
+import java.util.List;
 
 /**
  * DTO for customer status.
@@ -17,6 +20,10 @@ public class CustomerStatusDTO {
     private int proposalCount;
     private ProposalDTO selectedProposal;
     private ConfirmationDTO confirmation;
+    private int negotiationRound;
+    private String negotiatingHotel;
+    private Double lastOffer;
+    private List<NegotiationDTO> negotiationHistory;
 
     public CustomerStatusDTO() {}
 
@@ -39,6 +46,18 @@ public class CustomerStatusDTO {
             ReservationConfirmation conf = role.getConfirmation();
             if (conf != null) {
                 dto.confirmation = ConfirmationDTO.from(conf);
+            }
+
+            // Negotiation info
+            dto.negotiationRound = role.getNegotiationRound();
+            RoomProposal negotiating = role.getNegotiatingWith();
+            if (negotiating != null) {
+                dto.negotiatingHotel = negotiating.getHotelName();
+            }
+            List<NegotiationOffer> history = role.getNegotiationHistory();
+            if (!history.isEmpty()) {
+                dto.lastOffer = history.get(history.size() - 1).getOfferedPrice();
+                dto.negotiationHistory = NegotiationDTO.fromList(history);
             }
         }
 
@@ -69,4 +88,16 @@ public class CustomerStatusDTO {
 
     public ConfirmationDTO getConfirmation() { return confirmation; }
     public void setConfirmation(ConfirmationDTO confirmation) { this.confirmation = confirmation; }
+
+    public int getNegotiationRound() { return negotiationRound; }
+    public void setNegotiationRound(int negotiationRound) { this.negotiationRound = negotiationRound; }
+
+    public String getNegotiatingHotel() { return negotiatingHotel; }
+    public void setNegotiatingHotel(String negotiatingHotel) { this.negotiatingHotel = negotiatingHotel; }
+
+    public Double getLastOffer() { return lastOffer; }
+    public void setLastOffer(Double lastOffer) { this.lastOffer = lastOffer; }
+
+    public List<NegotiationDTO> getNegotiationHistory() { return negotiationHistory; }
+    public void setNegotiationHistory(List<NegotiationDTO> negotiationHistory) { this.negotiationHistory = negotiationHistory; }
 }
