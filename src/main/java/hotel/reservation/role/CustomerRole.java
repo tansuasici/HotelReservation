@@ -171,6 +171,8 @@ public class CustomerRole extends Role {
 
         if (df == null) {
             LOGGER.error("[{}] Directory Facilitator not found!", getOwner().getName());
+            ActivityLog.log(getOwner().getName(), "System", "FAIL",
+                "Directory Facilitator not found — cannot search for hotels");
             state = CustomerState.FAILED;
             return;
         }
@@ -180,6 +182,9 @@ public class CustomerRole extends Role {
 
         if (matchingHotels.isEmpty()) {
             LOGGER.warn("[{}] No hotels found matching criteria", getOwner().getName());
+            ActivityLog.log(getOwner().getName(), "DirectoryFacilitator", "FAIL",
+                String.format("No hotels found matching criteria: %d★ in %s, max $%.0f",
+                    desiredRank, desiredLocation, maxPrice));
             state = CustomerState.FAILED;
             return;
         }
@@ -286,6 +291,8 @@ public class CustomerRole extends Role {
 
         if (proposals.isEmpty()) {
             LOGGER.warn("[{}] No proposals received - reservation FAILED", getOwner().getName());
+            ActivityLog.log(getOwner().getName(), "System", "FAIL",
+                "No proposals received from any hotel — all hotels either refused or did not respond");
             state = CustomerState.FAILED;
             return;
         }
@@ -314,6 +321,8 @@ public class CustomerRole extends Role {
                 startNegotiation(selectedProposal);
             }
         } else {
+            ActivityLog.log(getOwner().getName(), "System", "FAIL",
+                "Could not select a best proposal from received offers");
             state = CustomerState.FAILED;
         }
     }
@@ -548,6 +557,8 @@ public class CustomerRole extends Role {
             negotiationRound = 0;
             makeReservation();
         } else {
+            ActivityLog.log(getOwner().getName(), negotiatingWith != null ? negotiatingWith.getHotelName() : "System",
+                "FAIL", "Negotiation rejected by hotel and no acceptable fallback price available");
             state = CustomerState.FAILED;
             LOGGER.warn("[{}] Negotiation failed and no acceptable fallback", getOwner().getName());
         }

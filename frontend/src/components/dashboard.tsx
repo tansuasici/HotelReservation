@@ -61,6 +61,7 @@ export function Dashboard() {
             simState={sim.simState}
             onNodeClick={handleNodeClick}
             isDark={isDark}
+            loading={sim.loading || (sim.simState === "NOT_INITIALIZED" && !!sim.status.message)}
           />
         </main>
 

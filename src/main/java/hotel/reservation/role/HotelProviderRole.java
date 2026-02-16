@@ -8,6 +8,7 @@ import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
 import hotel.reservation.ActivityLog;
+import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.message.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,14 +77,14 @@ public class HotelProviderRole extends Role {
     private final Random random = new Random();
 
     @State(description = "Probability of responding to requests (0.0-1.0)")
-    private double responseRate = 0.8;  // 80% chance to respond
+    private double responseRate = 0.95;  // 95% chance to respond
 
     @State(description = "Whether hotel has available rooms")
     private boolean available = true;
 
     // Negotiation parameters
-    @State(description = "Minimum acceptable price (basePrice * 0.85)")
-    private double minAcceptablePrice;
+    @State(description = "Base minimum acceptable price (basePrice * 0.85)")
+    private final double baseMinPrice;
 
     @State(description = "How flexible the hotel is in negotiation (0.0-1.0)")
     private double negotiationFlexibility;
@@ -99,8 +100,28 @@ public class HotelProviderRole extends Role {
         this.location = location;
         this.rank = rank;
         this.basePrice = basePrice;
-        this.minAcceptablePrice = basePrice * 0.85;
+        this.baseMinPrice = basePrice * 0.85;
         this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
+    }
+
+    /**
+     * Calculate effective minimum acceptable price based on room scarcity.
+     * When rooms are scarce, the hotel demands higher prices.
+     *
+     * Occupancy 0% → baseMinPrice (full discount available)
+     * Occupancy 50% → baseMinPrice + 25% of gap to basePrice
+     * Occupancy 100% (1 room left) → basePrice (no discount)
+     */
+    private double getEffectiveMinPrice() {
+        HotelAgent ha = (HotelAgent) getOwner();
+        int total = ha.getTotalRooms();
+        int available = ha.getAvailableRooms();
+        if (total <= 0 || available <= 0) return basePrice;
+
+        double occupancyRate = 1.0 - ((double) available / total);
+        // Scarcity premium: occupancy² for non-linear increase
+        double scarcityFactor = occupancyRate * occupancyRate;
+        return baseMinPrice + (basePrice - baseMinPrice) * scarcityFactor;
     }
 
     /**
@@ -117,6 +138,15 @@ public class HotelProviderRole extends Role {
         if (!matchesQuery(query)) {
             LOGGER.info("[{}] Query does not match hotel criteria - ignoring",
                 getOwner().getName());
+            return;
+        }
+
+        // Check room availability
+        HotelAgent hotelAgent = (HotelAgent) getOwner();
+        if (hotelAgent.getAvailableRooms() <= 0) {
+            LOGGER.info("[{}] No rooms available - sending refusal",
+                getOwner().getName());
+            sendRefusal(message.getSender(), "No rooms available");
             return;
         }
 
@@ -209,6 +239,15 @@ public class HotelProviderRole extends Role {
         LOGGER.info("[{}] Received ACCEPT from {}: {}",
             getOwner().getName(), message.getSender(), request);
 
+        // Try to reserve a room
+        HotelAgent hotelAgent = (HotelAgent) getOwner();
+        if (!hotelAgent.reserveRoom()) {
+            LOGGER.info("[{}] Room no longer available - sending refusal",
+                getOwner().getName());
+            sendRefusal(message.getSender(), "Room no longer available");
+            return;
+        }
+
         // Process the reservation
         ReservationConfirmation confirmation = new ReservationConfirmation(
             request.getRequestId(),
@@ -262,10 +301,21 @@ public class HotelProviderRole extends Role {
 
         currentNegotiations.put(offer.getProposalId(), 1);
 
-        if (offer.getOfferedPrice() >= minAcceptablePrice) {
+        double effectiveMin = getEffectiveMinPrice();
+        HotelAgent ha = (HotelAgent) getOwner();
+        if (effectiveMin > baseMinPrice) {
+            LOGGER.info("[{}] Demand pressure: {}/{} rooms occupied → min price raised from ${} to ${}",
+                getOwner().getName(), ha.getTotalRooms() - ha.getAvailableRooms(), ha.getTotalRooms(),
+                String.format("%.0f", baseMinPrice), String.format("%.0f", effectiveMin));
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "DEMAND_PRESSURE",
+                String.format("High demand: %d/%d rooms occupied — minimum price raised to $%.0f (was $%.0f)",
+                    ha.getTotalRooms() - ha.getAvailableRooms(), ha.getTotalRooms(), effectiveMin, baseMinPrice));
+        }
+
+        if (offer.getOfferedPrice() >= effectiveMin) {
             // Customer's offer is acceptable - accept negotiation
             LOGGER.info("[{}] Customer offer ${} is acceptable (min: ${}). Accepting negotiation.",
-                getOwner().getName(), offer.getOfferedPrice(), minAcceptablePrice);
+                getOwner().getName(), offer.getOfferedPrice(), effectiveMin);
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
                 String.format("Accepted offer $%.0f/night", offer.getOfferedPrice()));
 
@@ -308,7 +358,9 @@ public class HotelProviderRole extends Role {
 
         currentNegotiations.put(offer.getProposalId(), round);
 
-        if (offer.getOfferedPrice() >= minAcceptablePrice) {
+        double effectiveMin = getEffectiveMinPrice();
+
+        if (offer.getOfferedPrice() >= effectiveMin) {
             // Accept the counter-offer
             LOGGER.info("[{}] Accepting counter-offer of ${}", getOwner().getName(), offer.getOfferedPrice());
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
@@ -324,7 +376,7 @@ public class HotelProviderRole extends Role {
             currentNegotiations.remove(offer.getProposalId());
         } else if (round >= offer.getMaxRounds()) {
             // Last round - send final offer or reject
-            double finalPrice = minAcceptablePrice;
+            double finalPrice = effectiveMin;
             LOGGER.info("[{}] Final round. Sending last offer: ${}", getOwner().getName(), finalPrice);
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
                 String.format("Final offer: $%.0f/night", finalPrice));
@@ -364,6 +416,15 @@ public class HotelProviderRole extends Role {
         LOGGER.info("[{}] Received NegotiateAccept from {}: {}",
             getOwner().getName(), message.getSender(), request);
 
+        // Try to reserve a room
+        HotelAgent hotelAgent = (HotelAgent) getOwner();
+        if (!hotelAgent.reserveRoom()) {
+            LOGGER.info("[{}] Room no longer available - sending refusal",
+                getOwner().getName());
+            sendRefusal(message.getSender(), "Room no longer available");
+            return;
+        }
+
         double negotiatedPrice = request.getNegotiatedPrice() > 0
             ? request.getNegotiatedPrice() : basePrice;
 
@@ -395,15 +456,16 @@ public class HotelProviderRole extends Role {
     }
 
     /**
-     * Calculate the hotel's counter-offer price based on round progress.
-     * Strategy: start from basePrice, reduce towards minAcceptablePrice as rounds progress.
-     * Higher flexibility = faster price reduction.
+     * Calculate the hotel's counter-offer price based on round progress and demand.
+     * Strategy: start from basePrice, reduce towards effectiveMinPrice as rounds progress.
+     * Higher flexibility = faster price reduction. Scarce rooms = higher floor.
      */
     private double calculateHotelCounterOffer(int round, int maxRounds) {
+        double effectiveMin = getEffectiveMinPrice();
         double progress = (double) round / maxRounds;
-        double reduction = (basePrice - minAcceptablePrice) * progress * negotiationFlexibility;
+        double reduction = (basePrice - effectiveMin) * progress * negotiationFlexibility;
         double counterPrice = basePrice - reduction;
-        return Math.max(counterPrice, minAcceptablePrice);
+        return Math.max(counterPrice, effectiveMin);
     }
 
     // Configuration methods

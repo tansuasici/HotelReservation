@@ -123,4 +123,94 @@
     "model" : "glm-4.7:cloud",
     "temperature" : 0.7
   }
+}, {
+  "name" : "Customer-6",
+  "displayName" : "Customer-6",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-7",
+  "displayName" : "Customer-7",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-8",
+  "displayName" : "Customer-8",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-9",
+  "displayName" : "Customer-9",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-10",
+  "displayName" : "Customer-10",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-11",
+  "displayName" : "Customer-11",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-12",
+  "displayName" : "Customer-12",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-13",
+  "displayName" : "Customer-13",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-14",
+  "displayName" : "Customer-14",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-15",
+  "displayName" : "Customer-15",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
 } ]

@@ -20,8 +20,9 @@ import java.util.stream.Collectors;
 
 import hotel.reservation.agent.CustomerAgent;
 import hotel.reservation.agent.HotelAgent;
+import hotel.reservation.api.HotelApiClient;
+import hotel.reservation.api.HotelDataServer;
 import hotel.reservation.data.model.Hotel;
-import hotel.reservation.data.repository.HotelRepository;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.CustomerRole;
 import hotel.reservation.role.HotelProviderRole;
@@ -32,15 +33,16 @@ import org.slf4j.LoggerFactory;
  * Hotel Reservation Playground - Main simulation environment.
  * Sets up the Directory Facilitator, Hotel Agents, and Customer Agents.
  *
- * Hotel data is loaded directly from HotelRepository (hotel-data.json).
- * No external API dependency required.
+ * Hotel data is fetched from the Hotel Data API (Javalin REST server on port 7070).
  */
 public class HotelReservationPlayground extends Playground {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelReservationPlayground.class);
+    private static final int API_PORT = 7070;
 
     private DirectoryFacilitator directoryFacilitator;
     private NetworkEnvironment hotelEnv;
+    private HotelDataServer hotelDataServer;
     private final List<HotelAgent> hotelAgents = new ArrayList<>();
     private final List<CustomerAgent> customerAgents = new ArrayList<>();
 
@@ -59,13 +61,23 @@ public class HotelReservationPlayground extends Playground {
         LOGGER.info("╚════════════════════════════════════════════════════════╝");
         LOGGER.info("");
 
+        // Start Hotel Data API server
+        hotelDataServer = new HotelDataServer(API_PORT);
+        try {
+            hotelDataServer.start();
+            Runtime.getRuntime().addShutdownHook(new Thread(this::stopDataServer));
+        } catch (Exception e) {
+            LOGGER.warn("Could not start Hotel Data API on port {}: {}", API_PORT, e.getMessage());
+            hotelDataServer = null;
+        }
+
         // Create NetworkEnvironment - provides JGraphT graph topology + messaging
         hotelEnv = create(new NetworkEnvironment("HotelEnv"));
 
         // Create Directory Facilitator
         directoryFacilitator = create(new DirectoryFacilitator("DF"));
 
-        // Create Hotel Agents - data loaded directly from HotelRepository
+        // Create Hotel Agents - data fetched from API (fallback: local repository)
         createHotelAgents();
 
         // Create Customer Agents
@@ -85,17 +97,14 @@ public class HotelReservationPlayground extends Playground {
     }
 
     /**
-     * Create hotel agents by loading data directly from HotelRepository.
+     * Create hotel agents by fetching data from the Hotel Data API.
      */
     private void createHotelAgents() {
-        LOGGER.info("Loading hotels from repository...");
+        HotelApiClient apiClient = new HotelApiClient(API_PORT);
+        List<Hotel> hotels = apiClient.fetchAllHotels();
+        LOGGER.info("Fetched {} hotels from API (http://localhost:{})", hotels.size(), API_PORT);
 
-        HotelRepository hotelRepository = new HotelRepository();
-        hotelRepository.initialize();
-
-        List<Hotel> hotels = hotelRepository.findAll();
         int successCount = 0;
-
         for (Hotel hotel : hotels) {
             HotelAgent agent = create(new HotelAgent(
                 hotel.getId(),
@@ -108,13 +117,13 @@ public class HotelReservationPlayground extends Playground {
             hotelAgents.add(agent);
             if (agent.isDataLoaded()) {
                 successCount++;
-                LOGGER.info("  ✓ {} - {} ({}★ ${}/night)",
+                LOGGER.info("  {} - {} ({}★ ${}/night)",
                     agent.getHotelId(), agent.getHotelName(),
                     agent.getRank(), agent.getBasePrice());
             }
         }
 
-        LOGGER.info("Loaded {}/{} hotels from repository", successCount, hotels.size());
+        LOGGER.info("Loaded {}/{} hotels from API", successCount, hotels.size());
     }
 
     /**
@@ -123,11 +132,32 @@ public class HotelReservationPlayground extends Playground {
     private void createCustomerAgents() {
         // name, city, minStars, maxPrice
         Object[][] specs = {
-            {"Customer-1", "Istanbul", 5, 480.0},   // 2 Istanbul 5★ match → picks cheapest, negotiates
-            {"Customer-2", "Ankara",   3, 280.0},   // Ankara Business Hotel $250 → negotiation
-            {"Customer-3", "Istanbul", 3, 180.0},   // Budget Inn Istanbul $150 → negotiation
-            {"Customer-4", "Izmir",    3, 350.0},   // Sea View Resort $300 → negotiation
-            {"Customer-5", "Antalya",  4, 550.0},   // Antalya Beach Resort $500 → negotiation
+            // --- Istanbul cluster (5 customers competing for 3 hotels) ---
+            {"Customer-1",  "Istanbul", 5, 480.0},   // Luxury Palace $400 or Grand $450 → negotiation
+            {"Customer-2",  "Istanbul", 5, 470.0},   // Same 5★ Istanbul → competes with C1
+            {"Customer-3",  "Istanbul", 3, 180.0},   // Budget Inn $150 → negotiation
+            {"Customer-4",  "Istanbul", 3, 170.0},   // Same Budget Inn → competes with C3 for rooms
+            {"Customer-5",  "Istanbul", 4, 320.0},   // Mid-range → may fail (no 4★ Istanbul hotel)
+
+            // --- Ankara (2 customers, 1 hotel) ---
+            {"Customer-6",  "Ankara",   3, 280.0},   // Ankara Business $250 → negotiation
+            {"Customer-7",  "Ankara",   3, 260.0},   // Same hotel → competes with C6
+
+            // --- Izmir (2 customers, 1 hotel) ---
+            {"Customer-8",  "Izmir",    3, 350.0},   // Sea View Resort $300 → negotiation
+            {"Customer-9",  "Izmir",    3, 320.0},   // Same resort → competes for rooms
+
+            // --- Antalya (2 customers, 1 hotel) ---
+            {"Customer-10", "Antalya",  4, 550.0},   // Antalya Beach $500 → negotiation
+            {"Customer-11", "Antalya",  3, 280.0},   // Budget Antalya → likely FAIL (no 3★ match)
+
+            // --- Nevsehir (2 customers, 1 hotel) ---
+            {"Customer-12", "Nevsehir", 4, 400.0},   // Cappadocia Cave $350 → negotiation
+            {"Customer-13", "Nevsehir", 4, 380.0},   // Same hotel → competes with C12
+
+            // --- Mugla (2 customers, 1 hotel) ---
+            {"Customer-14", "Mugla",    3, 300.0},   // Bodrum Boutique $280 → negotiation
+            {"Customer-15", "Mugla",    3, 290.0},   // Same hotel → competes for last room
         };
 
         for (Object[] s : specs) {
@@ -212,6 +242,16 @@ public class HotelReservationPlayground extends Playground {
     }
 
     /**
+     * Stop the Hotel Data API server if it is running.
+     */
+    public void stopDataServer() {
+        if (hotelDataServer != null) {
+            hotelDataServer.stop();
+            hotelDataServer = null;
+        }
+    }
+
+    /**
      * Get neighbors of an agent in the hotel network.
      */
     public List<Agent> getAgentNeighbors(Agent agent) {
@@ -274,11 +314,19 @@ public class HotelReservationPlayground extends Playground {
                 node.put("displayName", agent.getDisplayName());
                 node.put("type", agent.getClass().getSimpleName());
 
+                // LLM model from @AgentSpec annotation
+                AgentSpec spec = agent.getClass().getAnnotation(AgentSpec.class);
+                if (spec != null && !spec.llm().model().isEmpty()) {
+                    node.put("model", spec.llm().model());
+                }
+
                 if (agent instanceof HotelAgent ha) {
                     node.put("hotelId", ha.getHotelId());
                     node.put("location", ha.getLocation());
                     node.put("rank", ha.getRank());
                     node.put("basePrice", ha.getBasePrice());
+                    node.put("availableRooms", ha.getAvailableRooms());
+                    node.put("totalRooms", ha.getTotalRooms());
                 } else if (agent instanceof CustomerAgent ca) {
                     node.put("location", ca.getDesiredLocation());
                     node.put("desiredRank", ca.getDesiredRank());
@@ -317,12 +365,11 @@ public class HotelReservationPlayground extends Playground {
     }
 
     /**
-     * Write hotels.json from HotelRepository data.
+     * Write hotels.json by fetching data from the Hotel Data API.
      */
     private void writeHotels(ObjectMapper mapper, Path outputDir) throws IOException {
-        HotelRepository repo = new HotelRepository();
-        repo.initialize();
-        List<Hotel> hotels = repo.findAll();
+        HotelApiClient apiClient = new HotelApiClient(API_PORT);
+        List<Hotel> hotels = apiClient.fetchAllHotels();
         mapper.writeValue(outputDir.resolve("hotels.json").toFile(), hotels);
         LOGGER.info("  Written: hotels.json ({} hotels)", hotels.size());
     }
@@ -346,6 +393,9 @@ public class HotelReservationPlayground extends Playground {
                 if (role != null) {
                     cMap.put("state", role.getCustomerState().name());
                     cMap.put("negotiationRound", role.getNegotiationRound());
+                    if (role.getNegotiatingWith() != null) {
+                        cMap.put("negotiatingHotel", role.getNegotiatingWith().getHotelName());
+                    }
                     if (role.getSelectedProposal() != null) {
                         cMap.put("selectedHotel", role.getSelectedProposal().getHotelName());
                         cMap.put("selectedPrice", role.getSelectedProposal().getPricePerNight());
@@ -430,7 +480,7 @@ public class HotelReservationPlayground extends Playground {
         Path promptsDir = outputDir.resolve("prompts");
         try {
             Files.createDirectories(promptsDir);
-            SCOPBridge bridge = new SCOPBridge();
+            SCOPBridge bridge = SCOPBridge.getInstance();
             int count = 0;
 
             for (CustomerAgent customer : customerAgents) {

@@ -11,6 +11,8 @@ import hotel.reservation.role.HotelProviderRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
+
 /**
  * Hotel Agent - Represents a hotel in the multi-agent system.
  * Data is loaded directly from HotelRepository (no HTTP calls).
@@ -37,6 +39,10 @@ public class HotelAgent extends Agent {
     private double basePrice;
     private boolean dataLoaded = false;
 
+    // Room capacity (1-3 rooms per hotel)
+    private final int totalRooms;
+    private int availableRooms;
+
     /**
      * Create a hotel agent with pre-loaded data.
      *
@@ -54,6 +60,8 @@ public class HotelAgent extends Agent {
         this.rank = rank;
         this.basePrice = basePrice;
         this.dataLoaded = true;
+        this.totalRooms = new Random().nextInt(3) + 1;
+        this.availableRooms = totalRooms;
     }
 
     @Override
@@ -100,6 +108,16 @@ public class HotelAgent extends Agent {
     @Override
     public String getDisplayName() {
         return hotelName != null ? hotelName : getName();
+    }
+
+    // Room capacity
+    public int getTotalRooms() { return totalRooms; }
+    public int getAvailableRooms() { return availableRooms; }
+
+    public synchronized boolean reserveRoom() {
+        if (availableRooms <= 0) return false;
+        availableRooms--;
+        return true;
     }
 
     // Getters

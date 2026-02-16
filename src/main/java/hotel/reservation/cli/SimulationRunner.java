@@ -9,6 +9,7 @@ import hotel.reservation.role.CustomerRole;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -68,7 +69,7 @@ public class SimulationRunner {
                             for (CustomerAgent c : playground.getCustomerAgents()) {
                                 if (playground.getExecutionState() != ExecutionState.RUNNING) break;
                                 c.startSearch();
-                                try { Thread.sleep(3000); } catch (InterruptedException ignored) { break; }
+                                try { Thread.sleep(1500); } catch (InterruptedException ignored) { break; }
                             }
                         }).start();
                     }
@@ -89,6 +90,7 @@ public class SimulationRunner {
             // During RUNNING: write output files every tick so frontend sees progress
             if (playground.getExecutionState() == ExecutionState.RUNNING) {
                 playground.writeOutputFiles();
+                writeState("RUNNING", "Simulation running");
 
                 if (allCustomersDone()) {
                     playground.setExecutionState(ExecutionState.ENDED);
@@ -124,7 +126,13 @@ public class SimulationRunner {
 
     private static void writeState(String state, String message) {
         try {
-            String json = MAPPER.writeValueAsString(Map.of("state", state, "message", message));
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("state", state);
+            map.put("message", message);
+            if (playground != null && playground.getTick() != null) {
+                map.put("currentTick", playground.getTick().now().intValue());
+            }
+            String json = MAPPER.writeValueAsString(map);
             Files.writeString(STATE_FILE, json, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
             System.err.println("[Runner] Failed to write state: " + e.getMessage());

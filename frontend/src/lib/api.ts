@@ -16,6 +16,70 @@ export async function chatWithAgent(
   return res.json();
 }
 
+/** SSE streaming chat — calls onToken for each text chunk, onTool for tool calls, onDone with final history */
+export async function streamChatWithAgent(
+  agentId: string,
+  message: string,
+  callbacks: {
+    onToken: (token: string) => void;
+    onTool?: (toolName: string) => void;
+    onDone: (history: ChatMessage[]) => void;
+    onError: (error: string) => void;
+  }
+): Promise<void> {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agentId, message }),
+  });
+
+  if (!res.ok || !res.body) {
+    const body = await res.json().catch(() => ({}));
+    callbacks.onError(body.error || `API ${res.status}`);
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() || "";
+
+    for (const part of parts) {
+      const line = part.trim();
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const data = JSON.parse(line.slice(6));
+        if (data.token) callbacks.onToken(data.token);
+        if (data.tool) callbacks.onTool?.(data.tool);
+        if (data.done) callbacks.onDone(data.history);
+        if (data.error) callbacks.onError(data.error);
+      } catch { /* skip invalid */ }
+    }
+  }
+
+  // Process remaining buffer
+  if (buffer.trim()) {
+    for (const part of buffer.split("\n\n")) {
+      const line = part.trim();
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const data = JSON.parse(line.slice(6));
+        if (data.token) callbacks.onToken(data.token);
+        if (data.tool) callbacks.onTool?.(data.tool);
+        if (data.done) callbacks.onDone(data.history);
+        if (data.error) callbacks.onError(data.error);
+      } catch { /* skip */ }
+    }
+  }
+}
+
 export async function getChatHistory(
   agentId: string
 ): Promise<ChatMessage[]> {

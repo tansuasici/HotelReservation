@@ -11,70 +11,95 @@
     "name" : "Hotel-h008",
     "displayName" : "Bodrum Boutique Hotel",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h008",
     "location" : "Mugla",
     "rank" : 4,
-    "basePrice" : 280.0
+    "basePrice" : 280.0,
+    "availableRooms" : 0,
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h001",
     "displayName" : "Grand Istanbul Hotel",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h001",
     "location" : "Istanbul",
     "rank" : 5,
-    "basePrice" : 450.0
+    "basePrice" : 450.0,
+    "availableRooms" : 1,
+    "totalRooms" : 1
   }, {
     "name" : "Hotel-h002",
     "displayName" : "Luxury Palace Istanbul",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h002",
     "location" : "Istanbul",
     "rank" : 5,
-    "basePrice" : 400.0
+    "basePrice" : 400.0,
+    "availableRooms" : 0,
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h003",
     "displayName" : "Budget Inn Istanbul",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h003",
     "location" : "Istanbul",
     "rank" : 3,
-    "basePrice" : 150.0
+    "basePrice" : 150.0,
+    "availableRooms" : 1,
+    "totalRooms" : 3
   }, {
     "name" : "Hotel-h004",
     "displayName" : "Sea View Resort",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h004",
     "location" : "Izmir",
     "rank" : 4,
-    "basePrice" : 300.0
+    "basePrice" : 300.0,
+    "availableRooms" : 0,
+    "totalRooms" : 1
   }, {
     "name" : "Hotel-h005",
     "displayName" : "Ankara Business Hotel",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h005",
     "location" : "Ankara",
     "rank" : 4,
-    "basePrice" : 250.0
+    "basePrice" : 250.0,
+    "availableRooms" : 0,
+    "totalRooms" : 1
   }, {
     "name" : "Hotel-h006",
     "displayName" : "Cappadocia Cave Hotel",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h006",
     "location" : "Nevsehir",
     "rank" : 5,
-    "basePrice" : 350.0
+    "basePrice" : 350.0,
+    "availableRooms" : 0,
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h007",
     "displayName" : "Antalya Beach Resort",
     "type" : "HotelAgent",
+    "model" : "minimax-m2.1:cloud",
     "hotelId" : "h007",
     "location" : "Antalya",
     "rank" : 5,
-    "basePrice" : 500.0
+    "basePrice" : 500.0,
+    "availableRooms" : 2,
+    "totalRooms" : 3
   }, {
     "name" : "Customer-1",
     "displayName" : "Customer-1",
     "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
     "location" : "Istanbul",
     "desiredRank" : 5,
     "maxPrice" : 480.0
@@ -82,13 +107,15 @@
     "name" : "Customer-2",
     "displayName" : "Customer-2",
     "type" : "CustomerAgent",
-    "location" : "Ankara",
-    "desiredRank" : 3,
-    "maxPrice" : 280.0
+    "model" : "glm-4.7:cloud",
+    "location" : "Istanbul",
+    "desiredRank" : 5,
+    "maxPrice" : 470.0
   }, {
     "name" : "Customer-3",
     "displayName" : "Customer-3",
     "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
     "location" : "Istanbul",
     "desiredRank" : 3,
     "maxPrice" : 180.0
@@ -96,145 +123,467 @@
     "name" : "Customer-4",
     "displayName" : "Customer-4",
     "type" : "CustomerAgent",
-    "location" : "Izmir",
+    "model" : "glm-4.7:cloud",
+    "location" : "Istanbul",
     "desiredRank" : 3,
-    "maxPrice" : 350.0
+    "maxPrice" : 170.0
   }, {
     "name" : "Customer-5",
     "displayName" : "Customer-5",
     "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Istanbul",
+    "desiredRank" : 4,
+    "maxPrice" : 320.0
+  }, {
+    "name" : "Customer-6",
+    "displayName" : "Customer-6",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Ankara",
+    "desiredRank" : 3,
+    "maxPrice" : 280.0
+  }, {
+    "name" : "Customer-7",
+    "displayName" : "Customer-7",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Ankara",
+    "desiredRank" : 3,
+    "maxPrice" : 260.0
+  }, {
+    "name" : "Customer-8",
+    "displayName" : "Customer-8",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Izmir",
+    "desiredRank" : 3,
+    "maxPrice" : 350.0
+  }, {
+    "name" : "Customer-9",
+    "displayName" : "Customer-9",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Izmir",
+    "desiredRank" : 3,
+    "maxPrice" : 320.0
+  }, {
+    "name" : "Customer-10",
+    "displayName" : "Customer-10",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
     "location" : "Antalya",
     "desiredRank" : 4,
     "maxPrice" : 550.0
+  }, {
+    "name" : "Customer-11",
+    "displayName" : "Customer-11",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Antalya",
+    "desiredRank" : 3,
+    "maxPrice" : 280.0
+  }, {
+    "name" : "Customer-12",
+    "displayName" : "Customer-12",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Nevsehir",
+    "desiredRank" : 4,
+    "maxPrice" : 400.0
+  }, {
+    "name" : "Customer-13",
+    "displayName" : "Customer-13",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Nevsehir",
+    "desiredRank" : 4,
+    "maxPrice" : 380.0
+  }, {
+    "name" : "Customer-14",
+    "displayName" : "Customer-14",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Mugla",
+    "desiredRank" : 3,
+    "maxPrice" : 300.0
+  }, {
+    "name" : "Customer-15",
+    "displayName" : "Customer-15",
+    "type" : "CustomerAgent",
+    "model" : "glm-4.7:cloud",
+    "location" : "Mugla",
+    "desiredRank" : 3,
+    "maxPrice" : 290.0
   } ],
   "edges" : [ {
-    "from" : "Hotel-h008",
-    "to" : "Customer-1"
+    "to" : "Customer-1",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h008",
-    "to" : "Customer-2"
+    "to" : "Customer-2",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h008",
-    "to" : "Customer-3"
+    "to" : "Customer-3",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h008",
-    "to" : "Customer-4"
+    "to" : "Customer-4",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h008",
-    "to" : "Customer-5"
+    "to" : "Customer-5",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Customer-1"
+    "to" : "Customer-6",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Customer-2"
+    "to" : "Customer-7",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Customer-3"
+    "to" : "Customer-8",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Customer-4"
+    "to" : "Customer-9",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Customer-5"
+    "to" : "Customer-10",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Hotel-h002"
+    "to" : "Customer-11",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h001",
-    "to" : "Hotel-h003"
+    "to" : "Customer-12",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Customer-1"
+    "to" : "Customer-13",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Customer-2"
+    "to" : "Customer-14",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Customer-3"
+    "to" : "Customer-15",
+    "from" : "Hotel-h008"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Customer-4"
+    "to" : "Customer-1",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Customer-5"
+    "to" : "Customer-2",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h002",
-    "to" : "Hotel-h003"
+    "to" : "Customer-3",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h003",
-    "to" : "Customer-1"
+    "to" : "Customer-4",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h003",
-    "to" : "Customer-2"
+    "to" : "Customer-5",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h003",
-    "to" : "Customer-3"
+    "to" : "Customer-6",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h003",
-    "to" : "Customer-4"
+    "to" : "Customer-7",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h003",
-    "to" : "Customer-5"
+    "to" : "Customer-8",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h004",
-    "to" : "Customer-1"
+    "to" : "Customer-9",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h004",
-    "to" : "Customer-2"
+    "to" : "Customer-10",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h004",
-    "to" : "Customer-3"
+    "to" : "Customer-11",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h004",
-    "to" : "Customer-4"
+    "to" : "Customer-12",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h004",
-    "to" : "Customer-5"
+    "to" : "Customer-13",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h005",
-    "to" : "Customer-1"
+    "to" : "Customer-14",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h005",
-    "to" : "Customer-2"
+    "to" : "Customer-15",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h005",
-    "to" : "Customer-3"
+    "to" : "Hotel-h002",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h005",
-    "to" : "Customer-4"
+    "to" : "Hotel-h003",
+    "from" : "Hotel-h001"
   }, {
-    "from" : "Hotel-h005",
-    "to" : "Customer-5"
+    "to" : "Customer-1",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h006",
-    "to" : "Customer-1"
+    "to" : "Customer-2",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h006",
-    "to" : "Customer-2"
+    "to" : "Customer-3",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h006",
-    "to" : "Customer-3"
+    "to" : "Customer-4",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h006",
-    "to" : "Customer-4"
+    "to" : "Customer-5",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h006",
-    "to" : "Customer-5"
+    "to" : "Customer-6",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h007",
-    "to" : "Customer-1"
+    "to" : "Customer-7",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h007",
-    "to" : "Customer-2"
+    "to" : "Customer-8",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h007",
-    "to" : "Customer-3"
+    "to" : "Customer-9",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h007",
-    "to" : "Customer-4"
+    "to" : "Customer-10",
+    "from" : "Hotel-h002"
   }, {
-    "from" : "Hotel-h007",
-    "to" : "Customer-5"
+    "to" : "Customer-11",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Hotel-h003",
+    "from" : "Hotel-h002"
+  }, {
+    "to" : "Customer-1",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-2",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-3",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-4",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-5",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-6",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-7",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-8",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-9",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-10",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-11",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h003"
+  }, {
+    "to" : "Customer-1",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-2",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-3",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-4",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-5",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-6",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-7",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-8",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-9",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-10",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-11",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h004"
+  }, {
+    "to" : "Customer-1",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-2",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-3",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-4",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-5",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-6",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-7",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-8",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-9",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-10",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-11",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h005"
+  }, {
+    "to" : "Customer-1",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-2",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-3",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-4",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-5",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-6",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-7",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-8",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-9",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-10",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-11",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h006"
+  }, {
+    "to" : "Customer-1",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-2",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-3",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-4",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-5",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-6",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-7",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-8",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-9",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-10",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-11",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-12",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-13",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-14",
+    "from" : "Hotel-h007"
+  }, {
+    "to" : "Customer-15",
+    "from" : "Hotel-h007"
   } ]
 }

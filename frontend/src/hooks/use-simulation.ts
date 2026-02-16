@@ -83,6 +83,7 @@ export function useSimulation() {
   const revealIndexRef = useRef(0);
   const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const simEndedRef = useRef(false);
+  const initPollCountRef = useRef(0);
 
   function stopRevealTimer() {
     if (revealTimerRef.current) {
@@ -97,6 +98,7 @@ export function useSimulation() {
     fullCustomersRef.current = [];
     revealIndexRef.current = 0;
     simEndedRef.current = false;
+    initPollCountRef.current = 0;
   }
 
   /** Reveal the next message and derive customer states */
@@ -139,7 +141,7 @@ export function useSimulation() {
       if (!res.ok) return;
       const data = await res.json();
 
-      // Topology & hotels don't change during simulation — load once
+      // First load: full topology + hotels
       if (!staticLoadedRef.current && data.topology) {
         setTopology(data.topology);
         setHotels(data.hotels || []);
@@ -149,6 +151,25 @@ export function useSimulation() {
           agentCount: data.topology?.nodes?.length || 0,
           registeredHotels: data.hotels?.length || 0,
         }));
+      } else if (staticLoadedRef.current && data.topology) {
+        // Subsequent loads: update availableRooms on hotel nodes
+        setTopology((prev) => {
+          if (!prev) return prev;
+          const freshNodes = data.topology.nodes as { name: string; availableRooms?: number }[];
+          const freshMap = new Map(freshNodes.map((n) => [n.name, n.availableRooms]));
+          let changed = false;
+          const updatedNodes = prev.nodes.map((node) => {
+            if (node.type === "HotelAgent") {
+              const freshRooms = freshMap.get(node.name);
+              if (freshRooms != null && freshRooms !== node.availableRooms) {
+                changed = true;
+                return { ...node, availableRooms: freshRooms };
+              }
+            }
+            return node;
+          });
+          return changed ? { ...prev, nodes: updatedNodes } : prev;
+        });
       }
 
       // Store full data in refs (progressive reveal will drip-feed to state)
@@ -189,7 +210,23 @@ export function useSimulation() {
         ...prev,
         state: data.state,
         message: data.message || "",
+        currentTick: data.currentTick ?? prev.currentTick,
       }));
+
+      // Still waiting for Java to start — keep polling, don't load data yet
+      if (data.state === "NOT_INITIALIZED") {
+        initPollCountRef.current++;
+        // Timeout after ~30s (20 polls × 1.5s) — Java failed to start
+        if (initPollCountRef.current > 20) {
+          stopPolling();
+          setStatus((prev) => ({
+            ...prev,
+            message: "Java process failed to start. Check console for errors.",
+          }));
+        }
+        return;
+      }
+      initPollCountRef.current = 0;
 
       // Stop polling on stable states: PAUSED, ENDED, or process dead
       if (!data.processAlive || data.state === "PAUSED" || data.state === "ENDED") {
@@ -245,6 +282,8 @@ export function useSimulation() {
         staticLoadedRef.current = false;
         stopPolling();
         resetRevealState();
+        // Clear all chat histories on the backend
+        fetch("/api/chat", { method: "DELETE" }).catch(() => {});
       }
 
       try {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Network as VisNetwork } from "vis-network";
 import { DataSet } from "vis-data";
-import { Orbit, Hotel, User } from "lucide-react";
+import { Orbit, Hotel, User, Loader2 } from "lucide-react";
 import type {
   Topology,
   TopologyNode,
@@ -34,12 +34,17 @@ function buildHotelTooltip(node: TopologyNode): HTMLDivElement {
   const city = node.location || "";
   const stars = node.rank || 0;
   const price = node.basePrice || 0;
+  const available = node.availableRooms;
+  const total = node.totalRooms;
+  const hasRoomInfo = available != null && total != null;
+  const roomColor = available === 0 ? "#ef4444" : "#4ade80";
 
   div.innerHTML =
     `<div style="font-weight:700;font-size:13px;margin-bottom:4px;">${name}</div>` +
     (city ? `<div style="color:#94a3b8;">${city}</div>` : "") +
     (stars ? `<div style="color:#facc15;">${"\u2605".repeat(stars)}</div>` : "") +
-    (price ? `<div style="color:#4ade80;font-weight:600;">$${price}/night</div>` : "");
+    (price ? `<div style="color:#4ade80;font-weight:600;">$${price}/night</div>` : "") +
+    (hasRoomInfo ? `<div style="color:${roomColor};font-weight:600;">${available}/${total} rooms</div>` : "");
 
   return div;
 }
@@ -89,6 +94,7 @@ interface Props {
   simState: SimState;
   onNodeClick: (node: TopologyNode) => void;
   isDark?: boolean;
+  loading?: boolean;
 }
 
 export function NetworkGraph({
@@ -98,6 +104,7 @@ export function NetworkGraph({
   simState,
   onNodeClick,
   isDark = false,
+  loading = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<VisNetwork | null>(null);
@@ -108,16 +115,59 @@ export function NetworkGraph({
   const topoNodesRef = useRef<TopologyNode[]>([]);
   const customersRef = useRef<CustomerStatus[]>([]);
   const lastActivityLen = useRef(0);
+  const graphKeyRef = useRef<string>("");
+  const visDivRef = useRef<HTMLDivElement | null>(null);
 
-  // Build graph when topology changes
+  // Build graph once on first topology; update tooltips on subsequent changes
   useEffect(() => {
-    if (!topology || !containerRef.current) return;
+    if (!topology || !containerRef.current) {
+      // Reset when topology goes null (new setup)
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+      if (visDivRef.current) {
+        visDivRef.current.remove();
+        visDivRef.current = null;
+      }
+      nodesDSRef.current = null;
+      edgesDSRef.current = null;
+      graphKeyRef.current = "";
+      return;
+    }
 
     const agentNodes = topology.nodes.filter(
       (n) => n.type === "HotelAgent" || n.type === "CustomerAgent"
     );
-    const agentNames = new Set(agentNodes.map((n) => n.name));
     topoNodesRef.current = topology.nodes;
+
+    // Structural key — only rebuild when the set of nodes/edges changes
+    const structKey = agentNodes.map((n) => n.name).sort().join(",");
+
+    if (structKey === graphKeyRef.current && nodesDSRef.current) {
+      // Same structure — just update hotel tooltips (e.g. availableRooms changed)
+      for (const n of agentNodes) {
+        if (n.type === "HotelAgent") {
+          try {
+            nodesDSRef.current.update({ id: n.name, title: buildHotelTooltip(n) });
+          } catch { /* node may not exist yet */ }
+        }
+      }
+      return;
+    }
+
+    // New structure — destroy old graph and build fresh
+    if (networkRef.current) {
+      networkRef.current.destroy();
+      networkRef.current = null;
+    }
+    if (visDivRef.current) {
+      visDivRef.current.remove();
+      visDivRef.current = null;
+    }
+    graphKeyRef.current = structKey;
+
+    const agentNames = new Set(agentNodes.map((n) => n.name));
 
     const nodes = agentNodes.map((n) => {
       const isHotel = n.type === "HotelAgent";
@@ -163,8 +213,6 @@ export function NetworkGraph({
         smooth: { type: "continuous" },
       }));
 
-    if (networkRef.current) networkRef.current.destroy();
-
     const nodesDS = new DataSet(nodes);
     const edgesDS = new DataSet(edges);
     nodesDSRef.current = nodesDS;
@@ -179,12 +227,11 @@ export function NetworkGraph({
     nameMapRef.current = nm;
 
     // Create a DOM element outside React's tree for vis-network.
-    // vis-network manipulates its container's children directly,
-    // which conflicts with React's reconciler (removeChild errors).
     const visDiv = document.createElement("div");
     visDiv.style.width = "100%";
     visDiv.style.height = "100%";
     containerRef.current.appendChild(visDiv);
+    visDivRef.current = visDiv;
 
     const network = new VisNetwork(
       visDiv,
@@ -218,7 +265,6 @@ export function NetworkGraph({
     });
 
     network.on("click", (params: { nodes?: string[] }) => {
-      // Hide tooltip on click
       const tip = visDiv.querySelector(".vis-tooltip") as HTMLElement | null;
       if (tip) tip.style.visibility = "hidden";
 
@@ -232,14 +278,22 @@ export function NetworkGraph({
 
     networkRef.current = network;
     lastActivityLen.current = 0;
-
-    return () => {
-      network.destroy();
-      visDiv.remove();
-      networkRef.current = null;
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topology, onNodeClick]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+      if (visDivRef.current) {
+        visDivRef.current.remove();
+        visDivRef.current = null;
+      }
+    };
+  }, []);
 
   // Update colors when theme changes (without rebuilding graph)
   useEffect(() => {
@@ -350,21 +404,33 @@ export function NetworkGraph({
         style={{ visibility: hasTopology ? "visible" : "hidden" }}
       />
 
-      {/* Empty state — shown on top when no topology */}
+      {/* Empty state / Loading — shown on top when no topology */}
       {!hasTopology && (
         <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/8 border border-indigo-500/10">
-              <Orbit className="h-7 w-7 text-indigo-500/50" />
+          {loading ? (
+            <div className="text-center">
+              <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-indigo-500/60" />
+              <p className="text-sm font-medium text-muted-foreground/70">
+                Initializing agent network...
+              </p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground/30 data-value">
+                Starting Hotel Data API &amp; creating agents
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground/70">
-              Click <span className="font-semibold text-indigo-600">Setup</span>{" "}
-              to initialize the agent network
-            </p>
-            <p className="mt-1.5 text-[11px] text-muted-foreground/30 data-value">
-              7 Hotels &middot; 5 Customers &middot; CNP
-            </p>
-          </div>
+          ) : (
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/8 border border-indigo-500/10">
+                <Orbit className="h-7 w-7 text-indigo-500/50" />
+              </div>
+              <p className="text-sm text-muted-foreground/70">
+                Click <span className="font-semibold text-indigo-600">Setup</span>{" "}
+                to initialize the agent network
+              </p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground/30 data-value">
+                8 Hotels &middot; 15 Customers &middot; CNP
+              </p>
+            </div>
+          )}
         </div>
       )}
 

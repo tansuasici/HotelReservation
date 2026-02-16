@@ -91,7 +91,7 @@ function CustomerCard({ customer: c }: { customer: CustomerStatus }) {
         </div>
       )}
 
-      {c.negotiationRound > 0 && !c.confirmation && (
+      {c.state === "NEGOTIATING" && c.negotiationRound > 0 && (
         <div className="mt-1 text-[10.5px] text-cyan-600">
           Negotiating R{c.negotiationRound} with {c.negotiatingHotel || "?"}
         </div>

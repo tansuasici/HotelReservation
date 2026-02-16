@@ -14,8 +14,11 @@ export interface TopologyNode {
   location?: string;
   rank?: number;
   basePrice?: number;
+  availableRooms?: number;
+  totalRooms?: number;
   desiredRank?: number;
   maxPrice?: number;
+  model?: string;
 }
 
 export interface TopologyEdge {
