@@ -20,9 +20,6 @@
         <scop-core.version>2026.02.03</scop-core.version>
         <scop-ui.version>2026.02.03</scop-ui.version>
 
-        <!-- Spring Boot -->
-        <spring-boot.version>3.2.0</spring-boot.version>
-
         <!-- Logging -->
         <slf4j.version>2.1.0-alpha1</slf4j.version>
 
@@ -62,13 +59,6 @@
             <version>${scop-ui.version}</version>
         </dependency>
 
-        <!-- Spring Boot Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <version>${spring-boot.version}</version>
-        </dependency>
-
         <!-- Jackson JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -84,27 +74,13 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Dotenv for .env file support (Spring integration) -->
-        <dependency>
-            <groupId>me.paulschwarz</groupId>
-            <artifactId>spring-dotenv</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-
-        <!-- Dotenv-java for non-Spring components -->
+        <!-- Dotenv-java for .env file support -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
         </dependency>
 
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <version>${spring-boot.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -131,20 +107,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot Maven Plugin -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
             <!-- Exec Maven Plugin for CLI -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -163,7 +125,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>hotel.reservation.api.HotelReservationApplication</mainClass>
+                            <mainClass>hotel.reservation.cli.HotelReservationCLI</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -193,7 +155,7 @@
                                     <createDependencyReducedPom>false</createDependencyReducedPom>
                                     <transformers>
                                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>hotel.reservation.api.HotelReservationApplication</mainClass>
+                                            <mainClass>hotel.reservation.cli.HotelReservationCLI</mainClass>
                                         </transformer>
                                     </transformers>
                                 </configuration>

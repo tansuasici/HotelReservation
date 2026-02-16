@@ -1,0 +1,18 @@
+{
+  "Environment(s)": {
+    "GRID_NAME": "Grid Environment",
+    "GRID_NUMBER_OF_COLUMNS": 250,
+    "GRID_NUMBER_OF_ROWS": 250,
+    "GRID_CELL_SIZE": 2
+  },
+  "Agent(s)": {
+    "INITIAL_DENSITY": 0.52,
+    "RANDOM_STATE": true
+  },
+  "Run": {
+    "PLAYGROUND_NAME": "ai.scop.lib.ca.life.GameOfLife",
+    "STEP_DELAY": 10,
+    "NUMBER_OF_EPISODES": 1,
+    "TIMEOUT_TICK": 100
+  }
+}

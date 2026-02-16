@@ -2,26 +2,19 @@ package hotel.reservation.agent;
 
 import ai.scop.core.Agent;
 import ai.scop.core.Conversation;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tnsai.annotations.AgentSpec;
 import com.tnsai.annotations.LLMSpec;
 import com.tnsai.annotations.LLMSpec.Provider;
-import hotel.reservation.config.AppConfig;
-import hotel.reservation.data.model.Hotel;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.HotelProviderRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-
 /**
  * Hotel Agent - Represents a hotel in the multi-agent system.
- * Fetches hotel data from Hotel Data API and registers with Directory Facilitator.
+ * Data is loaded directly from HotelRepository (no HTTP calls).
+ * Registers with Directory Facilitator on setup.
  */
 @AgentSpec(
     description = "Hotel service provider agent that handles room reservations",
@@ -36,10 +29,8 @@ public class HotelAgent extends Agent {
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelAgent.class);
 
     private final String hotelId;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
 
-    // These will be populated from API
+    // Pre-loaded hotel data
     private String hotelName;
     private String location;
     private int rank;
@@ -47,19 +38,13 @@ public class HotelAgent extends Agent {
     private boolean dataLoaded = false;
 
     /**
-     * Create a hotel agent that fetches its data from Hotel Data API.
+     * Create a hotel agent with pre-loaded data.
      *
-     * @param hotelId Unique hotel identifier (e.g., "h001")
-     */
-    public HotelAgent(String hotelId) {
-        super("Hotel-" + hotelId);
-        this.hotelId = hotelId;
-        this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = new ObjectMapper();
-    }
-
-    /**
-     * Create a hotel agent with pre-loaded data (for testing or offline mode).
+     * @param hotelId   Unique hotel identifier (e.g., "h001")
+     * @param hotelName Display name of the hotel
+     * @param location  City/location of the hotel
+     * @param rank      Star rating (1-5)
+     * @param basePrice Base price per night
      */
     public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice) {
         super("Hotel-" + hotelId);
@@ -69,22 +54,11 @@ public class HotelAgent extends Agent {
         this.rank = rank;
         this.basePrice = basePrice;
         this.dataLoaded = true;
-        this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = new ObjectMapper();
     }
 
     @Override
     protected void setup() {
         LOGGER.info("[{}] Hotel Agent starting for hotelId: {}", getName(), hotelId);
-
-        // Fetch hotel data from API if not pre-loaded
-        if (!dataLoaded) {
-            boolean success = fetchHotelDataFromAPI();
-            if (!success) {
-                LOGGER.error("[{}] Failed to fetch hotel data from API - agent will not be functional", getName());
-                return;
-            }
-        }
 
         LOGGER.info("[{}] Hotel data loaded: {} ({} star) in {} - ${}/night",
             getName(), hotelName, rank, location, basePrice);
@@ -99,44 +73,6 @@ public class HotelAgent extends Agent {
         registerWithDF();
 
         LOGGER.info("[{}] Hotel Agent ready", getName());
-    }
-
-    /**
-     * Fetch hotel data from Hotel Data API.
-     * This demonstrates the WEB_SERVICE pattern - calling an external REST API.
-     */
-    private boolean fetchHotelDataFromAPI() {
-        String apiUrl = AppConfig.getHotelApiBase() + "/" + hotelId;
-        LOGGER.info("[{}] Fetching hotel data from API: {}", getName(), apiUrl);
-
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                Hotel hotel = objectMapper.readValue(response.body(), Hotel.class);
-
-                this.hotelName = hotel.getName();
-                this.location = hotel.getCity();
-                this.rank = hotel.getRank();
-                this.basePrice = hotel.getPricePerNight();
-                this.dataLoaded = true;
-
-                LOGGER.info("[{}] Successfully fetched hotel data from API", getName());
-                return true;
-            } else {
-                LOGGER.error("[{}] API returned status {}: {}", getName(), response.statusCode(), response.body());
-                return false;
-            }
-        } catch (Exception e) {
-            LOGGER.error("[{}] Failed to fetch hotel data from API: {}", getName(), e.getMessage());
-            return false;
-        }
     }
 
     /**

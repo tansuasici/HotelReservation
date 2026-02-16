@@ -7,6 +7,7 @@ import ai.scop.core.messaging.Message;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
+import hotel.reservation.ActivityLog;
 import hotel.reservation.message.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,6 +181,8 @@ public class HotelProviderRole extends Role {
 
         LOGGER.info("[{}] Sending proposal to {}: {} - ${}/night",
             getOwner().getName(), customer, hotelName, basePrice);
+        ActivityLog.log(hotelName, customer.getAgentName(), "PROPOSAL",
+            String.format("%s - $%.0f/night, %d★", hotelName, basePrice, rank));
 
         // Use Role's sendMessage method
         sendMessage(MessageTypes.MSG_PROPOSAL, proposal, customer);
@@ -192,6 +195,7 @@ public class HotelProviderRole extends Role {
     private void sendRefusal(Identifier customer, String reason) {
         LOGGER.info("[{}] Sending refusal to {}: {}",
             getOwner().getName(), customer, reason);
+        ActivityLog.log(hotelName, customer.getAgentName(), "REFUSE", reason);
 
         sendMessage(MessageTypes.MSG_REFUSE, reason, customer);
     }
@@ -222,6 +226,8 @@ public class HotelProviderRole extends Role {
             getOwner().getName(),
             confirmation.getConfirmationNumber(),
             confirmation.getTotalPrice());
+        ActivityLog.log(hotelName, message.getSender().getAgentName(), "CONFIRM",
+            String.format("Confirmed! #%s - $%.0f total", confirmation.getConfirmationNumber(), confirmation.getTotalPrice()));
 
         // Send confirmation using Role's sendMessage
         sendMessage(MessageTypes.MSG_CONFIRM, confirmation, message.getSender());
@@ -260,6 +266,8 @@ public class HotelProviderRole extends Role {
             // Customer's offer is acceptable - accept negotiation
             LOGGER.info("[{}] Customer offer ${} is acceptable (min: ${}). Accepting negotiation.",
                 getOwner().getName(), offer.getOfferedPrice(), minAcceptablePrice);
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
+                String.format("Accepted offer $%.0f/night", offer.getOfferedPrice()));
 
             NegotiationOffer acceptance = new NegotiationOffer(
                 offer.getProposalId(), hotelId, hotelName,
@@ -274,6 +282,8 @@ public class HotelProviderRole extends Role {
             double counterPrice = calculateHotelCounterOffer(1, offer.getMaxRounds());
             LOGGER.info("[{}] Counter-offering ${} (customer offered ${})",
                 getOwner().getName(), counterPrice, offer.getOfferedPrice());
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
+                String.format("Counter: $%.0f/night (round 1)", counterPrice));
 
             NegotiationOffer counter = new NegotiationOffer(
                 offer.getProposalId(), hotelId, hotelName,
@@ -301,6 +311,8 @@ public class HotelProviderRole extends Role {
         if (offer.getOfferedPrice() >= minAcceptablePrice) {
             // Accept the counter-offer
             LOGGER.info("[{}] Accepting counter-offer of ${}", getOwner().getName(), offer.getOfferedPrice());
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
+                String.format("Accepted $%.0f/night (round %d)", offer.getOfferedPrice(), round));
 
             NegotiationOffer acceptance = new NegotiationOffer(
                 offer.getProposalId(), hotelId, hotelName,
@@ -314,6 +326,8 @@ public class HotelProviderRole extends Role {
             // Last round - send final offer or reject
             double finalPrice = minAcceptablePrice;
             LOGGER.info("[{}] Final round. Sending last offer: ${}", getOwner().getName(), finalPrice);
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
+                String.format("Final offer: $%.0f/night", finalPrice));
 
             NegotiationOffer finalOffer = new NegotiationOffer(
                 offer.getProposalId(), hotelId, hotelName,
@@ -327,6 +341,8 @@ public class HotelProviderRole extends Role {
             // Counter with a lower price
             double counterPrice = calculateHotelCounterOffer(round, offer.getMaxRounds());
             LOGGER.info("[{}] Counter-offering ${} in round {}", getOwner().getName(), counterPrice, round);
+            ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
+                String.format("Counter: $%.0f/night (round %d)", counterPrice, round));
 
             NegotiationOffer counter = new NegotiationOffer(
                 offer.getProposalId(), hotelId, hotelName,
@@ -370,6 +386,9 @@ public class HotelProviderRole extends Role {
         LOGGER.info("[{}] Negotiated reservation CONFIRMED: {} - ${}/night (was ${}, {}% off)",
             getOwner().getName(), confirmation.getConfirmationNumber(),
             negotiatedPrice, basePrice, String.format("%.1f", confirmation.getDiscountPercent()));
+        ActivityLog.log(hotelName, message.getSender().getAgentName(), "CONFIRM",
+            String.format("Confirmed! #%s - $%.0f/night (was $%.0f, %.1f%% off)",
+                confirmation.getConfirmationNumber(), negotiatedPrice, basePrice, confirmation.getDiscountPercent()));
 
         sendMessage(MessageTypes.MSG_CONFIRM, confirmation, message.getSender());
         currentNegotiations.remove(request.getProposalId());

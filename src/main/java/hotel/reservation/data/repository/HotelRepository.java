@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hotel.reservation.data.model.Hotel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 
-import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,14 +15,12 @@ import java.util.stream.Collectors;
  * In-memory repository for hotel data.
  * Loads data from hotel-data.json on initialization.
  */
-@Repository
 public class HotelRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelRepository.class);
     private final Map<String, Hotel> hotels = new HashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostConstruct
     public void initialize() {
         loadFromJson();
         LOGGER.info("HotelRepository initialized with {} hotels", hotels.size());

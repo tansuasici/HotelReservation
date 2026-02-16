@@ -1185,6 +1185,9 @@ curl "http://localhost:8080/api/hotel/df/search?location=Istanbul&minRank=4"
 | 10. Weather API | [x] **DONE** | WEB_SERVICE pattern (WeatherController) |
 | 11. Negotiation | [ ] Pending | Bonus feature |
 | 12. Testing | [ ] Pending | Integration tests |
+| 13. Frontend UI Redesign | [x] **DONE** | Orbital Command theme, Geist fonts, glassmorphism |
+| 14. Frontend Layout Fix | [x] **DONE** | Fixed sidebars, overflow-hidden, useCallback graph |
+| 15. Chat 500 Fix | [ ] **In Progress** | Backend chat endpoint investigation |
 
 ---
 

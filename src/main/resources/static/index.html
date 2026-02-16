@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Reservation MAS - Network Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #1a1d23;
+            --bg-card: #22262e;
+            --bg-card-hover: #2a2f38;
+            --border-color: #333842;
+            --text-primary: #e4e6ea;
+            --text-secondary: #8b919a;
+            --accent-blue: #4c9aff;
+            --accent-green: #36b37e;
+            --accent-orange: #ff991f;
+            --accent-red: #ff5630;
+            --accent-purple: #6554c0;
+            --accent-teal: #00b8d9;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Header */
+        .dash-header {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dash-header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dash-header h1 i {
+            color: var(--accent-blue);
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel:last-child {
+            border-right: none;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .panel-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Simulation Controls */
+        .sim-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .sim-controls .btn {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            transition: all 0.15s;
+        }
+
+        .btn-sim-setup { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+        .btn-sim-run { background: var(--accent-green); color: #fff; border-color: var(--accent-green); }
+        .btn-sim-pause { background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); }
+        .btn-sim-stop { background: var(--accent-red); color: #fff; border-color: var(--accent-red); }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Status Indicator */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.82rem;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .badge-running { background: rgba(54, 179, 126, 0.15); color: var(--accent-green); }
+        .badge-running .dot { background: var(--accent-green); animation: pulse 1.5s infinite; }
+        .badge-paused { background: rgba(255, 153, 31, 0.15); color: var(--accent-orange); }
+        .badge-paused .dot { background: var(--accent-orange); }
+        .badge-ended { background: rgba(255, 86, 48, 0.15); color: var(--accent-red); }
+        .badge-ended .dot { background: var(--accent-red); }
+        .badge-idle { background: rgba(139, 145, 154, 0.15); color: var(--text-secondary); }
+        .badge-idle .dot { background: var(--text-secondary); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .metric-card {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.2;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .metric-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Network Graph */
+        .graph-container {
+            background: var(--bg-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #network-graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        .graph-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .agent-detail-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 320px;
+            height: 100%;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+            display: none;
+            flex-direction: column;
+            z-index: 20;
+            animation: slideIn 0.2s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .agent-detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .agent-detail-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            font-size: 0.82rem;
+        }
+        .btn-close-panel {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-close-panel:hover { color: var(--text-primary); }
+        .detail-section { margin-bottom: 14px; }
+        .detail-label {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+        .detail-card {
+            background: var(--bg-dark);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+        .graph-legend {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(34, 38, 46, 0.92);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .legend-item:last-child { margin-bottom: 0; }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .legend-star {
+            width: 10px;
+            height: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 10px;
+        }
+
+        /* Hotel Cards */
+        .hotel-card {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            transition: border-color 0.15s;
+            cursor: default;
+        }
+
+        .hotel-card:hover {
+            border-color: var(--border-color);
+        }
+
+        .hotel-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hotel-city {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .hotel-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hotel-stars {
+            color: #ffab00;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .hotel-price {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--accent-green);
+        }
+
+        .city-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(26, 29, 35, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .spinner-border {
+            color: var(--accent-blue);
+        }
+
+        /* Scrollbar */
+        .panel::-webkit-scrollbar {
+            width: 5px;
+        }
+        .panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .panel::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Small-world badge */
+        .sw-yes { color: var(--accent-green); }
+        .sw-no { color: var(--text-secondary); }
+
+        /* Customer status */
+        .cust-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .cust-state-searching { background: rgba(76,154,255,0.15); color: var(--accent-blue); }
+        .cust-state-waiting { background: rgba(255,153,31,0.15); color: var(--accent-orange); }
+        .cust-state-evaluating { background: rgba(101,84,192,0.15); color: var(--accent-purple); }
+        .cust-state-negotiating { background: rgba(0,184,217,0.15); color: var(--accent-teal); }
+        .cust-state-completed { background: rgba(54,179,126,0.15); color: var(--accent-green); }
+        .cust-state-failed { background: rgba(255,86,48,0.15); color: var(--accent-red); }
+
+        .proposal-item {
+            background: var(--bg-dark);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-top: 6px;
+            font-size: 0.8rem;
+        }
+        .proposal-item.winner {
+            border: 1px solid var(--accent-green);
+        }
+        .proposal-price {
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .activity-feed::-webkit-scrollbar { width: 4px; }
+        .activity-feed::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+        .activity-entry {
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            background: var(--bg-dark);
+            font-size: 0.78rem;
+            border-left: 3px solid var(--border-color);
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .activity-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+        .activity-type {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+        }
+        .activity-arrow {
+            font-size: 0.73rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .activity-arrow b { color: var(--text-primary); font-weight: 600; }
+        .activity-detail {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            padding-left: 4px;
+            line-height: 1.3;
+        }
+        .activity-time {
+            font-size: 0.62rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        /* Activity type colors */
+        .at-cfp { background: rgba(76,154,255,0.2); color: var(--accent-blue); }
+        .at-proposal { background: rgba(54,179,126,0.2); color: var(--accent-green); }
+        .at-refuse { background: rgba(255,86,48,0.2); color: var(--accent-red); }
+        .at-accept { background: rgba(54,179,126,0.2); color: var(--accent-green); }
+        .at-reject { background: rgba(255,86,48,0.2); color: var(--accent-red); }
+        .at-confirm { background: rgba(54,179,126,0.25); color: var(--accent-green); }
+        .at-evaluate { background: rgba(101,84,192,0.2); color: var(--accent-purple); }
+        .at-negotiate { background: rgba(0,184,217,0.2); color: var(--accent-teal); }
+        .at-counter_offer { background: rgba(255,153,31,0.2); color: var(--accent-orange); }
+        .at-negotiate_accept { background: rgba(54,179,126,0.2); color: var(--accent-green); }
+        .at-negotiate_reject { background: rgba(255,86,48,0.2); color: var(--accent-red); }
+
+        .ab-cfp { border-left-color: var(--accent-blue); }
+        .ab-proposal { border-left-color: var(--accent-green); }
+        .ab-refuse { border-left-color: var(--accent-red); }
+        .ab-accept { border-left-color: var(--accent-green); }
+        .ab-reject { border-left-color: var(--accent-red); }
+        .ab-confirm { border-left-color: var(--accent-green); }
+        .ab-evaluate { border-left-color: var(--accent-purple); }
+        .ab-negotiate { border-left-color: var(--accent-teal); }
+        .ab-counter_offer { border-left-color: var(--accent-orange); }
+        .ab-negotiate_accept { border-left-color: var(--accent-green); }
+        .ab-negotiate_reject { border-left-color: var(--accent-red); }
+
+        .activity-empty {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        /* Chat */
+        .chat-container { display: flex; flex-direction: column; border-top: 1px solid var(--border-color); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 8px; min-height: 80px; max-height: 200px; }
+        .chat-msg { margin-bottom: 8px; }
+        .chat-msg-user { text-align: right; }
+        .chat-msg-agent { text-align: left; }
+        .chat-bubble { display: inline-block; padding: 6px 10px; border-radius: 10px; max-width: 85%; text-align: left; font-size: 0.8rem; line-height: 1.4; word-break: break-word; }
+        .chat-bubble-user { background: var(--accent-blue); color: #fff; }
+        .chat-bubble-agent { background: var(--bg-dark); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .chat-input-row { display: flex; gap: 6px; padding: 8px; }
+        .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 6px 10px; font-size: 0.82rem; outline: none; }
+        .chat-input:focus { border-color: var(--accent-blue); }
+        .chat-send { background: var(--accent-blue); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; }
+        .chat-send:hover { opacity: 0.9; }
+        .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+        .chat-typing { font-size: 0.75rem; color: var(--text-secondary); padding: 4px 8px; font-style: italic; }
+        .chat-welcome { text-align: center; color: var(--text-secondary); font-size: 0.78rem; padding: 16px 8px; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="dash-header">
+            <h1><i class="bi bi-diagram-3"></i> Hotel Reservation MAS</h1>
+            <div id="header-status">
+                <span class="status-badge badge-idle"><span class="dot"></span> NOT INITIALIZED</span>
+            </div>
+        </div>
+
+        <!-- Left Panel: Controls + Metrics -->
+        <div class="panel">
+            <!-- Simulation Controls -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="bi bi-play-circle"></i> Simulation</div>
+                <div class="sim-controls">
+                    <button class="btn btn-sim-setup" onclick="doAction('setup')">
+                        <i class="bi bi-gear"></i> Setup
+                    </button>
+                    <button class="btn btn-sim-run" onclick="doAction('run')" disabled>
+                        <i class="bi bi-play-fill"></i> Run
+                    </button>
+                    <button class="btn btn-sim-pause" onclick="doAction('pause')" disabled>
+                        <i class="bi bi-pause-fill"></i> Pause
+                    </button>
+                    <button class="btn btn-sim-stop" onclick="doAction('stop')" disabled>
+                        <i class="bi bi-stop-fill"></i> Stop
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="bi bi-info-circle"></i> Status</div>
+                <div class="status-row">
+                    <span class="status-label">State</span>
+                    <span class="status-value" id="stat-state">-</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Tick</span>
+                    <span class="status-value" id="stat-tick">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Agents</span>
+                    <span class="status-value" id="stat-agents">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Hotels (DF)</span>
+                    <span class="status-value" id="stat-hotels">0</span>
+                </div>
+            </div>
+
+            <!-- Customer Status -->
+            <div class="panel-section" id="customer-panel" style="display:none">
+                <div class="panel-title"><i class="bi bi-people-fill"></i> Customers</div>
+                <div id="customer-status"></div>
+            </div>
+
+            <!-- Hotel List -->
+            <div class="panel-section" style="border-bottom:none">
+                <div class="panel-title"><i class="bi bi-building-fill"></i> Hotels</div>
+                <div id="hotel-list">
+                    <div style="color:var(--text-secondary);font-size:0.82rem;text-align:center;padding:20px 0;">
+                        Run <b>Setup</b> to load hotels
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Center: Network Graph -->
+        <div class="graph-container">
+            <div id="graph-placeholder" class="graph-placeholder">
+                <div>
+                    <i class="bi bi-diagram-3" style="font-size:3rem;color:var(--accent-blue);opacity:0.3"></i>
+                    <div style="margin-top:12px;font-size:0.9rem;color:var(--text-secondary)">Click <b>Setup</b> to initialize the agent network</div>
+                    <div style="margin-top:4px;font-size:0.75rem;color:var(--text-secondary);opacity:0.5">7 Hotels &middot; 5 Customers &middot; Contract Net Protocol</div>
+                </div>
+            </div>
+            <div id="network-graph"></div>
+            <div id="graph-loading" class="loading-overlay" style="display:none">
+                <div class="spinner-border"></div>
+            </div>
+            <div class="graph-legend" id="graph-legend" style="display:none">
+                <div class="legend-item"><span class="legend-star" style="color:#ff991f">&#9733;</span> Customer</div>
+                <div id="legend-cities"></div>
+            </div>
+            <!-- Agent Detail + Chat Panel -->
+            <div id="agent-detail" class="agent-detail-panel">
+                <div class="agent-detail-header">
+                    <span id="agent-detail-title"></span>
+                    <button onclick="closeAgentDetail()" class="btn-close-panel">&times;</button>
+                </div>
+                <div id="agent-detail-body" class="agent-detail-body"></div>
+                <div id="agent-chat" class="chat-container" style="display:none">
+                    <div id="chat-messages" class="chat-messages"></div>
+                    <div class="chat-input-row">
+                        <input id="chat-input" class="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()" class="chat-send" id="chat-send-btn"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Agent Messages -->
+        <div class="panel">
+            <div class="panel-section" style="border-bottom:none;flex:1;display:flex;flex-direction:column">
+                <div class="panel-title"><i class="bi bi-chat-left-text"></i> Agent Messages</div>
+                <div id="activity-feed" class="activity-feed">
+                    <div class="activity-empty">Run simulation to see messages</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // City color palette
+        const CITY_COLORS = {
+            'Istanbul': '#4c9aff',
+            'Izmir': '#36b37e',
+            'Ankara': '#ff991f',
+            'Nevsehir': '#6554c0',
+            'Antalya': '#00b8d9',
+            'Bodrum': '#ff5630',
+            'Bursa': '#ffab00',
+        };
+        const DEFAULT_CITY_COLOR = '#8b919a';
+        const CUSTOMER_COLOR = '#ff991f';
+
+        function cityColor(city) {
+            return CITY_COLORS[city] || DEFAULT_CITY_COLOR;
+        }
+
+        // State
+        let network = null;
+        let nodesDS = null;
+        let edgesDS = null;
+        let nameMap = {};
+        let topologyNodes = [];
+        let pollInterval = null;
+        let simState = 'NOT_INITIALIZED';
+        let lastActivityTimestamp = 0;
+        let currentChatAgent = null;
+
+        const MSG_COLORS = {
+            'CFP': '#4c9aff',
+            'PROPOSAL': '#36b37e',
+            'REFUSE': '#ff5630',
+            'ACCEPT': '#36b37e',
+            'REJECT': '#ff5630',
+            'CONFIRM': '#57d9a3',
+            'EVALUATE': '#6554c0',
+            'NEGOTIATE': '#00b8d9',
+            'COUNTER_OFFER': '#ff991f',
+            'NEGOTIATE_ACCEPT': '#36b37e',
+            'NEGOTIATE_REJECT': '#ff5630',
+        };
+
+        // ==========================================
+        // API Helpers
+        // ==========================================
+
+        async function api(path, opts = {}) {
+            const res = await fetch('/api' + path, opts);
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            return res.json();
+        }
+
+        // ==========================================
+        // Simulation Control
+        // ==========================================
+
+        async function doAction(action) {
+            const btns = document.querySelectorAll('.sim-controls .btn');
+            btns.forEach(b => b.disabled = true);
+
+            if (action === 'setup') {
+                document.getElementById('graph-loading').style.display = 'flex';
+            }
+
+            try {
+                const data = await api('/simulation?action=' + action, { method: 'POST' });
+                updateStatus(data);
+
+                if (action === 'setup') {
+                    // Reset state BEFORE loading new data
+                    lastActivityTimestamp = 0;
+                    document.getElementById('activity-feed').innerHTML =
+                        '<div class="activity-empty">Run simulation to see messages</div>';
+
+                    // Load topology + hotels (sets nodesDS, edgesDS, nameMap, topologyNodes)
+                    await Promise.all([loadTopology(), loadHotels()]);
+                    document.getElementById('graph-loading').style.display = 'none';
+                }
+
+                if (action === 'run') {
+                    startPolling();
+                } else if (action === 'stop') {
+                    stopPolling();
+                }
+            } catch (e) {
+                console.error('Action failed:', e);
+                document.getElementById('graph-loading').style.display = 'none';
+            }
+
+            updateButtons();
+        }
+
+        function updateStatus(data) {
+            if (!data) return;
+            simState = data.state || 'NOT_INITIALIZED';
+
+            document.getElementById('stat-state').textContent = simState;
+            document.getElementById('stat-tick').textContent = data.currentTick || 0;
+            document.getElementById('stat-agents').textContent = data.agentCount || 0;
+            document.getElementById('stat-hotels').textContent = data.registeredHotels || 0;
+
+            // Header badge
+            const header = document.getElementById('header-status');
+            let cls = 'badge-idle', label = simState;
+            if (simState === 'RUNNING') cls = 'badge-running';
+            else if (simState === 'PAUSED') cls = 'badge-paused';
+            else if (simState === 'ENDED') cls = 'badge-ended';
+            header.innerHTML = `<span class="status-badge ${cls}"><span class="dot"></span> ${label}</span>`;
+        }
+
+        function updateButtons() {
+            const setup = document.querySelector('.btn-sim-setup');
+            const run = document.querySelector('.btn-sim-run');
+            const pause = document.querySelector('.btn-sim-pause');
+            const stop = document.querySelector('.btn-sim-stop');
+
+            setup.disabled = false;
+            run.disabled = !(simState === 'PAUSED');
+            pause.disabled = !(simState === 'RUNNING');
+            stop.disabled = !(simState === 'RUNNING' || simState === 'PAUSED');
+        }
+
+        // ==========================================
+        // Polling
+        // ==========================================
+
+        function startPolling() {
+            stopPolling();
+            pollInterval = setInterval(async () => {
+                try {
+                    const data = await api('/simulation/status');
+                    updateStatus(data);
+                    updateButtons();
+                    await Promise.all([loadCustomerStatus(), loadActivity()]);
+                    if (data.state === 'ENDED') {
+                        stopPolling();
+                    }
+                } catch (e) { /* ignore */ }
+            }, 1500);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // ==========================================
+        // Network Topology
+        // ==========================================
+
+        async function loadTopology() {
+            try {
+                const data = await api('/network/topology');
+                renderGraph(data.nodes, data.edges);
+            } catch (e) {
+                console.error('Failed to load topology:', e);
+            }
+        }
+
+        function renderGraph(apiNodes, apiEdges) {
+            const container = document.getElementById('network-graph');
+            const cities = new Set();
+            topologyNodes = apiNodes;
+
+            // Filter out system agents (DF, HotelEnv) for cleaner graph
+            const agentNodes = apiNodes.filter(n =>
+                n.type === 'HotelAgent' || n.type === 'CustomerAgent');
+            const agentNames = new Set(agentNodes.map(n => n.name));
+
+            const nodes = agentNodes.map((n, i) => {
+                const isHotel = n.type === 'HotelAgent';
+                const isCustomer = n.type === 'CustomerAgent';
+                const city = n.location || '';
+                if (city) cities.add(city);
+
+                const node = {
+                    id: n.name,
+                    label: isHotel ? (n.displayName || n.name) : n.name,
+                    title: buildTooltip(n),
+                    font: { color: '#e4e6ea', size: 11, strokeWidth: 3, strokeColor: 'rgba(26,29,35,0.8)' },
+                };
+
+                if (isHotel) {
+                    const color = cityColor(city);
+                    node.shape = 'dot';
+                    node.size = 14 + (n.rank || 3) * 3;
+                    node.color = { background: color, border: color, highlight: { background: color, border: '#fff' } };
+                } else if (isCustomer) {
+                    node.shape = 'star';
+                    node.size = 22;
+                    node.color = { background: CUSTOMER_COLOR, border: CUSTOMER_COLOR, highlight: { background: CUSTOMER_COLOR, border: '#fff' } };
+                }
+
+                return node;
+            });
+
+            // Filter edges to only agent-to-agent connections
+            const edges = apiEdges
+                .filter(e => agentNames.has(e.from) && agentNames.has(e.to))
+                .map((e, i) => ({
+                id: 'e' + i,
+                from: e.from,
+                to: e.to,
+                color: { color: 'rgba(139,145,154,0.15)', highlight: 'rgba(76,154,255,0.6)' },
+                width: 1,
+                smooth: { type: 'continuous' },
+            }));
+
+            const options = {
+                physics: {
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -60,
+                        centralGravity: 0.005,
+                        springLength: 180,
+                        springConstant: 0.04,
+                        damping: 0.4,
+                    },
+                    stabilization: { iterations: 150 },
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 150,
+                    zoomView: true,
+                    dragView: true,
+                },
+            };
+
+            if (network) network.destroy();
+            nodesDS = new vis.DataSet(nodes);
+            edgesDS = new vis.DataSet(edges);
+            network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, options);
+
+            // Build name mapping (displayName -> nodeId) for activity animation
+            nameMap = {};
+            apiNodes.forEach(n => {
+                nameMap[n.name] = n.name;
+                if (n.displayName) nameMap[n.displayName] = n.name;
+            });
+
+            // Fit graph after physics stabilization
+            network.once('stabilizationIterationsDone', () => {
+                network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+            });
+
+            // Click node to show agent detail panel, click away to close
+            network.on('click', async function(params) {
+                if (params.nodes && params.nodes.length > 0) {
+                    await showAgentDetail(params.nodes[0]);
+                } else {
+                    closeAgentDetail();
+                }
+            });
+
+            // Hide placeholder
+            const ph = document.getElementById('graph-placeholder');
+            if (ph) ph.style.display = 'none';
+
+            // Legend
+            updateLegend(cities);
+        }
+
+        function buildTooltip(n) {
+            // vis-network requires DOM elements for HTML tooltips
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:6px 10px;font-size:0.82rem;line-height:1.6;background:#22262e;color:#e4e6ea;border-radius:6px;border:1px solid #333842;';
+            if (n.type === 'HotelAgent') {
+                const stars = '\u2605'.repeat(n.rank || 0);
+                div.innerHTML = `<div style="font-weight:600;margin-bottom:2px">${n.displayName || n.name}</div>` +
+                    `<div>${n.location}</div>` +
+                    `<div style="color:#ffab00">${stars}</div>` +
+                    `<div style="color:#36b37e;font-weight:600">$${n.basePrice}/night</div>`;
+            } else if (n.type === 'CustomerAgent') {
+                div.innerHTML = `<div style="font-weight:600;margin-bottom:2px">${n.name}</div>` +
+                    `<div>Looking: ${n.location}</div>` +
+                    `<div>Min: ${n.desiredRank}\u2605</div>` +
+                    `<div style="font-weight:600">Max: $${n.maxPrice}</div>`;
+            } else {
+                div.innerHTML = `<div>${n.name}</div>`;
+            }
+            return div;
+        }
+
+        function updateLegend(cities) {
+            const legendEl = document.getElementById('graph-legend');
+            const citiesEl = document.getElementById('legend-cities');
+            legendEl.style.display = 'block';
+
+            let html = '';
+            for (const city of [...cities].sort()) {
+                html += `<div class="legend-item"><span class="legend-dot" style="background:${cityColor(city)}"></span> ${city}</div>`;
+            }
+            citiesEl.innerHTML = html;
+        }
+
+        // ==========================================
+        // Message Flow Animation
+        // ==========================================
+
+        function animateMessageFlow(from, to, type) {
+            if (!edgesDS || !nodesDS) return;
+            const fromId = nameMap[from] || from;
+            const toId = nameMap[to] || to;
+
+            // Find edge between these nodes
+            const edge = edgesDS.get().find(e =>
+                (e.from === fromId && e.to === toId) || (e.from === toId && e.to === fromId));
+            if (!edge) return;
+
+            const color = MSG_COLORS[type] || '#4c9aff';
+
+            // Flash edge with message color + glow
+            edgesDS.update({
+                id: edge.id,
+                color: { color: color, opacity: 1.0 },
+                width: 5,
+                shadow: { enabled: true, color: color, size: 12 }
+            });
+
+            // Revert after delay
+            setTimeout(() => {
+                try {
+                    edgesDS.update({
+                        id: edge.id,
+                        color: { color: 'rgba(139,145,154,0.15)', highlight: 'rgba(76,154,255,0.6)' },
+                        width: 1,
+                        shadow: { enabled: false }
+                    });
+                } catch(e) {}
+            }, 1800);
+        }
+
+        function updateNodeStates(customers) {
+            if (!nodesDS || !customers) return;
+            const stateColors = {
+                'SEARCHING': '#4c9aff',
+                'WAITING_PROPOSALS': '#ff991f',
+                'EVALUATING': '#6554c0',
+                'NEGOTIATING': '#00b8d9',
+                'COMPLETED': '#36b37e',
+                'FAILED': '#ff5630',
+            };
+
+            for (const c of customers) {
+                const color = stateColors[c.state] || CUSTOMER_COLOR;
+                try {
+                    nodesDS.update({
+                        id: c.customerId,
+                        color: { background: color, border: color, highlight: { background: color, border: '#fff' } }
+                    });
+                } catch(e) {}
+            }
+        }
+
+        // ==========================================
+        // Agent Detail Panel
+        // ==========================================
+
+        async function showAgentDetail(nodeId) {
+            const panel = document.getElementById('agent-detail');
+            const title = document.getElementById('agent-detail-title');
+            const body = document.getElementById('agent-detail-body');
+            const chatContainer = document.getElementById('agent-chat');
+
+            const nodeData = topologyNodes.find(n => n.name === nodeId);
+            if (!nodeData) return;
+
+            const isAgent = nodeData.type === 'CustomerAgent' || nodeData.type === 'HotelAgent';
+            const icon = nodeData.type === 'CustomerAgent'
+                ? '<i class="bi bi-person-fill" style="margin-right:6px"></i>'
+                : '<i class="bi bi-building-fill" style="margin-right:6px"></i>';
+            title.innerHTML = icon + (nodeData.displayName || nodeData.name);
+
+            if (nodeData.type === 'CustomerAgent') {
+                try {
+                    const status = await api('/customer/' + nodeId + '/status');
+                    body.innerHTML = renderCustomerDetail(nodeData, status);
+                } catch(e) {
+                    body.innerHTML = renderCustomerDetail(nodeData, null);
+                }
+            } else if (nodeData.type === 'HotelAgent') {
+                body.innerHTML = renderHotelDetail(nodeData);
+            } else {
+                body.innerHTML = `<div style="color:var(--text-secondary)">System agent: ${nodeData.type}</div>`;
+            }
+
+            if (isAgent) {
+                currentChatAgent = nodeId;
+                chatContainer.style.display = 'flex';
+                if (chatContainer.dataset.agentId !== nodeId) {
+                    document.getElementById('chat-messages').innerHTML =
+                        `<div class="chat-welcome">Chat with <b>${nodeData.displayName || nodeData.name}</b></div>`;
+                    chatContainer.dataset.agentId = nodeId;
+                }
+            } else {
+                chatContainer.style.display = 'none';
+                currentChatAgent = null;
+            }
+
+            panel.style.display = 'flex';
+        }
+
+        function closeAgentDetail() {
+            document.getElementById('agent-detail').style.display = 'none';
+            currentChatAgent = null;
+        }
+
+        async function sendChat() {
+            if (!currentChatAgent) return;
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            input.value = '';
+            appendChatMsg(msg, 'user');
+
+            const btn = document.getElementById('chat-send-btn');
+            btn.disabled = true;
+            appendChatTyping();
+
+            try {
+                const res = await api('/agents/' + currentChatAgent + '/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+                removeChatTyping();
+                appendChatMsg(res.response || 'No response', 'agent');
+            } catch(e) {
+                removeChatTyping();
+                appendChatMsg('Error: ' + e.message, 'agent');
+            }
+
+            btn.disabled = false;
+            input.focus();
+        }
+
+        function appendChatMsg(text, role) {
+            const el = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'chat-msg chat-msg-' + role;
+            div.innerHTML = `<div class="chat-bubble chat-bubble-${role}">${escapeHtml(text)}</div>`;
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function appendChatTyping() {
+            const el = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.id = 'chat-typing';
+            div.className = 'chat-typing';
+            div.textContent = 'Thinking...';
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function removeChatTyping() {
+            const el = document.getElementById('chat-typing');
+            if (el) el.remove();
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        function renderCustomerDetail(nd, status) {
+            let h = '';
+            h += `<div class="detail-section"><div class="detail-label">Search Criteria</div>`;
+            h += `<div class="detail-card">${nd.desiredRank}&#9733; ${nd.location} &middot; max $${nd.maxPrice}</div></div>`;
+
+            if (!status) return h + '<div style="color:var(--text-secondary)">No live data</div>';
+
+            const stateColors = {
+                'SEARCHING': 'var(--accent-blue)', 'WAITING_PROPOSALS': 'var(--accent-orange)',
+                'EVALUATING': 'var(--accent-purple)', 'NEGOTIATING': 'var(--accent-teal)',
+                'COMPLETED': 'var(--accent-green)', 'FAILED': 'var(--accent-red)',
+            };
+            h += `<div class="detail-section"><div class="detail-label">State</div>`;
+            h += `<span style="color:${stateColors[status.state] || 'inherit'};font-weight:600">${status.state}</span></div>`;
+
+            if (status.proposalCount > 0) {
+                h += `<div class="detail-section"><div class="detail-label">Proposals (${status.proposalCount})</div>`;
+                if (status.selectedProposal) {
+                    const p = status.selectedProposal;
+                    h += `<div class="detail-card" style="border:1px solid var(--accent-green)">`;
+                    h += `<div style="font-weight:600">${p.hotelName || p.hotelId}</div>`;
+                    h += `<div style="color:var(--accent-green);font-weight:700">$${p.pricePerNight}/night</div></div>`;
+                }
+                h += `</div>`;
+            }
+
+            if (status.confirmation) {
+                const c = status.confirmation;
+                h += `<div class="detail-section"><div class="detail-label">Reservation</div>`;
+                h += `<div class="detail-card" style="border:1px solid var(--accent-green)">`;
+                h += `<div style="font-weight:600;color:var(--accent-green)">&#10003; Confirmed</div>`;
+                h += `<div>${c.hotelName || ''}</div>`;
+                h += `<div style="font-weight:700">Total: $${c.totalPrice}</div>`;
+                if (c.discountPercent > 0) h += `<div style="color:var(--accent-teal);font-size:0.78rem">${c.discountPercent.toFixed(1)}% discount</div>`;
+                h += `</div></div>`;
+            }
+
+            if (status.negotiationRound > 0) {
+                h += `<div class="detail-section"><div class="detail-label">Negotiation</div>`;
+                h += `<div class="detail-card">Round ${status.negotiationRound} with ${status.negotiatingHotel || '?'}`;
+                if (status.lastOffer) h += `<br>Last offer: $${status.lastOffer}`;
+                h += `</div></div>`;
+            }
+
+            if (status.negotiationHistory && status.negotiationHistory.length > 0) {
+                h += `<div class="detail-section"><div class="detail-label">Negotiation History</div>`;
+                for (const item of status.negotiationHistory) {
+                    h += `<div style="font-size:0.75rem;padding:3px 0;border-bottom:1px solid var(--border-color)">${item}</div>`;
+                }
+                h += `</div>`;
+            }
+
+            return h;
+        }
+
+        function renderHotelDetail(nd) {
+            const stars = '\u2605'.repeat(nd.rank || 0);
+            const color = cityColor(nd.location || '');
+            let h = '';
+            h += `<div class="detail-section"><div class="detail-label">Hotel Info</div>`;
+            h += `<div class="detail-card">`;
+            h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span class="city-dot" style="background:${color}"></span> ${nd.location || ''}</div>`;
+            h += `<div style="color:#ffab00;margin-bottom:4px">${stars}</div>`;
+            h += `<div style="font-weight:700;font-size:1.1rem;color:var(--accent-green)">$${nd.basePrice}/night</div>`;
+            h += `</div></div>`;
+            h += `<div class="detail-section"><div class="detail-label">Agent ID</div>`;
+            h += `<div style="font-family:monospace;font-size:0.78rem">${nd.hotelId || nd.name}</div></div>`;
+            return h;
+        }
+
+        // ==========================================
+        // Network Metrics
+        // ==========================================
+
+        async function loadMetrics() {
+            try {
+                const m = await api('/network/metrics');
+                document.getElementById('m-nodes').textContent = m.nodeCount ?? '-';
+                document.getElementById('m-edges').textContent = m.edgeCount ?? '-';
+                document.getElementById('m-avgdeg').textContent = (m.averageDegree ?? 0).toFixed(2);
+                document.getElementById('m-cluster').textContent = (m.averageClusteringCoefficient ?? 0).toFixed(4);
+                document.getElementById('m-density').textContent = (m.density ?? 0).toFixed(4);
+                document.getElementById('m-diameter').textContent = m.diameter ?? '-';
+
+                const sw = m.smallWorld;
+                const swEl = document.getElementById('m-smallworld');
+                if (sw === true) {
+                    swEl.innerHTML = '<span class="sw-yes">Yes</span>';
+                } else if (sw === false) {
+                    swEl.innerHTML = '<span class="sw-no">No</span>';
+                } else {
+                    swEl.textContent = '-';
+                }
+            } catch (e) {
+                console.error('Failed to load metrics:', e);
+            }
+        }
+
+        // ==========================================
+        // Customer Status
+        // ==========================================
+
+        async function loadCustomerStatus() {
+            try {
+                const data = await api('/customers/status');
+                renderAllCustomerStatuses(data);
+            } catch (e) { /* not available yet */ }
+        }
+
+        function renderAllCustomerStatuses(customers) {
+            if (!customers || customers.length === 0) return;
+            const panel = document.getElementById('customer-panel');
+            const el = document.getElementById('customer-status');
+            panel.style.display = 'block';
+
+            el.innerHTML = customers.map(data => renderOneCustomer(data)).join('');
+
+            // Update customer node colors on the graph based on state
+            updateNodeStates(customers);
+
+            // Auto-stop when all customers reached terminal state
+            const allDone = customers.every(c => c.state === 'COMPLETED' || c.state === 'FAILED');
+            if (allDone && simState === 'RUNNING') {
+                setTimeout(() => doAction('stop'), 2000);
+            }
+        }
+
+        function renderOneCustomer(data) {
+            const state = data.state || 'IDLE';
+            const stateCls = {
+                'SEARCHING': 'cust-state-searching',
+                'WAITING_PROPOSALS': 'cust-state-waiting',
+                'EVALUATING': 'cust-state-evaluating',
+                'NEGOTIATING': 'cust-state-negotiating',
+                'RESERVING': 'cust-state-waiting',
+                'COMPLETED': 'cust-state-completed',
+                'FAILED': 'cust-state-failed',
+            }[state] || '';
+
+            let html = `<div style="margin-bottom:10px;padding:8px;background:var(--bg-dark);border-radius:8px;">`;
+            html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">`;
+            html += `<span style="font-weight:600;font-size:0.82rem"><i class="bi bi-person-fill" style="color:var(--accent-orange);margin-right:4px"></i>${data.customerId}</span>`;
+            html += `<span class="cust-state ${stateCls}" style="margin:0">${state}</span>`;
+            html += `</div>`;
+            html += `<div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:4px">${data.desiredRank}★ ${data.desiredLocation} &middot; max $${data.maxPrice}</div>`;
+
+            // Confirmation
+            if (data.confirmation) {
+                const c = data.confirmation;
+                html += `<div style="font-size:0.72rem;color:var(--accent-green);font-weight:600">&#10003; ${c.hotelName || ''} &middot; $${c.totalPrice}</div>`;
+            }
+            // Selected proposal (no confirmation yet)
+            else if (data.selectedProposal) {
+                const p = data.selectedProposal;
+                html += `<div style="font-size:0.72rem;color:var(--accent-blue)">${p.hotelName || p.hotelId} &middot; $${p.pricePerNight}/night</div>`;
+            }
+            // Negotiation
+            if (data.negotiationRound > 0 && !data.confirmation) {
+                html += `<div style="font-size:0.7rem;color:var(--accent-teal)">Negotiating R${data.negotiationRound} with ${data.negotiatingHotel || '?'}</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        // ==========================================
+        // Activity Feed
+        // ==========================================
+
+        async function loadActivity() {
+            try {
+                const entries = await api('/activity?since=' + lastActivityTimestamp);
+                if (entries.length > 0) {
+                    renderActivity(entries);
+                    lastActivityTimestamp = entries[entries.length - 1].timestamp;
+                }
+            } catch (e) { /* not available yet */ }
+        }
+
+        function renderActivity(newEntries) {
+            const el = document.getElementById('activity-feed');
+            const empty = el.querySelector('.activity-empty');
+            if (empty) empty.remove();
+
+            // Stagger entries so edge animations are visible one by one
+            const delay = Math.min(600, 4000 / Math.max(newEntries.length, 1));
+
+            newEntries.forEach((entry, i) => {
+                setTimeout(() => {
+                    animateMessageFlow(entry.from, entry.to, entry.type);
+
+                    const div = document.createElement('div');
+                    const typeLower = entry.type.toLowerCase();
+                    div.className = 'activity-entry ab-' + typeLower;
+                    div.innerHTML = `
+                        <div class="activity-header">
+                            <span class="activity-type at-${typeLower}">${entry.type}</span>
+                            <span class="activity-arrow"><b>${entry.from}</b> &rarr; <b>${entry.to}</b></span>
+                            <span class="activity-time">${formatTime(entry.timestamp)}</span>
+                        </div>
+                        <div class="activity-detail">${entry.detail}</div>`;
+                    el.appendChild(div);
+                    el.scrollTop = el.scrollHeight;
+                }, i * delay);
+            });
+        }
+
+        function formatTime(ts) {
+            const diff = Date.now() - ts;
+            if (diff < 1000) return 'now';
+            if (diff < 60000) return Math.floor(diff / 1000) + 's ago';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            return new Date(ts).toLocaleTimeString();
+        }
+
+        // ==========================================
+        // Hotel List
+        // ==========================================
+
+        async function loadHotels() {
+            try {
+                const hotels = await api('/data/hotels');
+                renderHotels(hotels);
+            } catch (e) {
+                console.error('Failed to load hotels:', e);
+            }
+        }
+
+        function renderHotels(hotels) {
+            const el = document.getElementById('hotel-list');
+            if (!hotels || hotels.length === 0) {
+                el.innerHTML = '<div style="color:var(--text-secondary);font-size:0.82rem;text-align:center;">No hotels found</div>';
+                return;
+            }
+
+            el.innerHTML = hotels.map(h => {
+                const city = h.location?.city || h.city || h.location || '';
+                const name = h.name || h.hotelName || '';
+                const rank = h.stars || h.rank || 0;
+                const price = h.rooms?.[0]?.pricePerNight ?? h.basePrice ?? h.price ?? 0;
+                const stars = '\u2605'.repeat(rank);
+                const color = cityColor(city);
+
+                return `
+                    <div class="hotel-card">
+                        <div class="hotel-name">
+                            <i class="bi bi-building-fill" style="color:${color}"></i>
+                            ${name}
+                        </div>
+                        <div class="hotel-city"><i class="bi bi-geo-alt"></i> ${city}</div>
+                        <div class="hotel-meta">
+                            <span class="hotel-stars">${stars}</span>
+                            <span class="hotel-price">$${price}</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // ==========================================
+        // Init
+        // ==========================================
+
+        updateButtons();
+    </script>
+</body>
+</html>
