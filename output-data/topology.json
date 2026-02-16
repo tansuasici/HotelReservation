@@ -16,8 +16,8 @@
     "location" : "Mugla",
     "rank" : 4,
     "basePrice" : 280.0,
-    "availableRooms" : 0,
-    "totalRooms" : 2
+    "availableRooms" : 1,
+    "totalRooms" : 3
   }, {
     "name" : "Hotel-h001",
     "displayName" : "Grand Istanbul Hotel",
@@ -27,8 +27,8 @@
     "location" : "Istanbul",
     "rank" : 5,
     "basePrice" : 450.0,
-    "availableRooms" : 1,
-    "totalRooms" : 1
+    "availableRooms" : 3,
+    "totalRooms" : 3
   }, {
     "name" : "Hotel-h002",
     "displayName" : "Luxury Palace Istanbul",
@@ -39,7 +39,7 @@
     "rank" : 5,
     "basePrice" : 400.0,
     "availableRooms" : 0,
-    "totalRooms" : 2
+    "totalRooms" : 1
   }, {
     "name" : "Hotel-h003",
     "displayName" : "Budget Inn Istanbul",
@@ -49,8 +49,8 @@
     "location" : "Istanbul",
     "rank" : 3,
     "basePrice" : 150.0,
-    "availableRooms" : 1,
-    "totalRooms" : 3
+    "availableRooms" : 0,
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h004",
     "displayName" : "Sea View Resort",
@@ -61,7 +61,7 @@
     "rank" : 4,
     "basePrice" : 300.0,
     "availableRooms" : 0,
-    "totalRooms" : 1
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h005",
     "displayName" : "Ankara Business Hotel",
@@ -72,7 +72,7 @@
     "rank" : 4,
     "basePrice" : 250.0,
     "availableRooms" : 0,
-    "totalRooms" : 1
+    "totalRooms" : 2
   }, {
     "name" : "Hotel-h006",
     "displayName" : "Cappadocia Cave Hotel",
@@ -83,7 +83,7 @@
     "rank" : 5,
     "basePrice" : 350.0,
     "availableRooms" : 0,
-    "totalRooms" : 2
+    "totalRooms" : 1
   }, {
     "name" : "Hotel-h007",
     "displayName" : "Antalya Beach Resort",
@@ -93,8 +93,8 @@
     "location" : "Antalya",
     "rank" : 5,
     "basePrice" : 500.0,
-    "availableRooms" : 2,
-    "totalRooms" : 3
+    "availableRooms" : 0,
+    "totalRooms" : 1
   }, {
     "name" : "Customer-1",
     "displayName" : "Customer-1",

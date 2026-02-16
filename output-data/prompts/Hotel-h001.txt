@@ -26,15 +26,15 @@ Hotel service provider that responds to reservation requests
 - **responseRate**: 0.95 (Probability of responding to requests (0.0-1.0))
 - **available**: true (Whether hotel has available rooms)
 - **baseMinPrice**: 382.5 (Base minimum acceptable price (basePrice * 0.85))
-- **negotiationFlexibility**: 0.7147932379480367 (How flexible the hotel is in negotiation (0.0-1.0))
+- **negotiationFlexibility**: 0.7348491462822433 (How flexible the hotel is in negotiation (0.0-1.0))
 
 ## Available Actions
-- **matchesQuery**: Verify if hotel matches customer search criteria [LOCAL]
-- **sendRefusal**: Send refusal message to customer [LOCAL]
-- **sendProposal**: Generate and send a room proposal to customer [LOCAL]
 - **handleCFPMessage**: Process incoming CFP and decide whether to make a proposal [LOCAL]
 - **handleAcceptMessage**: Process reservation acceptance and send confirmation [LOCAL]
 - **handleRejectMessage**: Process proposal rejection from customer [LOCAL]
+- **matchesQuery**: Verify if hotel matches customer search criteria [LOCAL]
+- **sendRefusal**: Send refusal message to customer [LOCAL]
+- **sendProposal**: Generate and send a room proposal to customer [LOCAL]
 - **handleNegotiateStartMessage**: Process customer's negotiation start request [LOCAL]
 - **handleCounterOfferMessage**: Process customer's counter-offer during negotiation [LOCAL]
 - **handleNegotiateAcceptMessage**: Process negotiation acceptance and confirm reservation [LOCAL]

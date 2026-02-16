@@ -6,20 +6,18 @@
   "desiredPrice" : 384.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Luxury Palace Istanbul",
   "selectedHotel" : "Luxury Palace Istanbul",
   "selectedPrice" : 400.0,
-  "confirmationNumber" : "CONF-1771252393554"
+  "confirmationNumber" : "CONF-1771258549808"
 }, {
   "customerId" : "Customer-2",
   "desiredLocation" : "Istanbul",
   "desiredRank" : 5,
   "maxPrice" : 470.0,
   "desiredPrice" : 376.0,
-  "state" : "COMPLETED",
-  "negotiationRound" : 1,
-  "selectedHotel" : "Luxury Palace Istanbul",
-  "selectedPrice" : 400.0,
-  "confirmationNumber" : "CONF-1771252395066"
+  "state" : "FAILED",
+  "negotiationRound" : 0
 }, {
   "customerId" : "Customer-3",
   "desiredLocation" : "Istanbul",
@@ -28,9 +26,10 @@
   "desiredPrice" : 144.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Budget Inn Istanbul",
   "selectedHotel" : "Budget Inn Istanbul",
   "selectedPrice" : 150.0,
-  "confirmationNumber" : "CONF-1771252396576"
+  "confirmationNumber" : "CONF-1771258552828"
 }, {
   "customerId" : "Customer-4",
   "desiredLocation" : "Istanbul",
@@ -39,9 +38,10 @@
   "desiredPrice" : 136.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Budget Inn Istanbul",
   "selectedHotel" : "Budget Inn Istanbul",
   "selectedPrice" : 150.0,
-  "confirmationNumber" : "CONF-1771252398089"
+  "confirmationNumber" : "CONF-1771258554338"
 }, {
   "customerId" : "Customer-5",
   "desiredLocation" : "Istanbul",
@@ -58,17 +58,22 @@
   "desiredPrice" : 224.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Ankara Business Hotel",
   "selectedHotel" : "Ankara Business Hotel",
   "selectedPrice" : 250.0,
-  "confirmationNumber" : "CONF-1771252401106"
+  "confirmationNumber" : "CONF-1771258557344"
 }, {
   "customerId" : "Customer-7",
   "desiredLocation" : "Ankara",
   "desiredRank" : 3,
   "maxPrice" : 260.0,
   "desiredPrice" : 208.0,
-  "state" : "FAILED",
-  "negotiationRound" : 0
+  "state" : "COMPLETED",
+  "negotiationRound" : 2,
+  "negotiatingHotel" : "Ankara Business Hotel",
+  "selectedHotel" : "Ankara Business Hotel",
+  "selectedPrice" : 250.0,
+  "confirmationNumber" : "CONF-1771258558857"
 }, {
   "customerId" : "Customer-8",
   "desiredLocation" : "Izmir",
@@ -77,17 +82,22 @@
   "desiredPrice" : 280.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Sea View Resort",
   "selectedHotel" : "Sea View Resort",
   "selectedPrice" : 300.0,
-  "confirmationNumber" : "CONF-1771252404127"
+  "confirmationNumber" : "CONF-1771258560366"
 }, {
   "customerId" : "Customer-9",
   "desiredLocation" : "Izmir",
   "desiredRank" : 3,
   "maxPrice" : 320.0,
   "desiredPrice" : 256.0,
-  "state" : "FAILED",
-  "negotiationRound" : 0
+  "state" : "COMPLETED",
+  "negotiationRound" : 2,
+  "negotiatingHotel" : "Sea View Resort",
+  "selectedHotel" : "Sea View Resort",
+  "selectedPrice" : 300.0,
+  "confirmationNumber" : "CONF-1771258561873"
 }, {
   "customerId" : "Customer-10",
   "desiredLocation" : "Antalya",
@@ -96,9 +106,10 @@
   "desiredPrice" : 440.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Antalya Beach Resort",
   "selectedHotel" : "Antalya Beach Resort",
   "selectedPrice" : 500.0,
-  "confirmationNumber" : "CONF-1771252407147"
+  "confirmationNumber" : "CONF-1771258563382"
 }, {
   "customerId" : "Customer-11",
   "desiredLocation" : "Antalya",
@@ -115,20 +126,18 @@
   "desiredPrice" : 320.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Cappadocia Cave Hotel",
   "selectedHotel" : "Cappadocia Cave Hotel",
   "selectedPrice" : 350.0,
-  "confirmationNumber" : "CONF-1771252410156"
+  "confirmationNumber" : "CONF-1771258566392"
 }, {
   "customerId" : "Customer-13",
   "desiredLocation" : "Nevsehir",
   "desiredRank" : 4,
   "maxPrice" : 380.0,
   "desiredPrice" : 304.0,
-  "state" : "COMPLETED",
-  "negotiationRound" : 2,
-  "selectedHotel" : "Cappadocia Cave Hotel",
-  "selectedPrice" : 350.0,
-  "confirmationNumber" : "CONF-1771252411665"
+  "state" : "FAILED",
+  "negotiationRound" : 0
 }, {
   "customerId" : "Customer-14",
   "desiredLocation" : "Mugla",
@@ -137,9 +146,10 @@
   "desiredPrice" : 240.0,
   "state" : "COMPLETED",
   "negotiationRound" : 1,
+  "negotiatingHotel" : "Bodrum Boutique Hotel",
   "selectedHotel" : "Bodrum Boutique Hotel",
   "selectedPrice" : 280.0,
-  "confirmationNumber" : "CONF-1771252413172"
+  "confirmationNumber" : "CONF-1771258569408"
 }, {
   "customerId" : "Customer-15",
   "desiredLocation" : "Mugla",
@@ -148,7 +158,8 @@
   "desiredPrice" : 232.0,
   "state" : "COMPLETED",
   "negotiationRound" : 2,
+  "negotiatingHotel" : "Bodrum Boutique Hotel",
   "selectedHotel" : "Bodrum Boutique Hotel",
   "selectedPrice" : 280.0,
-  "confirmationNumber" : "CONF-1771252414673"
+  "confirmationNumber" : "CONF-1771258570918"
 } ]

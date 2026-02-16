@@ -23,23 +23,23 @@ Hotel reservation customer that searches for hotels and makes bookings
 - **desiredRank**: 4 (Minimum star rating required)
 - **maxPrice**: 380.0 (Maximum price per night)
 - **desiredPrice**: 304.0 (Desired price for negotiation)
-- **state**: COMPLETED (Current state in the reservation process)
-- **selectedProposal**: RoomProposal[ebb86c3a-4891-4dc4-aba8-b7a13329fbaa] Cappadocia Cave Hotel - 5 star - $350,00 - standard (Currently selected hotel proposal)
-- **confirmation**: ReservationConfirmation[CONF-1771252411665] Customer-13 at Cappadocia Cave Hotel - $334,40 total (Final reservation confirmation)
-- **negotiationRound**: 2 (Current negotiation round)
+- **state**: FAILED (Current state in the reservation process)
+- **selectedProposal**: null (Currently selected hotel proposal)
+- **confirmation**: null (Final reservation confirmation)
+- **negotiationRound**: 0 (Current negotiation round)
 - **maxNegotiationRounds**: 5 (Maximum negotiation rounds)
-- **negotiatingWith**: RoomProposal[ebb86c3a-4891-4dc4-aba8-b7a13329fbaa] Cappadocia Cave Hotel - 5 star - $350,00 - standard (Proposal being negotiated)
-- **negotiationHistory**: [NegotiationOffer[proposal=ebb86c3a-4891-4dc4-aba8-b7a13329fbaa, hotel=Cappadocia Cave Hotel, offered=$304,00, original=$350,00, round=1/5], NegotiationOffer[proposal=ebb86c3a-4891-4dc4-aba8-b7a13329fbaa, hotel=Cappadocia Cave Hotel, offered=$344,71, original=$350,00, round=1/5], NegotiationOffer[proposal=ebb86c3a-4891-4dc4-aba8-b7a13329fbaa, hotel=Cappadocia Cave Hotel, offered=$334,40, original=$350,00, round=2/5], NegotiationOffer[proposal=ebb86c3a-4891-4dc4-aba8-b7a13329fbaa, hotel=Cappadocia Cave Hotel, offered=$334,40, original=$350,00, round=2/5]] (Negotiation history)
+- **negotiatingWith**: null (Proposal being negotiated)
+- **negotiationHistory**: [] (Negotiation history)
 
 ## Available Actions
-- **startSearch**: Initiate hotel search based on criteria [LOCAL]
-- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
 - **evaluateProposals**: Evaluate all proposals and select the best one [LOCAL]
 - **makeReservation**: Send acceptance to selected hotel and reject others [LOCAL]
 - **startNegotiation**: Start price negotiation with selected hotel [LOCAL]
 - **handleProposalMessage**: Process incoming proposal from hotel [LOCAL]
 - **handleRefuseMessage**: Process refusal from hotel [LOCAL]
 - **handleConfirmMessage**: Process reservation confirmation from hotel [LOCAL]
+- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
+- **startSearch**: Initiate hotel search based on criteria [LOCAL]
 - **queryDirectoryFacilitator**: Query Directory Facilitator for matching hotels [LOCAL]
 - **handleNegotiateRejectMessage**: Process hotel's rejection of negotiation [LOCAL]
 - **handleCounterOfferMessage**: Process hotel's counter-offer during negotiation [LOCAL]
