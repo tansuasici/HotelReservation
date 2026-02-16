@@ -77,7 +77,7 @@ public class HotelProviderRole extends Role {
     private final Random random = new Random();
 
     @State(description = "Probability of responding to requests (0.0-1.0)")
-    private double responseRate = 0.95;  // 95% chance to respond
+    private double responseRate = 1.0;  // 100% for deterministic testing
 
     @State(description = "Whether hotel has available rooms")
     private boolean available = true;

@@ -24,23 +24,25 @@ Hotel reservation customer that searches for hotels and makes bookings
 - **maxPrice**: 260.0 (Maximum price per night)
 - **desiredPrice**: 208.0 (Desired price for negotiation)
 - **state**: COMPLETED (Current state in the reservation process)
-- **selectedProposal**: RoomProposal[b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6] Ankara Business Hotel - 4 star - $250,00 - standard (Currently selected hotel proposal)
-- **confirmation**: ReservationConfirmation[CONF-1771258558857] Customer-7 at Ankara Business Hotel - $228,80 total (Final reservation confirmation)
+- **selectedProposal**: RoomProposal[904ac091-7671-4f15-8278-fcce66917fc8] Ankara Business Hotel - 4 star - $250,00 - standard (Currently selected hotel proposal)
+- **confirmation**: ReservationConfirmation[CONF-1771274750321] Customer-7 at Ankara Business Hotel - $228,80 total (Final reservation confirmation)
 - **negotiationRound**: 2 (Current negotiation round)
 - **maxNegotiationRounds**: 5 (Maximum negotiation rounds)
-- **negotiatingWith**: RoomProposal[b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6] Ankara Business Hotel - 4 star - $250,00 - standard (Proposal being negotiated)
-- **negotiationHistory**: [NegotiationOffer[proposal=b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6, hotel=Ankara Business Hotel, offered=$208,00, original=$250,00, round=1/5], NegotiationOffer[proposal=b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6, hotel=Ankara Business Hotel, offered=$247,73, original=$250,00, round=1/5], NegotiationOffer[proposal=b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6, hotel=Ankara Business Hotel, offered=$228,80, original=$250,00, round=2/5], NegotiationOffer[proposal=b7b1dfd8-fb46-46be-8fe3-bf33fb7fc2d6, hotel=Ankara Business Hotel, offered=$228,80, original=$250,00, round=2/5]] (Negotiation history)
+- **negotiatingWith**: RoomProposal[904ac091-7671-4f15-8278-fcce66917fc8] Ankara Business Hotel - 4 star - $250,00 - standard (Proposal being negotiated)
+- **negotiationHistory**: [NegotiationOffer[proposal=904ac091-7671-4f15-8278-fcce66917fc8, hotel=Ankara Business Hotel, offered=$208,00, original=$250,00, round=1/5], NegotiationOffer[proposal=904ac091-7671-4f15-8278-fcce66917fc8, hotel=Ankara Business Hotel, offered=$246,45, original=$250,00, round=1/5], NegotiationOffer[proposal=904ac091-7671-4f15-8278-fcce66917fc8, hotel=Ankara Business Hotel, offered=$228,80, original=$250,00, round=2/5], NegotiationOffer[proposal=904ac091-7671-4f15-8278-fcce66917fc8, hotel=Ankara Business Hotel, offered=$228,80, original=$250,00, round=2/5]] (Negotiation history)
+- **topCandidates**: [RoomProposal[904ac091-7671-4f15-8278-fcce66917fc8] Ankara Business Hotel - 4 star - $250,00 - standard] (Shortlisted hotel candidates for sequential negotiation)
+- **currentCandidateIndex**: 0 (Current candidate index being negotiated)
 
 ## Available Actions
-- **evaluateProposals**: Evaluate all proposals and select the best one [LOCAL]
-- **makeReservation**: Send acceptance to selected hotel and reject others [LOCAL]
-- **startNegotiation**: Start price negotiation with selected hotel [LOCAL]
+- **startSearch**: Initiate hotel search based on criteria [LOCAL]
+- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
+- **evaluateProposals**: Evaluate all proposals and shortlist top candidates [LOCAL]
+- **makeReservation**: Send acceptance to selected hotel [LOCAL]
 - **handleProposalMessage**: Process incoming proposal from hotel [LOCAL]
 - **handleRefuseMessage**: Process refusal from hotel [LOCAL]
 - **handleConfirmMessage**: Process reservation confirmation from hotel [LOCAL]
-- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
-- **startSearch**: Initiate hotel search based on criteria [LOCAL]
 - **queryDirectoryFacilitator**: Query Directory Facilitator for matching hotels [LOCAL]
+- **startNegotiationWithCandidate**: Start price negotiation with candidate hotel [LOCAL]
 - **handleNegotiateRejectMessage**: Process hotel's rejection of negotiation [LOCAL]
 - **handleCounterOfferMessage**: Process hotel's counter-offer during negotiation [LOCAL]
 - **handleNegotiateAcceptMessage**: Process hotel's acceptance of negotiation offer [LOCAL]

@@ -74,8 +74,10 @@ export async function POST(req: Request) {
     }
 
     // Spawn Java directly (much faster than mvn exec:java)
+    // Classpath file only has dependencies — prepend target/classes for project code
+    const fullCp = join(PROJECT_ROOT, "target", "classes") + ":" + classpath;
     simProcess = spawn("java", [
-      "-cp", classpath,
+      "-cp", fullCp,
       "hotel.reservation.cli.SimulationRunner",
     ], {
       cwd: PROJECT_ROOT,

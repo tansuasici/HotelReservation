@@ -20,9 +20,9 @@ Hotel reservation customer that searches for hotels and makes bookings
 
 ## Current State
 - **desiredLocation**: Istanbul (Desired hotel location/city)
-- **desiredRank**: 4 (Minimum star rating required)
-- **maxPrice**: 320.0 (Maximum price per night)
-- **desiredPrice**: 256.0 (Desired price for negotiation)
+- **desiredRank**: 5 (Minimum star rating required)
+- **maxPrice**: 380.0 (Maximum price per night)
+- **desiredPrice**: 304.0 (Desired price for negotiation)
 - **state**: FAILED (Current state in the reservation process)
 - **selectedProposal**: null (Currently selected hotel proposal)
 - **confirmation**: null (Final reservation confirmation)
@@ -30,17 +30,19 @@ Hotel reservation customer that searches for hotels and makes bookings
 - **maxNegotiationRounds**: 5 (Maximum negotiation rounds)
 - **negotiatingWith**: null (Proposal being negotiated)
 - **negotiationHistory**: [] (Negotiation history)
+- **topCandidates**: [] (Shortlisted hotel candidates for sequential negotiation)
+- **currentCandidateIndex**: 0 (Current candidate index being negotiated)
 
 ## Available Actions
-- **evaluateProposals**: Evaluate all proposals and select the best one [LOCAL]
-- **makeReservation**: Send acceptance to selected hotel and reject others [LOCAL]
-- **startNegotiation**: Start price negotiation with selected hotel [LOCAL]
+- **startSearch**: Initiate hotel search based on criteria [LOCAL]
+- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
+- **evaluateProposals**: Evaluate all proposals and shortlist top candidates [LOCAL]
+- **makeReservation**: Send acceptance to selected hotel [LOCAL]
 - **handleProposalMessage**: Process incoming proposal from hotel [LOCAL]
 - **handleRefuseMessage**: Process refusal from hotel [LOCAL]
 - **handleConfirmMessage**: Process reservation confirmation from hotel [LOCAL]
-- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
-- **startSearch**: Initiate hotel search based on criteria [LOCAL]
 - **queryDirectoryFacilitator**: Query Directory Facilitator for matching hotels [LOCAL]
+- **startNegotiationWithCandidate**: Start price negotiation with candidate hotel [LOCAL]
 - **handleNegotiateRejectMessage**: Process hotel's rejection of negotiation [LOCAL]
 - **handleCounterOfferMessage**: Process hotel's counter-offer during negotiation [LOCAL]
 - **handleNegotiateAcceptMessage**: Process hotel's acceptance of negotiation offer [LOCAL]

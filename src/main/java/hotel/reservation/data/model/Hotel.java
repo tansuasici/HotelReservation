@@ -20,6 +20,7 @@ public class Hotel {
     private int reviewCount;
     private List<String> images;
     private boolean available;
+    private int totalRooms;  // 0 = use default (random 1-3)
 
     public Hotel() {}
 
@@ -64,6 +65,9 @@ public class Hotel {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public int getTotalRooms() { return totalRooms; }
+    public void setTotalRooms(int totalRooms) { this.totalRooms = totalRooms; }
 
     /**
      * Get the city from the location.
@@ -110,6 +114,7 @@ public class Hotel {
         public Builder reviewCount(int count) { hotel.reviewCount = count; return this; }
         public Builder images(List<String> images) { hotel.images = images; return this; }
         public Builder available(boolean available) { hotel.available = available; return this; }
+        public Builder totalRooms(int totalRooms) { hotel.totalRooms = totalRooms; return this; }
 
         public Hotel build() {
             return hotel;

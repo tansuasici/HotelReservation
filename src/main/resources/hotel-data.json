@@ -12,6 +12,7 @@
       "rank": 5,
       "pricePerNight": 450,
       "currency": "USD",
+      "totalRooms": 2,
       "amenities": ["wifi", "pool", "spa", "restaurant", "gym", "parking", "room_service"],
       "roomTypes": ["standard", "deluxe", "suite"],
       "rating": 4.7,
@@ -35,6 +36,7 @@
       "rank": 5,
       "pricePerNight": 400,
       "currency": "USD",
+      "totalRooms": 2,
       "amenities": ["wifi", "pool", "spa", "restaurant", "concierge"],
       "roomTypes": ["standard", "deluxe", "suite", "penthouse"],
       "rating": 4.5,
@@ -58,6 +60,7 @@
       "rank": 3,
       "pricePerNight": 150,
       "currency": "USD",
+      "totalRooms": 1,
       "amenities": ["wifi", "breakfast"],
       "roomTypes": ["standard", "double"],
       "rating": 4.0,
@@ -81,6 +84,7 @@
       "rank": 4,
       "pricePerNight": 300,
       "currency": "USD",
+      "totalRooms": 1,
       "amenities": ["wifi", "pool", "beach", "restaurant", "water_sports"],
       "roomTypes": ["standard", "sea_view", "suite"],
       "rating": 4.6,
@@ -104,6 +108,7 @@
       "rank": 4,
       "pricePerNight": 250,
       "currency": "USD",
+      "totalRooms": 2,
       "amenities": ["wifi", "conference", "restaurant", "gym", "business_center"],
       "roomTypes": ["standard", "business", "executive"],
       "rating": 4.3,
@@ -127,6 +132,7 @@
       "rank": 5,
       "pricePerNight": 350,
       "currency": "USD",
+      "totalRooms": 1,
       "amenities": ["wifi", "spa", "restaurant", "terrace", "balloon_tours", "cave_rooms"],
       "roomTypes": ["cave_standard", "cave_deluxe", "cave_suite"],
       "rating": 4.9,
@@ -150,6 +156,7 @@
       "rank": 5,
       "pricePerNight": 500,
       "currency": "USD",
+      "totalRooms": 2,
       "amenities": ["wifi", "pool", "beach", "spa", "all_inclusive", "kids_club", "water_park"],
       "roomTypes": ["standard", "family", "suite", "villa"],
       "rating": 4.8,
@@ -173,6 +180,7 @@
       "rank": 4,
       "pricePerNight": 280,
       "currency": "USD",
+      "totalRooms": 1,
       "amenities": ["wifi", "pool", "restaurant", "bar", "yacht_tours"],
       "roomTypes": ["standard", "garden_view", "sea_view"],
       "rating": 4.4,
@@ -181,6 +189,78 @@
       "contactInfo": {
         "phone": "+90-252-555-0008",
         "email": "info@bodrumboutique.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h009",
+      "name": "Istanbul Comfort Hotel",
+      "location": {
+        "city": "Istanbul",
+        "country": "TR",
+        "district": "Kadikoy",
+        "coordinates": { "lat": 40.9927, "lng": 29.0230 }
+      },
+      "rank": 4,
+      "pricePerNight": 280,
+      "currency": "USD",
+      "totalRooms": 2,
+      "amenities": ["wifi", "restaurant", "gym", "parking"],
+      "roomTypes": ["standard", "deluxe"],
+      "rating": 4.2,
+      "reviewCount": 340,
+      "images": ["istanbul_comfort_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-216-555-0009",
+        "email": "info@istanbulcomfort.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h010",
+      "name": "Ankara Plaza Hotel",
+      "location": {
+        "city": "Ankara",
+        "country": "TR",
+        "district": "Kizilay",
+        "coordinates": { "lat": 39.9208, "lng": 32.8541 }
+      },
+      "rank": 3,
+      "pricePerNight": 180,
+      "currency": "USD",
+      "totalRooms": 1,
+      "amenities": ["wifi", "breakfast", "parking"],
+      "roomTypes": ["standard", "double"],
+      "rating": 3.9,
+      "reviewCount": 210,
+      "images": ["ankara_plaza_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-312-555-0010",
+        "email": "info@ankaraplaza.com"
+      },
+      "available": true
+    },
+    {
+      "id": "h011",
+      "name": "Antalya Garden Hotel",
+      "location": {
+        "city": "Antalya",
+        "country": "TR",
+        "district": "Konyaalti",
+        "coordinates": { "lat": 36.8810, "lng": 30.6533 }
+      },
+      "rank": 3,
+      "pricePerNight": 200,
+      "currency": "USD",
+      "totalRooms": 1,
+      "amenities": ["wifi", "pool", "garden", "breakfast"],
+      "roomTypes": ["standard", "garden_view"],
+      "rating": 4.1,
+      "reviewCount": 290,
+      "images": ["antalya_garden_1.jpg"],
+      "contactInfo": {
+        "phone": "+90-242-555-0011",
+        "email": "info@antalyagarden.com"
       },
       "available": true
     }

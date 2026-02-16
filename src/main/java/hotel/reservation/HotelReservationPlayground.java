@@ -111,7 +111,8 @@ public class HotelReservationPlayground extends Playground {
                 hotel.getName(),
                 hotel.getCity(),
                 hotel.getRank(),
-                hotel.getPricePerNight()
+                hotel.getPricePerNight(),
+                hotel.getTotalRooms()
             ));
             hotelEnv.add(agent);
             hotelAgents.add(agent);
@@ -131,33 +132,51 @@ public class HotelReservationPlayground extends Playground {
      */
     private void createCustomerAgents() {
         // name, city, minStars, maxPrice
+        // ═══════════════════════════════════════════════════════════════
+        //  Scenario Coverage:
+        //  S1: Top-N 3 candidates + leverage       → C1, C2
+        //  S2: Sequential fallback (room sold out) → C1/C2 cascade
+        //  S3: Room competition (1 room, 2 buyers) → C3 vs C4, C11 vs C12, C14 vs C15
+        //  S4: Demand pressure (scarcity pricing)  → 1-room hotels
+        //  S5: Easy negotiation (big budget)        → C9
+        //  S6: Tight negotiation (budget ~= price) → C3, C4
+        //  S7: Guaranteed FAIL (no match)           → C5
+        //  S8: Single candidate (no leverage)       → C8, C10, C13
+        // ═══════════════════════════════════════════════════════════════
         Object[][] specs = {
-            // --- Istanbul cluster (5 customers competing for 3 hotels) ---
-            {"Customer-1",  "Istanbul", 5, 480.0},   // Luxury Palace $400 or Grand $450 → negotiation
-            {"Customer-2",  "Istanbul", 5, 470.0},   // Same 5★ Istanbul → competes with C1
-            {"Customer-3",  "Istanbul", 3, 180.0},   // Budget Inn $150 → negotiation
-            {"Customer-4",  "Istanbul", 3, 170.0},   // Same Budget Inn → competes with C3 for rooms
-            {"Customer-5",  "Istanbul", 4, 320.0},   // Mid-range → may fail (no 4★ Istanbul hotel)
+            // --- Istanbul (5 customers → 4 hotels) ---
+            // h001: Grand 5★ $450 (2r), h002: Luxury 5★ $400 (2r),
+            // h003: Budget 3★ $150 (1r), h009: Comfort 4★ $280 (2r)
+            {"Customer-1",  "Istanbul", 4, 460.0},   // S1: matches h001,h002,h009 → Top-3 + leverage
+            {"Customer-2",  "Istanbul", 4, 450.0},   // S1+S2: same 3 hotels → competes with C1
+            {"Customer-3",  "Istanbul", 3, 170.0},   // S3+S6: Budget Inn $150 (1 room) → tight budget
+            {"Customer-4",  "Istanbul", 3, 160.0},   // S3+S6: same hotel → room race with C3
+            {"Customer-5",  "Istanbul", 5, 380.0},   // S7: no match (h001=$450, h002=$400 > budget)
 
-            // --- Ankara (2 customers, 1 hotel) ---
-            {"Customer-6",  "Ankara",   3, 280.0},   // Ankara Business $250 → negotiation
-            {"Customer-7",  "Ankara",   3, 260.0},   // Same hotel → competes with C6
+            // --- Ankara (3 customers → 2 hotels) ---
+            // h005: Business 4★ $250 (2r), h010: Plaza 3★ $180 (1r)
+            {"Customer-6",  "Ankara",   3, 280.0},   // S1-partial: matches both → Top-2 + leverage
+            {"Customer-7",  "Ankara",   3, 260.0},   // S2: same 2 hotels → competes with C6
+            {"Customer-8",  "Ankara",   4, 270.0},   // S8: only h005 matches → single candidate
 
-            // --- Izmir (2 customers, 1 hotel) ---
-            {"Customer-8",  "Izmir",    3, 350.0},   // Sea View Resort $300 → negotiation
-            {"Customer-9",  "Izmir",    3, 320.0},   // Same resort → competes for rooms
+            // --- Antalya (2 customers → 2 hotels) ---
+            // h007: Beach 5★ $500 (2r), h011: Garden 3★ $200 (1r)
+            {"Customer-9",  "Antalya",  3, 530.0},   // S5: both match → big budget, easy negotiation
+            {"Customer-10", "Antalya",  5, 520.0},   // S8: only h007 matches → single premium
 
-            // --- Antalya (2 customers, 1 hotel) ---
-            {"Customer-10", "Antalya",  4, 550.0},   // Antalya Beach $500 → negotiation
-            {"Customer-11", "Antalya",  3, 280.0},   // Budget Antalya → likely FAIL (no 3★ match)
+            // --- Izmir (2 customers → 1 hotel, 1 room) ---
+            // h004: Sea View 4★ $300 (1r)
+            {"Customer-11", "Izmir",    3, 340.0},   // S3+S4: 1 room → demand pressure + room race
+            {"Customer-12", "Izmir",    3, 320.0},   // S3: same hotel → loser FAILs
 
-            // --- Nevsehir (2 customers, 1 hotel) ---
-            {"Customer-12", "Nevsehir", 4, 400.0},   // Cappadocia Cave $350 → negotiation
-            {"Customer-13", "Nevsehir", 4, 380.0},   // Same hotel → competes with C12
+            // --- Nevsehir (1 customer → 1 hotel, 1 room) ---
+            // h006: Cave 5★ $350 (1r)
+            {"Customer-13", "Nevsehir", 4, 380.0},   // S8: solo customer, moderate budget
 
-            // --- Mugla (2 customers, 1 hotel) ---
-            {"Customer-14", "Mugla",    3, 300.0},   // Bodrum Boutique $280 → negotiation
-            {"Customer-15", "Mugla",    3, 290.0},   // Same hotel → competes for last room
+            // --- Mugla (2 customers → 1 hotel, 1 room) ---
+            // h008: Bodrum 4★ $280 (1r)
+            {"Customer-14", "Mugla",    3, 300.0},   // S3: 1 room, room competition
+            {"Customer-15", "Mugla",    3, 290.0},   // S3: same hotel → loser FAILs
         };
 
         for (Object[] s : specs) {

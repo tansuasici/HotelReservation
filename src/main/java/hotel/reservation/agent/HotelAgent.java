@@ -53,6 +53,20 @@ public class HotelAgent extends Agent {
      * @param basePrice Base price per night
      */
     public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice) {
+        this(hotelId, hotelName, location, rank, basePrice, 0);
+    }
+
+    /**
+     * Create a hotel agent with pre-loaded data and explicit room count.
+     *
+     * @param hotelId    Unique hotel identifier (e.g., "h001")
+     * @param hotelName  Display name of the hotel
+     * @param location   City/location of the hotel
+     * @param rank       Star rating (1-5)
+     * @param basePrice  Base price per night
+     * @param totalRooms Total room capacity (0 = random 1-3)
+     */
+    public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice, int totalRooms) {
         super("Hotel-" + hotelId);
         this.hotelId = hotelId;
         this.hotelName = hotelName;
@@ -60,8 +74,8 @@ public class HotelAgent extends Agent {
         this.rank = rank;
         this.basePrice = basePrice;
         this.dataLoaded = true;
-        this.totalRooms = new Random().nextInt(3) + 1;
-        this.availableRooms = totalRooms;
+        this.totalRooms = totalRooms > 0 ? totalRooms : new Random().nextInt(3) + 1;
+        this.availableRooms = this.totalRooms;
     }
 
     @Override

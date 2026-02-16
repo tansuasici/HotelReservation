@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Customer Role - Implements the CNP initiator behavior.
@@ -108,6 +109,15 @@ public class CustomerRole extends Role {
 
     @State(description = "Negotiation history")
     private final List<NegotiationOffer> negotiationHistory = new ArrayList<>();
+
+    // Top-N candidate system
+    private static final int MAX_CANDIDATES = 3;
+
+    @State(description = "Shortlisted hotel candidates for sequential negotiation")
+    private List<RoomProposal> topCandidates = new ArrayList<>();
+
+    @State(description = "Current candidate index being negotiated")
+    private int currentCandidateIndex = 0;
 
     public enum CustomerState {
         IDLE,
@@ -208,14 +218,18 @@ public class CustomerRole extends Role {
             maxPrice
         );
 
+        // Register ALL pending responses FIRST to prevent race condition
+        // (a fast REFUSE could trigger evaluation before all CFPs are sent)
+        for (DFEntry hotel : hotels) {
+            pendingResponses.add(hotel.getAgentName());
+        }
+
+        // Now send CFPs
         for (DFEntry hotel : hotels) {
             LOGGER.info("[{}] Sending CFP to {}", getOwner().getName(), hotel.getHotelName());
             ActivityLog.log(getOwner().getName(), hotel.getHotelName(), "CFP",
                 String.format("Looking for %d★ in %s, max $%.0f", desiredRank, desiredLocation, maxPrice));
 
-            pendingResponses.add(hotel.getAgentName());
-
-            // Find the hotel agent and get its HotelProviderRole identifier
             HotelAgent hotelAgent = getAgent(HotelAgent.class, hotel.getAgentName());
             if (hotelAgent != null) {
                 HotelProviderRole hotelRole = hotelAgent.as(HotelProviderRole.class);
@@ -281,9 +295,9 @@ public class CustomerRole extends Role {
     }
 
     /**
-     * Evaluate collected proposals and select the best one.
+     * Evaluate collected proposals: shortlist top candidates for sequential negotiation.
      */
-    @Action(type = ActionType.LOCAL, description = "Evaluate all proposals and select the best one")
+    @Action(type = ActionType.LOCAL, description = "Evaluate all proposals and shortlist top candidates")
     public void evaluateProposals() {
         state = CustomerState.EVALUATING;
 
@@ -297,56 +311,98 @@ public class CustomerRole extends Role {
             return;
         }
 
-        // Select best proposal (lowest price, FCFS for ties)
-        selectedProposal = selectBestProposal();
+        // Shortlist top N candidates sorted by price
+        topCandidates = proposals.values().stream()
+            .sorted(Comparator
+                .comparingDouble(RoomProposal::getPricePerNight)
+                .thenComparingLong(RoomProposal::getTimestamp))
+            .limit(MAX_CANDIDATES)
+            .collect(Collectors.toList());
+        currentCandidateIndex = 0;
 
-        if (selectedProposal != null) {
-            LOGGER.info("[{}] Selected: {} - ${}/night (desired: ${})",
-                getOwner().getName(),
-                selectedProposal.getHotelName(),
-                selectedProposal.getPricePerNight(),
-                desiredPrice);
-            ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "EVALUATE",
-                String.format("Selected best: %s at $%.0f/night", selectedProposal.getHotelName(), selectedProposal.getPricePerNight()));
-
-            if (selectedProposal.getPricePerNight() <= desiredPrice) {
-                // Price is within desired range - accept directly
-                LOGGER.info("[{}] Price ${} <= desired ${} - accepting directly",
-                    getOwner().getName(), selectedProposal.getPricePerNight(), desiredPrice);
-                makeReservation();
-            } else {
-                // Price is above desired but within max - start negotiation
-                LOGGER.info("[{}] Price ${} > desired ${} - starting negotiation",
-                    getOwner().getName(), selectedProposal.getPricePerNight(), desiredPrice);
-                startNegotiation(selectedProposal);
-            }
-        } else {
+        if (topCandidates.isEmpty()) {
             ActivityLog.log(getOwner().getName(), "System", "FAIL",
-                "Could not select a best proposal from received offers");
+                "Could not select any candidate from received offers");
             state = CustomerState.FAILED;
+            return;
+        }
+
+        selectedProposal = topCandidates.get(0);
+
+        // Log shortlist
+        String shortlistStr = topCandidates.stream()
+            .map(p -> String.format("%s ($%.0f)", p.getHotelName(), p.getPricePerNight()))
+            .collect(Collectors.joining(", "));
+        LOGGER.info("[{}] Shortlisted {} candidates: {}", getOwner().getName(), topCandidates.size(), shortlistStr);
+        ActivityLog.log(getOwner().getName(), "System", "SHORTLIST",
+            String.format("Top %d candidates: %s", topCandidates.size(), shortlistStr));
+
+        // Reject proposals NOT in shortlist
+        Set<String> topIds = topCandidates.stream()
+            .map(RoomProposal::getProposalId)
+            .collect(Collectors.toSet());
+        for (RoomProposal other : proposals.values()) {
+            if (!topIds.contains(other.getProposalId())) {
+                rejectProposal(other, "Not in shortlist");
+            }
+        }
+
+        // Best candidate price acceptable? → accept directly
+        if (selectedProposal.getPricePerNight() <= desiredPrice) {
+            LOGGER.info("[{}] Best offer ${} <= desired ${} - accepting directly",
+                getOwner().getName(), selectedProposal.getPricePerNight(), desiredPrice);
+            ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "EVALUATE",
+                String.format("Best price $%.0f ≤ desired $%.0f — accepting directly",
+                    selectedProposal.getPricePerNight(), desiredPrice));
+            rejectRemainingCandidates(0);
+            makeReservation();
+        } else {
+            // Start negotiation with first candidate
+            startNegotiationWithCandidate(0);
         }
     }
 
     /**
-     * Select the best proposal based on price (FCFS for ties).
+     * Send REJECT to a proposal.
      */
-    private RoomProposal selectBestProposal() {
-        return proposals.values().stream()
-            .sorted(Comparator
-                .comparingDouble(RoomProposal::getPricePerNight)
-                .thenComparingLong(RoomProposal::getTimestamp))
-            .findFirst()
-            .orElse(null);
+    private void rejectProposal(RoomProposal proposal, String reason) {
+        LOGGER.info("[{}] Rejecting {} ({})", getOwner().getName(), proposal.getHotelName(), reason);
+        ActivityLog.log(getOwner().getName(), proposal.getHotelName(), "REJECT", reason);
+        HotelAgent hotel = getAgent(HotelAgent.class, "Hotel-" + proposal.getHotelId());
+        if (hotel != null) {
+            HotelProviderRole role = hotel.as(HotelProviderRole.class);
+            if (role != null) {
+                sendMessage(MessageTypes.MSG_REJECT, reason, role.getIdentifier());
+            }
+        }
     }
 
     /**
-     * Make reservation with selected hotel and reject others.
+     * Reject remaining shortlisted candidates (except the one at acceptedIndex).
      */
-    @Action(type = ActionType.LOCAL, description = "Send acceptance to selected hotel and reject others")
+    private void rejectRemainingCandidates(int acceptedIndex) {
+        for (int i = 0; i < topCandidates.size(); i++) {
+            if (i != acceptedIndex) {
+                rejectProposal(topCandidates.get(i), "Another hotel was selected");
+            }
+        }
+    }
+
+    /**
+     * Get the next competing candidate's price for leverage (if available).
+     */
+    private RoomProposal getCompetingCandidate() {
+        int nextIdx = currentCandidateIndex + 1;
+        return nextIdx < topCandidates.size() ? topCandidates.get(nextIdx) : null;
+    }
+
+    /**
+     * Make reservation with selected hotel (direct accept, no negotiation needed).
+     */
+    @Action(type = ActionType.LOCAL, description = "Send acceptance to selected hotel")
     private void makeReservation() {
         state = CustomerState.RESERVING;
 
-        // Send Accept to selected hotel
         ReservationRequest request = new ReservationRequest(
             getOwner().getName(),
             selectedProposal.getProposalId(),
@@ -359,30 +415,11 @@ public class CustomerRole extends Role {
         ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "ACCEPT",
             String.format("Accepting proposal $%.0f/night", selectedProposal.getPricePerNight()));
 
-        // Find the selected hotel agent
         HotelAgent selectedHotel = getAgent(HotelAgent.class, "Hotel-" + selectedProposal.getHotelId());
         if (selectedHotel != null) {
             HotelProviderRole hotelRole = selectedHotel.as(HotelProviderRole.class);
             if (hotelRole != null) {
                 sendMessage(MessageTypes.MSG_ACCEPT, request, hotelRole.getIdentifier());
-            }
-        }
-
-        // Send Reject to other hotels
-        for (RoomProposal proposal : proposals.values()) {
-            if (!proposal.getProposalId().equals(selectedProposal.getProposalId())) {
-                LOGGER.info("[{}] Sending REJECT to {}",
-                    getOwner().getName(), proposal.getHotelName());
-                ActivityLog.log(getOwner().getName(), proposal.getHotelName(), "REJECT",
-                    "Another hotel was selected");
-
-                HotelAgent otherHotel = getAgent(HotelAgent.class, "Hotel-" + proposal.getHotelId());
-                if (otherHotel != null) {
-                    HotelProviderRole otherRole = otherHotel.as(HotelProviderRole.class);
-                    if (otherRole != null) {
-                        sendMessage(MessageTypes.MSG_REJECT, "Another hotel was selected", otherRole.getIdentifier());
-                    }
-                }
             }
         }
     }
@@ -392,11 +429,23 @@ public class CustomerRole extends Role {
     // ==========================================
 
     /**
-     * Start price negotiation with the best proposal.
-     * Sends initial offer at desiredPrice.
+     * Start price negotiation with the candidate at given index.
+     * Uses competing candidate's price as leverage if available.
      */
-    @Action(type = ActionType.LOCAL, description = "Start price negotiation with selected hotel")
-    private void startNegotiation(RoomProposal proposal) {
+    @Action(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel")
+    private void startNegotiationWithCandidate(int candidateIndex) {
+        if (candidateIndex >= topCandidates.size()) {
+            LOGGER.warn("[{}] All {} candidate hotels exhausted — FAILED",
+                getOwner().getName(), topCandidates.size());
+            ActivityLog.log(getOwner().getName(), "System", "FAIL",
+                String.format("All %d candidate hotels exhausted after sequential negotiation", topCandidates.size()));
+            state = CustomerState.FAILED;
+            return;
+        }
+
+        currentCandidateIndex = candidateIndex;
+        RoomProposal proposal = topCandidates.get(candidateIndex);
+        selectedProposal = proposal;
         state = CustomerState.NEGOTIATING;
         negotiatingWith = proposal;
         negotiationRound = 1;
@@ -404,6 +453,14 @@ public class CustomerRole extends Role {
 
         // First offer: desiredPrice
         double offerPrice = desiredPrice;
+
+        // Leverage: mention competing offer
+        RoomProposal competing = getCompetingCandidate();
+        String leverageMsg = "";
+        if (competing != null) {
+            leverageMsg = String.format(" We have a competing offer from another hotel at $%.0f/night.",
+                competing.getPricePerNight());
+        }
 
         NegotiationOffer offer = new NegotiationOffer(
             proposal.getProposalId(),
@@ -413,19 +470,28 @@ public class CustomerRole extends Role {
             proposal.getPricePerNight(),
             negotiationRound,
             maxNegotiationRounds,
-            String.format("We'd like to offer $%.2f per night for %s.", offerPrice, proposal.getHotelName())
+            String.format("We'd like to offer $%.2f per night for %s.%s", offerPrice, proposal.getHotelName(), leverageMsg)
         );
         negotiationHistory.add(offer);
 
         LOGGER.info("");
         LOGGER.info("┌─ NEGOTIATION START ──────────────────────────────────┐");
-        LOGGER.info("│  Customer: {}                                        │", getOwner().getName());
+        LOGGER.info("│  Customer: {}  [candidate {}/{}]                    │",
+            getOwner().getName(), candidateIndex + 1, topCandidates.size());
         LOGGER.info("│  Hotel: {} (${}/night)                              │", proposal.getHotelName(), proposal.getPricePerNight());
         LOGGER.info("│  Our offer: ${}/night                               │", offerPrice);
+        if (competing != null) {
+            LOGGER.info("│  Leverage: {} at ${}/night                          │", competing.getHotelName(), competing.getPricePerNight());
+        }
         LOGGER.info("│  Round: {}/{}                                        │", negotiationRound, maxNegotiationRounds);
         LOGGER.info("└─────────────────────────────────────────────────────┘");
-        ActivityLog.log(getOwner().getName(), proposal.getHotelName(), "NEGOTIATE",
-            String.format("Opening negotiation: offer $%.0f (listed $%.0f)", offerPrice, proposal.getPricePerNight()));
+
+        String logDetail = String.format("Negotiation [%d/%d]: offer $%.0f (listed $%.0f)",
+            candidateIndex + 1, topCandidates.size(), offerPrice, proposal.getPricePerNight());
+        if (competing != null) {
+            logDetail += String.format(" — leverage: %s at $%.0f", competing.getHotelName(), competing.getPricePerNight());
+        }
+        ActivityLog.log(getOwner().getName(), proposal.getHotelName(), "NEGOTIATE", logDetail);
 
         // Send to the hotel's role
         HotelAgent hotelAgent = getAgent(HotelAgent.class, "Hotel-" + proposal.getHotelId());
@@ -435,26 +501,11 @@ public class CustomerRole extends Role {
                 sendMessage(MessageTypes.MSG_NEGOTIATE_START, offer, hotelRole.getIdentifier());
             }
         }
-
-        // Reject other proposals
-        for (RoomProposal other : proposals.values()) {
-            if (!other.getProposalId().equals(proposal.getProposalId())) {
-                LOGGER.info("[{}] Sending REJECT to {}", getOwner().getName(), other.getHotelName());
-                ActivityLog.log(getOwner().getName(), other.getHotelName(), "REJECT",
-                    "Negotiating with another hotel");
-                HotelAgent otherHotel = getAgent(HotelAgent.class, "Hotel-" + other.getHotelId());
-                if (otherHotel != null) {
-                    HotelProviderRole otherRole = otherHotel.as(HotelProviderRole.class);
-                    if (otherRole != null) {
-                        sendMessage(MessageTypes.MSG_REJECT, "Negotiating with another hotel", otherRole.getIdentifier());
-                    }
-                }
-            }
-        }
     }
 
     /**
      * Handle CounterOffer from hotel during negotiation.
+     * Uses leverage (competing candidate price) in counter-offers.
      */
     @Action(type = ActionType.LOCAL, description = "Process hotel's counter-offer during negotiation")
     public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
@@ -466,7 +517,6 @@ public class CustomerRole extends Role {
             hotelOffer.getOfferedPrice(), hotelOffer.getRound(), hotelOffer.getMaxRounds());
 
         if (hotelOffer.getOfferedPrice() <= desiredPrice) {
-            // Hotel's price is at or below our desired price - accept!
             LOGGER.info("[{}] Hotel offer ${} <= desired ${} - accepting!",
                 getOwner().getName(), hotelOffer.getOfferedPrice(), desiredPrice);
             acceptNegotiation(hotelOffer.getOfferedPrice());
@@ -476,21 +526,20 @@ public class CustomerRole extends Role {
         negotiationRound = hotelOffer.getRound() + 1;
 
         if (negotiationRound > maxNegotiationRounds) {
-            // Max rounds exceeded - accept if within maxPrice, otherwise fail
             if (hotelOffer.getOfferedPrice() <= maxPrice) {
                 LOGGER.info("[{}] Max rounds reached. Accepting last offer: ${}",
                     getOwner().getName(), hotelOffer.getOfferedPrice());
                 acceptNegotiation(hotelOffer.getOfferedPrice());
             } else {
-                LOGGER.info("[{}] Max rounds reached. Hotel offer ${} > maxPrice ${}. Rejecting.",
+                LOGGER.info("[{}] Max rounds reached, offer ${} > max ${}. Trying next candidate.",
                     getOwner().getName(), hotelOffer.getOfferedPrice(), maxPrice);
-                rejectNegotiation("Price too high after maximum negotiation rounds");
+                // Reject this hotel and try next candidate
+                rejectAndTryNext("Price too high after maximum negotiation rounds");
             }
             return;
         }
 
-        // Calculate our counter-offer
-        // Strategy: desiredPrice + (maxPrice - desiredPrice) * (round / maxRounds)
+        // Counter-offer strategy with leverage
         double progress = (double) negotiationRound / maxNegotiationRounds;
         double counterPrice = desiredPrice + (maxPrice - desiredPrice) * progress;
 
@@ -502,10 +551,20 @@ public class CustomerRole extends Role {
             return;
         }
 
+        // Leverage message: mention competing offer
+        RoomProposal competing = getCompetingCandidate();
+        String leverageMsg = "";
+        if (competing != null && competing.getPricePerNight() < hotelOffer.getOfferedPrice()) {
+            leverageMsg = String.format(" We have a competing offer at $%.0f/night.", competing.getPricePerNight());
+        }
+
         LOGGER.info("[{}] Counter-offering ${} (round {}/{})",
             getOwner().getName(), counterPrice, negotiationRound, maxNegotiationRounds);
-        ActivityLog.log(getOwner().getName(), hotelOffer.getHotelName(), "COUNTER_OFFER",
-            String.format("Counter: $%.0f/night (round %d/%d)", counterPrice, negotiationRound, maxNegotiationRounds));
+        String logDetail = String.format("Counter: $%.0f/night (round %d/%d)", counterPrice, negotiationRound, maxNegotiationRounds);
+        if (!leverageMsg.isEmpty()) {
+            logDetail += " — with leverage";
+        }
+        ActivityLog.log(getOwner().getName(), hotelOffer.getHotelName(), "COUNTER_OFFER", logDetail);
 
         NegotiationOffer counter = new NegotiationOffer(
             hotelOffer.getProposalId(),
@@ -515,7 +574,7 @@ public class CustomerRole extends Role {
             hotelOffer.getOriginalPrice(),
             negotiationRound,
             maxNegotiationRounds,
-            String.format("How about $%.2f per night?", counterPrice)
+            String.format("How about $%.2f per night?%s", counterPrice, leverageMsg)
         );
         negotiationHistory.add(counter);
 
@@ -544,28 +603,64 @@ public class CustomerRole extends Role {
 
     /**
      * Handle NegotiateReject from hotel - hotel rejected negotiation entirely.
+     * Tries to accept at listed price, or falls back to next candidate.
      */
     @Action(type = ActionType.LOCAL, description = "Process hotel's rejection of negotiation")
     public void handleNegotiateRejectMessage(Message<String> message) {
         LOGGER.info("[{}] Hotel rejected negotiation: {}", getOwner().getName(), message.getPayload());
 
-        // Try to accept at original price if within maxPrice
+        // Option 1: Accept at original listed price if within maxPrice
         if (negotiatingWith != null && negotiatingWith.getPricePerNight() <= maxPrice) {
             LOGGER.info("[{}] Accepting original price ${}", getOwner().getName(), negotiatingWith.getPricePerNight());
             state = CustomerState.EVALUATING;
             negotiatingWith = null;
             negotiationRound = 0;
             makeReservation();
+            return;
+        }
+
+        // Option 2: Try next candidate
+        rejectAndTryNext("Negotiation rejected by hotel");
+    }
+
+    /**
+     * Reject current negotiation and try the next candidate in the shortlist.
+     */
+    private void rejectAndTryNext(String reason) {
+        String currentHotel = negotiatingWith != null ? negotiatingWith.getHotelName() : "unknown";
+
+        if (negotiatingWith != null) {
+            ActivityLog.log(getOwner().getName(), currentHotel, "NEGOTIATE_REJECT", reason);
+            HotelAgent hotelAgent = getAgent(HotelAgent.class, "Hotel-" + negotiatingWith.getHotelId());
+            if (hotelAgent != null) {
+                HotelProviderRole hotelRole = hotelAgent.as(HotelProviderRole.class);
+                if (hotelRole != null) {
+                    sendMessage(MessageTypes.MSG_NEGOTIATE_REJECT, reason, hotelRole.getIdentifier());
+                }
+            }
+        }
+
+        int nextIdx = currentCandidateIndex + 1;
+        if (nextIdx < topCandidates.size()) {
+            LOGGER.info("[{}] Moving to next candidate [{}/{}]: {}",
+                getOwner().getName(), nextIdx + 1, topCandidates.size(),
+                topCandidates.get(nextIdx).getHotelName());
+            ActivityLog.log(getOwner().getName(), topCandidates.get(nextIdx).getHotelName(), "FALLBACK",
+                String.format("Switching from %s to next candidate [%d/%d]",
+                    currentHotel, nextIdx + 1, topCandidates.size()));
+            startNegotiationWithCandidate(nextIdx);
         } else {
-            ActivityLog.log(getOwner().getName(), negotiatingWith != null ? negotiatingWith.getHotelName() : "System",
-                "FAIL", "Negotiation rejected by hotel and no acceptable fallback price available");
+            LOGGER.warn("[{}] All {} candidates exhausted — FAILED", getOwner().getName(), topCandidates.size());
+            ActivityLog.log(getOwner().getName(), "System", "FAIL",
+                String.format("All %d candidate hotels exhausted", topCandidates.size()));
             state = CustomerState.FAILED;
-            LOGGER.warn("[{}] Negotiation failed and no acceptable fallback", getOwner().getName());
+            negotiatingWith = null;
+            negotiationRound = 0;
         }
     }
 
     /**
-     * Accept a negotiated price and proceed to reservation.
+     * Accept a negotiated price, reject remaining candidates, and proceed to reservation.
      */
     private void acceptNegotiation(double agreedPrice) {
         LOGGER.info("");
@@ -576,35 +671,20 @@ public class CustomerRole extends Role {
         LOGGER.info("│  Savings: ${}/night ({}% off)                       │",
             negotiatingWith.getPricePerNight() - agreedPrice,
             String.format("%.1f", ((negotiatingWith.getPricePerNight() - agreedPrice) / negotiatingWith.getPricePerNight()) * 100));
-        LOGGER.info("│  Rounds: {}                                          │", negotiationRound);
+        LOGGER.info("│  Rounds: {}  [candidate {}/{}]                      │",
+            negotiationRound, currentCandidateIndex + 1, topCandidates.size());
         LOGGER.info("└─────────────────────────────────────────────────────┘");
 
         // Update proposal with negotiated price
         negotiatingWith.setNegotiatedPrice(agreedPrice);
         negotiatingWith.setNegotiated(true);
 
+        // Reject remaining candidates that we didn't negotiate with
+        rejectRemainingCandidates(currentCandidateIndex);
+
         // Proceed to reservation
         state = CustomerState.RESERVING;
         makeNegotiatedReservation(agreedPrice);
-    }
-
-    /**
-     * Reject the negotiation.
-     */
-    private void rejectNegotiation(String reason) {
-        if (negotiatingWith != null) {
-            ActivityLog.log(getOwner().getName(), negotiatingWith.getHotelName(), "NEGOTIATE_REJECT", reason);
-            HotelAgent hotelAgent = getAgent(HotelAgent.class, "Hotel-" + negotiatingWith.getHotelId());
-            if (hotelAgent != null) {
-                HotelProviderRole hotelRole = hotelAgent.as(HotelProviderRole.class);
-                if (hotelRole != null) {
-                    sendMessage(MessageTypes.MSG_NEGOTIATE_REJECT, reason, hotelRole.getIdentifier());
-                }
-            }
-        }
-        state = CustomerState.FAILED;
-        negotiatingWith = null;
-        negotiationRound = 0;
     }
 
     /**
@@ -665,4 +745,6 @@ public class CustomerRole extends Role {
     public int getMaxNegotiationRounds() { return maxNegotiationRounds; }
     public RoomProposal getNegotiatingWith() { return negotiatingWith; }
     public List<NegotiationOffer> getNegotiationHistory() { return new ArrayList<>(negotiationHistory); }
+    public List<RoomProposal> getTopCandidates() { return new ArrayList<>(topCandidates); }
+    public int getCurrentCandidateIndex() { return currentCandidateIndex; }
 }

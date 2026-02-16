@@ -15,6 +15,7 @@
   "reviewCount" : 380,
   "images" : [ "bodrum_boutique_1.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Mugla"
 }, {
   "id" : "h001",
@@ -33,6 +34,7 @@
   "reviewCount" : 1250,
   "images" : [ "grand_istanbul_1.jpg", "grand_istanbul_2.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Istanbul"
 }, {
   "id" : "h002",
@@ -51,6 +53,7 @@
   "reviewCount" : 980,
   "images" : [ "luxury_palace_1.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Istanbul"
 }, {
   "id" : "h003",
@@ -69,6 +72,7 @@
   "reviewCount" : 520,
   "images" : [ "budget_inn_1.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Istanbul"
 }, {
   "id" : "h004",
@@ -87,6 +91,7 @@
   "reviewCount" : 750,
   "images" : [ "sea_view_1.jpg", "sea_view_2.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Izmir"
 }, {
   "id" : "h005",
@@ -105,6 +110,7 @@
   "reviewCount" : 420,
   "images" : [ "ankara_business_1.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Ankara"
 }, {
   "id" : "h006",
@@ -123,6 +129,7 @@
   "reviewCount" : 890,
   "images" : [ "cappadocia_cave_1.jpg", "cappadocia_cave_2.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Nevsehir"
 }, {
   "id" : "h007",
@@ -141,5 +148,6 @@
   "reviewCount" : 2100,
   "images" : [ "antalya_beach_1.jpg", "antalya_beach_2.jpg", "antalya_beach_3.jpg" ],
   "available" : true,
+  "totalRooms" : 0,
   "city" : "Antalya"
 } ]

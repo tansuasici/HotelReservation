@@ -64,12 +64,12 @@ public class SimulationRunner {
                     case "run" -> {
                         playground.setExecutionState(ExecutionState.RUNNING);
                         writeState("RUNNING", "Simulation running");
-                        // Stagger customer searches so frontend sees progression
+                        // Stagger customer searches with short delay for frontend visibility
                         new Thread(() -> {
                             for (CustomerAgent c : playground.getCustomerAgents()) {
                                 if (playground.getExecutionState() != ExecutionState.RUNNING) break;
                                 c.startSearch();
-                                try { Thread.sleep(1500); } catch (InterruptedException ignored) { break; }
+                                try { Thread.sleep(300); } catch (InterruptedException ignored) { break; }
                             }
                         }).start();
                     }
@@ -93,6 +93,7 @@ public class SimulationRunner {
                 writeState("RUNNING", "Simulation running");
 
                 if (allCustomersDone()) {
+                    playground.writeOutputFiles(); // Final flush — capture last state
                     playground.setExecutionState(ExecutionState.ENDED);
                     writeState("ENDED", "Simulation completed");
                     running = false;

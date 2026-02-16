@@ -19,28 +19,30 @@ Hotel reservation customer that searches for hotels and makes bookings
 - **CRITICAL LANGUAGE RULE**: You MUST ALWAYS respond in **TR** only. Even if the user writes in a different language, you MUST respond in TR. NEVER respond in any other language. This is a strict requirement.
 
 ## Current State
-- **desiredLocation**: Izmir (Desired hotel location/city)
+- **desiredLocation**: Antalya (Desired hotel location/city)
 - **desiredRank**: 3 (Minimum star rating required)
-- **maxPrice**: 320.0 (Maximum price per night)
-- **desiredPrice**: 256.0 (Desired price for negotiation)
+- **maxPrice**: 530.0 (Maximum price per night)
+- **desiredPrice**: 424.0 (Desired price for negotiation)
 - **state**: COMPLETED (Current state in the reservation process)
-- **selectedProposal**: RoomProposal[23efc209-d0a5-48f7-8410-150fa2d678d0] Sea View Resort - 4 star - $300,00 - standard (Currently selected hotel proposal)
-- **confirmation**: ReservationConfirmation[CONF-1771258561873] Customer-9 at Sea View Resort - $281,60 total (Final reservation confirmation)
+- **selectedProposal**: RoomProposal[56b2164e-7c56-4aa2-9020-25a53dd076c0] Antalya Beach Resort - 5 star - $500,00 - standard (Currently selected hotel proposal)
+- **confirmation**: ReservationConfirmation[CONF-1771274750938] Customer-9 at Antalya Beach Resort - $466,40 total (Final reservation confirmation)
 - **negotiationRound**: 2 (Current negotiation round)
 - **maxNegotiationRounds**: 5 (Maximum negotiation rounds)
-- **negotiatingWith**: RoomProposal[23efc209-d0a5-48f7-8410-150fa2d678d0] Sea View Resort - 4 star - $300,00 - standard (Proposal being negotiated)
-- **negotiationHistory**: [NegotiationOffer[proposal=23efc209-d0a5-48f7-8410-150fa2d678d0, hotel=Sea View Resort, offered=$256,00, original=$300,00, round=1/5], NegotiationOffer[proposal=23efc209-d0a5-48f7-8410-150fa2d678d0, hotel=Sea View Resort, offered=$297,87, original=$300,00, round=1/5], NegotiationOffer[proposal=23efc209-d0a5-48f7-8410-150fa2d678d0, hotel=Sea View Resort, offered=$281,60, original=$300,00, round=2/5], NegotiationOffer[proposal=23efc209-d0a5-48f7-8410-150fa2d678d0, hotel=Sea View Resort, offered=$281,60, original=$300,00, round=2/5]] (Negotiation history)
+- **negotiatingWith**: RoomProposal[56b2164e-7c56-4aa2-9020-25a53dd076c0] Antalya Beach Resort - 5 star - $500,00 - standard (Proposal being negotiated)
+- **negotiationHistory**: [NegotiationOffer[proposal=56b2164e-7c56-4aa2-9020-25a53dd076c0, hotel=Antalya Beach Resort, offered=$424,00, original=$500,00, round=1/5], NegotiationOffer[proposal=56b2164e-7c56-4aa2-9020-25a53dd076c0, hotel=Antalya Beach Resort, offered=$493,54, original=$500,00, round=1/5], NegotiationOffer[proposal=56b2164e-7c56-4aa2-9020-25a53dd076c0, hotel=Antalya Beach Resort, offered=$466,40, original=$500,00, round=2/5], NegotiationOffer[proposal=56b2164e-7c56-4aa2-9020-25a53dd076c0, hotel=Antalya Beach Resort, offered=$466,40, original=$500,00, round=2/5]] (Negotiation history)
+- **topCandidates**: [RoomProposal[56b2164e-7c56-4aa2-9020-25a53dd076c0] Antalya Beach Resort - 5 star - $500,00 - standard] (Shortlisted hotel candidates for sequential negotiation)
+- **currentCandidateIndex**: 0 (Current candidate index being negotiated)
 
 ## Available Actions
-- **evaluateProposals**: Evaluate all proposals and select the best one [LOCAL]
-- **makeReservation**: Send acceptance to selected hotel and reject others [LOCAL]
-- **startNegotiation**: Start price negotiation with selected hotel [LOCAL]
+- **startSearch**: Initiate hotel search based on criteria [LOCAL]
+- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
+- **evaluateProposals**: Evaluate all proposals and shortlist top candidates [LOCAL]
+- **makeReservation**: Send acceptance to selected hotel [LOCAL]
 - **handleProposalMessage**: Process incoming proposal from hotel [LOCAL]
 - **handleRefuseMessage**: Process refusal from hotel [LOCAL]
 - **handleConfirmMessage**: Process reservation confirmation from hotel [LOCAL]
-- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
-- **startSearch**: Initiate hotel search based on criteria [LOCAL]
 - **queryDirectoryFacilitator**: Query Directory Facilitator for matching hotels [LOCAL]
+- **startNegotiationWithCandidate**: Start price negotiation with candidate hotel [LOCAL]
 - **handleNegotiateRejectMessage**: Process hotel's rejection of negotiation [LOCAL]
 - **handleCounterOfferMessage**: Process hotel's counter-offer during negotiation [LOCAL]
 - **handleNegotiateAcceptMessage**: Process hotel's acceptance of negotiation offer [LOCAL]

@@ -21,26 +21,28 @@ Hotel reservation customer that searches for hotels and makes bookings
 ## Current State
 - **desiredLocation**: Istanbul (Desired hotel location/city)
 - **desiredRank**: 3 (Minimum star rating required)
-- **maxPrice**: 170.0 (Maximum price per night)
-- **desiredPrice**: 136.0 (Desired price for negotiation)
+- **maxPrice**: 160.0 (Maximum price per night)
+- **desiredPrice**: 128.0 (Desired price for negotiation)
 - **state**: COMPLETED (Current state in the reservation process)
-- **selectedProposal**: RoomProposal[9bbce23f-4a7e-4f1c-a691-76dc4d831e91] Budget Inn Istanbul - 3 star - $150,00 - standard (Currently selected hotel proposal)
-- **confirmation**: ReservationConfirmation[CONF-1771258554338] Customer-4 at Budget Inn Istanbul - $136,00 total (Final reservation confirmation)
-- **negotiationRound**: 1 (Current negotiation round)
+- **selectedProposal**: RoomProposal[858955c4-38bb-4c48-8f47-74571e4ed3c6] Budget Inn Istanbul - 3 star - $150,00 - standard (Currently selected hotel proposal)
+- **confirmation**: ReservationConfirmation[CONF-1771274749396] Customer-4 at Budget Inn Istanbul - $140,80 total (Final reservation confirmation)
+- **negotiationRound**: 2 (Current negotiation round)
 - **maxNegotiationRounds**: 5 (Maximum negotiation rounds)
-- **negotiatingWith**: RoomProposal[9bbce23f-4a7e-4f1c-a691-76dc4d831e91] Budget Inn Istanbul - 3 star - $150,00 - standard (Proposal being negotiated)
-- **negotiationHistory**: [NegotiationOffer[proposal=9bbce23f-4a7e-4f1c-a691-76dc4d831e91, hotel=Budget Inn Istanbul, offered=$136,00, original=$150,00, round=1/5], NegotiationOffer[proposal=9bbce23f-4a7e-4f1c-a691-76dc4d831e91, hotel=Budget Inn Istanbul, offered=$136,00, original=$150,00, round=1/5]] (Negotiation history)
+- **negotiatingWith**: RoomProposal[858955c4-38bb-4c48-8f47-74571e4ed3c6] Budget Inn Istanbul - 3 star - $150,00 - standard (Proposal being negotiated)
+- **negotiationHistory**: [NegotiationOffer[proposal=858955c4-38bb-4c48-8f47-74571e4ed3c6, hotel=Budget Inn Istanbul, offered=$128,00, original=$150,00, round=1/5], NegotiationOffer[proposal=858955c4-38bb-4c48-8f47-74571e4ed3c6, hotel=Budget Inn Istanbul, offered=$148,84, original=$150,00, round=1/5], NegotiationOffer[proposal=858955c4-38bb-4c48-8f47-74571e4ed3c6, hotel=Budget Inn Istanbul, offered=$140,80, original=$150,00, round=2/5], NegotiationOffer[proposal=858955c4-38bb-4c48-8f47-74571e4ed3c6, hotel=Budget Inn Istanbul, offered=$140,80, original=$150,00, round=2/5]] (Negotiation history)
+- **topCandidates**: [RoomProposal[858955c4-38bb-4c48-8f47-74571e4ed3c6] Budget Inn Istanbul - 3 star - $150,00 - standard] (Shortlisted hotel candidates for sequential negotiation)
+- **currentCandidateIndex**: 0 (Current candidate index being negotiated)
 
 ## Available Actions
-- **evaluateProposals**: Evaluate all proposals and select the best one [LOCAL]
-- **makeReservation**: Send acceptance to selected hotel and reject others [LOCAL]
-- **startNegotiation**: Start price negotiation with selected hotel [LOCAL]
+- **startSearch**: Initiate hotel search based on criteria [LOCAL]
+- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
+- **evaluateProposals**: Evaluate all proposals and shortlist top candidates [LOCAL]
+- **makeReservation**: Send acceptance to selected hotel [LOCAL]
 - **handleProposalMessage**: Process incoming proposal from hotel [LOCAL]
 - **handleRefuseMessage**: Process refusal from hotel [LOCAL]
 - **handleConfirmMessage**: Process reservation confirmation from hotel [LOCAL]
-- **broadcastCFP**: Send Call For Proposals to all matching hotels [LOCAL]
-- **startSearch**: Initiate hotel search based on criteria [LOCAL]
 - **queryDirectoryFacilitator**: Query Directory Facilitator for matching hotels [LOCAL]
+- **startNegotiationWithCandidate**: Start price negotiation with candidate hotel [LOCAL]
 - **handleNegotiateRejectMessage**: Process hotel's rejection of negotiation [LOCAL]
 - **handleCounterOfferMessage**: Process hotel's counter-offer during negotiation [LOCAL]
 - **handleNegotiateAcceptMessage**: Process hotel's acceptance of negotiation offer [LOCAL]

@@ -1,595 +1,673 @@
 [ {
-  "timestamp" : 1771258549791,
+  "timestamp" : 1771274748443,
   "from" : "Customer-1",
   "to" : "Luxury Palace Istanbul",
   "type" : "CFP",
-  "detail" : "Looking for 5★ in Istanbul, max $480"
+  "detail" : "Looking for 4★ in Istanbul, max $460"
 }, {
-  "timestamp" : 1771258549799,
+  "timestamp" : 1771274748451,
   "from" : "Luxury Palace Istanbul",
   "to" : "Customer-1",
   "type" : "PROPOSAL",
   "detail" : "Luxury Palace Istanbul - $400/night, 5★"
 }, {
-  "timestamp" : 1771258549802,
+  "timestamp" : 1771274748451,
   "from" : "Customer-1",
-  "to" : "Luxury Palace Istanbul",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Luxury Palace Istanbul at $400/night"
+  "to" : "Grand Istanbul Hotel",
+  "type" : "CFP",
+  "detail" : "Looking for 4★ in Istanbul, max $460"
 }, {
-  "timestamp" : 1771258549804,
+  "timestamp" : 1771274748452,
+  "from" : "Grand Istanbul Hotel",
+  "to" : "Customer-1",
+  "type" : "PROPOSAL",
+  "detail" : "Grand Istanbul Hotel - $450/night, 5★"
+}, {
+  "timestamp" : 1771274748455,
+  "from" : "Customer-1",
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 2 candidates: Luxury Palace Istanbul ($400), Grand Istanbul Hotel ($450)"
+}, {
+  "timestamp" : 1771274748458,
   "from" : "Customer-1",
   "to" : "Luxury Palace Istanbul",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $384 (listed $400)"
+  "detail" : "Negotiation [1/2]: offer $368 (listed $400) — leverage: Grand Istanbul Hotel at $450"
 }, {
-  "timestamp" : 1771258549805,
+  "timestamp" : 1771274748459,
   "from" : "Luxury Palace Istanbul",
   "to" : "Customer-1",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $384/night"
+  "detail" : "Accepted offer $368/night"
 }, {
-  "timestamp" : 1771258549807,
+  "timestamp" : 1771274748460,
+  "from" : "Customer-1",
+  "to" : "Grand Istanbul Hotel",
+  "type" : "REJECT",
+  "detail" : "Another hotel was selected"
+}, {
+  "timestamp" : 1771274748461,
   "from" : "Customer-1",
   "to" : "Luxury Palace Istanbul",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $384/night"
+  "detail" : "Deal at $368/night"
 }, {
-  "timestamp" : 1771258549808,
+  "timestamp" : 1771274748462,
   "from" : "Luxury Palace Istanbul",
   "to" : "Customer-1",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258549808 - $384/night (was $400, 4,0% off)"
+  "detail" : "Confirmed! #CONF-1771274748462 - $368/night (was $400, 8,0% off)"
 }, {
-  "timestamp" : 1771258549809,
-  "from" : "Customer-1",
-  "to" : "Grand Istanbul Hotel",
-  "type" : "CFP",
-  "detail" : "Looking for 5★ in Istanbul, max $480"
-}, {
-  "timestamp" : 1771258549810,
-  "from" : "Grand Istanbul Hotel",
-  "to" : "Customer-1",
-  "type" : "PROPOSAL",
-  "detail" : "Grand Istanbul Hotel - $450/night, 5★"
-}, {
-  "timestamp" : 1771258551317,
+  "timestamp" : 1771274748769,
   "from" : "Customer-2",
   "to" : "Luxury Palace Istanbul",
   "type" : "CFP",
-  "detail" : "Looking for 5★ in Istanbul, max $470"
+  "detail" : "Looking for 4★ in Istanbul, max $450"
 }, {
-  "timestamp" : 1771258551318,
+  "timestamp" : 1771274748770,
   "from" : "Luxury Palace Istanbul",
   "to" : "Customer-2",
-  "type" : "REFUSE",
-  "detail" : "No rooms available"
+  "type" : "PROPOSAL",
+  "detail" : "Luxury Palace Istanbul - $400/night, 5★"
 }, {
-  "timestamp" : 1771258551318,
-  "from" : "Customer-2",
-  "to" : "System",
-  "type" : "FAIL",
-  "detail" : "No proposals received from any hotel — all hotels either refused or did not respond"
-}, {
-  "timestamp" : 1771258551319,
+  "timestamp" : 1771274748770,
   "from" : "Customer-2",
   "to" : "Grand Istanbul Hotel",
   "type" : "CFP",
-  "detail" : "Looking for 5★ in Istanbul, max $470"
+  "detail" : "Looking for 4★ in Istanbul, max $450"
 }, {
-  "timestamp" : 1771258551319,
+  "timestamp" : 1771274748770,
   "from" : "Grand Istanbul Hotel",
   "to" : "Customer-2",
   "type" : "PROPOSAL",
   "detail" : "Grand Istanbul Hotel - $450/night, 5★"
 }, {
-  "timestamp" : 1771258552825,
+  "timestamp" : 1771274748771,
+  "from" : "Customer-2",
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 2 candidates: Luxury Palace Istanbul ($400), Grand Istanbul Hotel ($450)"
+}, {
+  "timestamp" : 1771274748772,
+  "from" : "Customer-2",
+  "to" : "Luxury Palace Istanbul",
+  "type" : "NEGOTIATE",
+  "detail" : "Negotiation [1/2]: offer $360 (listed $400) — leverage: Grand Istanbul Hotel at $450"
+}, {
+  "timestamp" : 1771274748773,
+  "from" : "Luxury Palace Istanbul",
+  "to" : "Customer-2",
+  "type" : "DEMAND_PRESSURE",
+  "detail" : "High demand: 1/3 rooms occupied — minimum price raised to $347 (was $340)"
+}, {
+  "timestamp" : 1771274748773,
+  "from" : "Luxury Palace Istanbul",
+  "to" : "Customer-2",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Accepted offer $360/night"
+}, {
+  "timestamp" : 1771274748773,
+  "from" : "Customer-2",
+  "to" : "Grand Istanbul Hotel",
+  "type" : "REJECT",
+  "detail" : "Another hotel was selected"
+}, {
+  "timestamp" : 1771274748774,
+  "from" : "Customer-2",
+  "to" : "Luxury Palace Istanbul",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Deal at $360/night"
+}, {
+  "timestamp" : 1771274748775,
+  "from" : "Luxury Palace Istanbul",
+  "to" : "Customer-2",
+  "type" : "CONFIRM",
+  "detail" : "Confirmed! #CONF-1771274748775 - $360/night (was $400, 10,0% off)"
+}, {
+  "timestamp" : 1771274749082,
   "from" : "Customer-3",
   "to" : "Budget Inn Istanbul",
   "type" : "CFP",
-  "detail" : "Looking for 3★ in Istanbul, max $180"
+  "detail" : "Looking for 3★ in Istanbul, max $170"
 }, {
-  "timestamp" : 1771258552825,
+  "timestamp" : 1771274749083,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-3",
   "type" : "PROPOSAL",
   "detail" : "Budget Inn Istanbul - $150/night, 3★"
 }, {
-  "timestamp" : 1771258552826,
+  "timestamp" : 1771274749083,
   "from" : "Customer-3",
-  "to" : "Budget Inn Istanbul",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Budget Inn Istanbul at $150/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Budget Inn Istanbul ($150)"
 }, {
-  "timestamp" : 1771258552827,
+  "timestamp" : 1771274749084,
   "from" : "Customer-3",
   "to" : "Budget Inn Istanbul",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $144 (listed $150)"
+  "detail" : "Negotiation [1/1]: offer $136 (listed $150)"
 }, {
-  "timestamp" : 1771258552827,
+  "timestamp" : 1771274749084,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-3",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $144/night"
+  "detail" : "Accepted offer $136/night"
 }, {
-  "timestamp" : 1771258552828,
+  "timestamp" : 1771274749085,
   "from" : "Customer-3",
   "to" : "Budget Inn Istanbul",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $144/night"
+  "detail" : "Deal at $136/night"
 }, {
-  "timestamp" : 1771258552828,
+  "timestamp" : 1771274749085,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-3",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258552828 - $144/night (was $150, 4,0% off)"
+  "detail" : "Confirmed! #CONF-1771274749085 - $136/night (was $150, 9,3% off)"
 }, {
-  "timestamp" : 1771258554334,
+  "timestamp" : 1771274749390,
   "from" : "Customer-4",
   "to" : "Budget Inn Istanbul",
   "type" : "CFP",
-  "detail" : "Looking for 3★ in Istanbul, max $170"
+  "detail" : "Looking for 3★ in Istanbul, max $160"
 }, {
-  "timestamp" : 1771258554335,
+  "timestamp" : 1771274749391,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-4",
   "type" : "PROPOSAL",
   "detail" : "Budget Inn Istanbul - $150/night, 3★"
 }, {
-  "timestamp" : 1771258554335,
+  "timestamp" : 1771274749391,
   "from" : "Customer-4",
-  "to" : "Budget Inn Istanbul",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Budget Inn Istanbul at $150/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Budget Inn Istanbul ($150)"
 }, {
-  "timestamp" : 1771258554336,
+  "timestamp" : 1771274749392,
   "from" : "Customer-4",
   "to" : "Budget Inn Istanbul",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $136 (listed $150)"
+  "detail" : "Negotiation [1/1]: offer $128 (listed $150)"
 }, {
-  "timestamp" : 1771258554337,
+  "timestamp" : 1771274749392,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-4",
   "type" : "DEMAND_PRESSURE",
   "detail" : "High demand: 1/2 rooms occupied — minimum price raised to $133 (was $128)"
 }, {
-  "timestamp" : 1771258554337,
+  "timestamp" : 1771274749393,
+  "from" : "Budget Inn Istanbul",
+  "to" : "Customer-4",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $149/night (round 1)"
+}, {
+  "timestamp" : 1771274749394,
+  "from" : "Customer-4",
+  "to" : "Budget Inn Istanbul",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $141/night (round 2/5)"
+}, {
+  "timestamp" : 1771274749395,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-4",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $136/night"
+  "detail" : "Accepted $141/night (round 2)"
 }, {
-  "timestamp" : 1771258554338,
+  "timestamp" : 1771274749396,
   "from" : "Customer-4",
   "to" : "Budget Inn Istanbul",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $136/night"
+  "detail" : "Deal at $141/night"
 }, {
-  "timestamp" : 1771258554338,
+  "timestamp" : 1771274749397,
   "from" : "Budget Inn Istanbul",
   "to" : "Customer-4",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258554338 - $136/night (was $150, 9,3% off)"
+  "detail" : "Confirmed! #CONF-1771274749396 - $141/night (was $150, 6,1% off)"
 }, {
-  "timestamp" : 1771258555842,
+  "timestamp" : 1771274749699,
   "from" : "Customer-5",
   "to" : "DirectoryFacilitator",
   "type" : "FAIL",
-  "detail" : "No hotels found matching criteria: 4★ in Istanbul, max $320"
+  "detail" : "No hotels found matching criteria: 5★ in Istanbul, max $380"
 }, {
-  "timestamp" : 1771258557343,
+  "timestamp" : 1771274750005,
   "from" : "Customer-6",
   "to" : "Ankara Business Hotel",
   "type" : "CFP",
   "detail" : "Looking for 3★ in Ankara, max $280"
 }, {
-  "timestamp" : 1771258557343,
+  "timestamp" : 1771274750006,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-6",
   "type" : "PROPOSAL",
   "detail" : "Ankara Business Hotel - $250/night, 4★"
 }, {
-  "timestamp" : 1771258557343,
+  "timestamp" : 1771274750007,
   "from" : "Customer-6",
-  "to" : "Ankara Business Hotel",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Ankara Business Hotel at $250/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Ankara Business Hotel ($250)"
 }, {
-  "timestamp" : 1771258557343,
+  "timestamp" : 1771274750007,
   "from" : "Customer-6",
   "to" : "Ankara Business Hotel",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $224 (listed $250)"
+  "detail" : "Negotiation [1/1]: offer $224 (listed $250)"
 }, {
-  "timestamp" : 1771258557343,
+  "timestamp" : 1771274750007,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-6",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Accepted offer $224/night"
 }, {
-  "timestamp" : 1771258557344,
+  "timestamp" : 1771274750008,
   "from" : "Customer-6",
   "to" : "Ankara Business Hotel",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Deal at $224/night"
 }, {
-  "timestamp" : 1771258557344,
+  "timestamp" : 1771274750008,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-6",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258557344 - $224/night (was $250, 10,4% off)"
+  "detail" : "Confirmed! #CONF-1771274750008 - $224/night (was $250, 10,4% off)"
 }, {
-  "timestamp" : 1771258558850,
+  "timestamp" : 1771274750313,
   "from" : "Customer-7",
   "to" : "Ankara Business Hotel",
   "type" : "CFP",
   "detail" : "Looking for 3★ in Ankara, max $260"
 }, {
-  "timestamp" : 1771258558851,
+  "timestamp" : 1771274750314,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-7",
   "type" : "PROPOSAL",
   "detail" : "Ankara Business Hotel - $250/night, 4★"
 }, {
-  "timestamp" : 1771258558851,
+  "timestamp" : 1771274750315,
   "from" : "Customer-7",
-  "to" : "Ankara Business Hotel",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Ankara Business Hotel at $250/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Ankara Business Hotel ($250)"
 }, {
-  "timestamp" : 1771258558852,
+  "timestamp" : 1771274750318,
   "from" : "Customer-7",
   "to" : "Ankara Business Hotel",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $208 (listed $250)"
+  "detail" : "Negotiation [1/1]: offer $208 (listed $250)"
 }, {
-  "timestamp" : 1771258558852,
+  "timestamp" : 1771274750319,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-7",
   "type" : "DEMAND_PRESSURE",
   "detail" : "High demand: 1/2 rooms occupied — minimum price raised to $222 (was $213)"
 }, {
-  "timestamp" : 1771258558853,
+  "timestamp" : 1771274750319,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-7",
   "type" : "COUNTER_OFFER",
-  "detail" : "Counter: $248/night (round 1)"
+  "detail" : "Counter: $246/night (round 1)"
 }, {
-  "timestamp" : 1771258558855,
+  "timestamp" : 1771274750320,
   "from" : "Customer-7",
   "to" : "Ankara Business Hotel",
   "type" : "COUNTER_OFFER",
   "detail" : "Counter: $229/night (round 2/5)"
 }, {
-  "timestamp" : 1771258558856,
+  "timestamp" : 1771274750320,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-7",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Accepted $229/night (round 2)"
 }, {
-  "timestamp" : 1771258558857,
+  "timestamp" : 1771274750321,
   "from" : "Customer-7",
   "to" : "Ankara Business Hotel",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Deal at $229/night"
 }, {
-  "timestamp" : 1771258558857,
+  "timestamp" : 1771274750321,
   "from" : "Ankara Business Hotel",
   "to" : "Customer-7",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258558857 - $229/night (was $250, 8,5% off)"
+  "detail" : "Confirmed! #CONF-1771274750321 - $229/night (was $250, 8,5% off)"
 }, {
-  "timestamp" : 1771258560363,
+  "timestamp" : 1771274750624,
   "from" : "Customer-8",
-  "to" : "Sea View Resort",
+  "to" : "Ankara Business Hotel",
   "type" : "CFP",
-  "detail" : "Looking for 3★ in Izmir, max $350"
+  "detail" : "Looking for 4★ in Ankara, max $270"
 }, {
-  "timestamp" : 1771258560364,
-  "from" : "Sea View Resort",
+  "timestamp" : 1771274750624,
+  "from" : "Ankara Business Hotel",
   "to" : "Customer-8",
-  "type" : "PROPOSAL",
-  "detail" : "Sea View Resort - $300/night, 4★"
+  "type" : "REFUSE",
+  "detail" : "No rooms available"
 }, {
-  "timestamp" : 1771258560364,
+  "timestamp" : 1771274750624,
   "from" : "Customer-8",
-  "to" : "Sea View Resort",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Sea View Resort at $300/night"
+  "to" : "System",
+  "type" : "FAIL",
+  "detail" : "No proposals received from any hotel — all hotels either refused or did not respond"
 }, {
-  "timestamp" : 1771258560364,
-  "from" : "Customer-8",
-  "to" : "Sea View Resort",
-  "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $280 (listed $300)"
-}, {
-  "timestamp" : 1771258560365,
-  "from" : "Sea View Resort",
-  "to" : "Customer-8",
-  "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $280/night"
-}, {
-  "timestamp" : 1771258560365,
-  "from" : "Customer-8",
-  "to" : "Sea View Resort",
-  "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $280/night"
-}, {
-  "timestamp" : 1771258560366,
-  "from" : "Sea View Resort",
-  "to" : "Customer-8",
-  "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258560366 - $280/night (was $300, 6,7% off)"
-}, {
-  "timestamp" : 1771258561871,
+  "timestamp" : 1771274750932,
   "from" : "Customer-9",
-  "to" : "Sea View Resort",
+  "to" : "Antalya Beach Resort",
   "type" : "CFP",
-  "detail" : "Looking for 3★ in Izmir, max $320"
+  "detail" : "Looking for 3★ in Antalya, max $530"
 }, {
-  "timestamp" : 1771258561871,
-  "from" : "Sea View Resort",
+  "timestamp" : 1771274750933,
+  "from" : "Antalya Beach Resort",
   "to" : "Customer-9",
   "type" : "PROPOSAL",
-  "detail" : "Sea View Resort - $300/night, 4★"
+  "detail" : "Antalya Beach Resort - $500/night, 5★"
 }, {
-  "timestamp" : 1771258561872,
+  "timestamp" : 1771274750934,
   "from" : "Customer-9",
-  "to" : "Sea View Resort",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Sea View Resort at $300/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Antalya Beach Resort ($500)"
 }, {
-  "timestamp" : 1771258561872,
+  "timestamp" : 1771274750935,
   "from" : "Customer-9",
-  "to" : "Sea View Resort",
+  "to" : "Antalya Beach Resort",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $256 (listed $300)"
+  "detail" : "Negotiation [1/1]: offer $424 (listed $500)"
 }, {
-  "timestamp" : 1771258561872,
-  "from" : "Sea View Resort",
-  "to" : "Customer-9",
-  "type" : "DEMAND_PRESSURE",
-  "detail" : "High demand: 1/2 rooms occupied — minimum price raised to $266 (was $255)"
-}, {
-  "timestamp" : 1771258561872,
-  "from" : "Sea View Resort",
+  "timestamp" : 1771274750935,
+  "from" : "Antalya Beach Resort",
   "to" : "Customer-9",
   "type" : "COUNTER_OFFER",
-  "detail" : "Counter: $298/night (round 1)"
+  "detail" : "Counter: $494/night (round 1)"
 }, {
-  "timestamp" : 1771258561872,
+  "timestamp" : 1771274750936,
   "from" : "Customer-9",
-  "to" : "Sea View Resort",
+  "to" : "Antalya Beach Resort",
   "type" : "COUNTER_OFFER",
-  "detail" : "Counter: $282/night (round 2/5)"
+  "detail" : "Counter: $466/night (round 2/5)"
 }, {
-  "timestamp" : 1771258561872,
-  "from" : "Sea View Resort",
+  "timestamp" : 1771274750936,
+  "from" : "Antalya Beach Resort",
   "to" : "Customer-9",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted $282/night (round 2)"
+  "detail" : "Accepted $466/night (round 2)"
 }, {
-  "timestamp" : 1771258561873,
+  "timestamp" : 1771274750937,
   "from" : "Customer-9",
-  "to" : "Sea View Resort",
+  "to" : "Antalya Beach Resort",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $282/night"
+  "detail" : "Deal at $466/night"
 }, {
-  "timestamp" : 1771258561873,
-  "from" : "Sea View Resort",
+  "timestamp" : 1771274750938,
+  "from" : "Antalya Beach Resort",
   "to" : "Customer-9",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258561873 - $282/night (was $300, 6,1% off)"
+  "detail" : "Confirmed! #CONF-1771274750938 - $466/night (was $500, 6,7% off)"
 }, {
-  "timestamp" : 1771258563379,
+  "timestamp" : 1771274751241,
   "from" : "Customer-10",
   "to" : "Antalya Beach Resort",
   "type" : "CFP",
-  "detail" : "Looking for 4★ in Antalya, max $550"
+  "detail" : "Looking for 5★ in Antalya, max $520"
 }, {
-  "timestamp" : 1771258563380,
+  "timestamp" : 1771274751241,
   "from" : "Antalya Beach Resort",
   "to" : "Customer-10",
   "type" : "PROPOSAL",
   "detail" : "Antalya Beach Resort - $500/night, 5★"
 }, {
-  "timestamp" : 1771258563381,
+  "timestamp" : 1771274751242,
   "from" : "Customer-10",
-  "to" : "Antalya Beach Resort",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Antalya Beach Resort at $500/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Antalya Beach Resort ($500)"
 }, {
-  "timestamp" : 1771258563381,
+  "timestamp" : 1771274751242,
   "from" : "Customer-10",
   "to" : "Antalya Beach Resort",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $440 (listed $500)"
+  "detail" : "Negotiation [1/1]: offer $416 (listed $500)"
 }, {
-  "timestamp" : 1771258563381,
+  "timestamp" : 1771274751242,
+  "from" : "Antalya Beach Resort",
+  "to" : "Customer-10",
+  "type" : "DEMAND_PRESSURE",
+  "detail" : "High demand: 1/3 rooms occupied — minimum price raised to $433 (was $425)"
+}, {
+  "timestamp" : 1771274751242,
+  "from" : "Antalya Beach Resort",
+  "to" : "Customer-10",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $494/night (round 1)"
+}, {
+  "timestamp" : 1771274751243,
+  "from" : "Customer-10",
+  "to" : "Antalya Beach Resort",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $458/night (round 2/5)"
+}, {
+  "timestamp" : 1771274751243,
   "from" : "Antalya Beach Resort",
   "to" : "Customer-10",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $440/night"
+  "detail" : "Accepted $458/night (round 2)"
 }, {
-  "timestamp" : 1771258563381,
+  "timestamp" : 1771274751243,
   "from" : "Customer-10",
   "to" : "Antalya Beach Resort",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $440/night"
+  "detail" : "Deal at $458/night"
 }, {
-  "timestamp" : 1771258563382,
+  "timestamp" : 1771274751243,
   "from" : "Antalya Beach Resort",
   "to" : "Customer-10",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258563382 - $440/night (was $500, 12,0% off)"
+  "detail" : "Confirmed! #CONF-1771274751243 - $458/night (was $500, 8,5% off)"
 }, {
-  "timestamp" : 1771258564884,
+  "timestamp" : 1771274751548,
   "from" : "Customer-11",
-  "to" : "DirectoryFacilitator",
-  "type" : "FAIL",
-  "detail" : "No hotels found matching criteria: 3★ in Antalya, max $280"
-}, {
-  "timestamp" : 1771258566390,
-  "from" : "Customer-12",
-  "to" : "Cappadocia Cave Hotel",
+  "to" : "Sea View Resort",
   "type" : "CFP",
-  "detail" : "Looking for 4★ in Nevsehir, max $400"
+  "detail" : "Looking for 3★ in Izmir, max $340"
 }, {
-  "timestamp" : 1771258566390,
-  "from" : "Cappadocia Cave Hotel",
+  "timestamp" : 1771274751549,
+  "from" : "Sea View Resort",
+  "to" : "Customer-11",
+  "type" : "PROPOSAL",
+  "detail" : "Sea View Resort - $300/night, 4★"
+}, {
+  "timestamp" : 1771274751549,
+  "from" : "Customer-11",
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Sea View Resort ($300)"
+}, {
+  "timestamp" : 1771274751550,
+  "from" : "Customer-11",
+  "to" : "Sea View Resort",
+  "type" : "NEGOTIATE",
+  "detail" : "Negotiation [1/1]: offer $272 (listed $300)"
+}, {
+  "timestamp" : 1771274751550,
+  "from" : "Sea View Resort",
+  "to" : "Customer-11",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Accepted offer $272/night"
+}, {
+  "timestamp" : 1771274751550,
+  "from" : "Customer-11",
+  "to" : "Sea View Resort",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Deal at $272/night"
+}, {
+  "timestamp" : 1771274751551,
+  "from" : "Sea View Resort",
+  "to" : "Customer-11",
+  "type" : "CONFIRM",
+  "detail" : "Confirmed! #CONF-1771274751551 - $272/night (was $300, 9,3% off)"
+}, {
+  "timestamp" : 1771274751857,
+  "from" : "Customer-12",
+  "to" : "Sea View Resort",
+  "type" : "CFP",
+  "detail" : "Looking for 3★ in Izmir, max $320"
+}, {
+  "timestamp" : 1771274751858,
+  "from" : "Sea View Resort",
   "to" : "Customer-12",
   "type" : "PROPOSAL",
-  "detail" : "Cappadocia Cave Hotel - $350/night, 5★"
+  "detail" : "Sea View Resort - $300/night, 4★"
 }, {
-  "timestamp" : 1771258566391,
+  "timestamp" : 1771274751858,
   "from" : "Customer-12",
-  "to" : "Cappadocia Cave Hotel",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Cappadocia Cave Hotel at $350/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Sea View Resort ($300)"
 }, {
-  "timestamp" : 1771258566391,
+  "timestamp" : 1771274751858,
   "from" : "Customer-12",
-  "to" : "Cappadocia Cave Hotel",
+  "to" : "Sea View Resort",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $320 (listed $350)"
+  "detail" : "Negotiation [1/1]: offer $256 (listed $300)"
 }, {
-  "timestamp" : 1771258566391,
-  "from" : "Cappadocia Cave Hotel",
+  "timestamp" : 1771274751858,
+  "from" : "Sea View Resort",
+  "to" : "Customer-12",
+  "type" : "DEMAND_PRESSURE",
+  "detail" : "High demand: 1/3 rooms occupied — minimum price raised to $260 (was $255)"
+}, {
+  "timestamp" : 1771274751858,
+  "from" : "Sea View Resort",
+  "to" : "Customer-12",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $294/night (round 1)"
+}, {
+  "timestamp" : 1771274751858,
+  "from" : "Customer-12",
+  "to" : "Sea View Resort",
+  "type" : "COUNTER_OFFER",
+  "detail" : "Counter: $282/night (round 2/5)"
+}, {
+  "timestamp" : 1771274751859,
+  "from" : "Sea View Resort",
   "to" : "Customer-12",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted offer $320/night"
+  "detail" : "Accepted $282/night (round 2)"
 }, {
-  "timestamp" : 1771258566392,
+  "timestamp" : 1771274751860,
   "from" : "Customer-12",
-  "to" : "Cappadocia Cave Hotel",
+  "to" : "Sea View Resort",
   "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $320/night"
+  "detail" : "Deal at $282/night"
 }, {
-  "timestamp" : 1771258566392,
-  "from" : "Cappadocia Cave Hotel",
+  "timestamp" : 1771274751860,
+  "from" : "Sea View Resort",
   "to" : "Customer-12",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258566392 - $320/night (was $350, 8,6% off)"
+  "detail" : "Confirmed! #CONF-1771274751860 - $282/night (was $300, 6,1% off)"
 }, {
-  "timestamp" : 1771258567897,
+  "timestamp" : 1771274752164,
   "from" : "Customer-13",
   "to" : "Cappadocia Cave Hotel",
   "type" : "CFP",
   "detail" : "Looking for 4★ in Nevsehir, max $380"
 }, {
-  "timestamp" : 1771258567898,
+  "timestamp" : 1771274752164,
   "from" : "Cappadocia Cave Hotel",
   "to" : "Customer-13",
-  "type" : "REFUSE",
-  "detail" : "No rooms available"
+  "type" : "PROPOSAL",
+  "detail" : "Cappadocia Cave Hotel - $350/night, 5★"
 }, {
-  "timestamp" : 1771258567898,
+  "timestamp" : 1771274752165,
   "from" : "Customer-13",
   "to" : "System",
-  "type" : "FAIL",
-  "detail" : "No proposals received from any hotel — all hotels either refused or did not respond"
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Cappadocia Cave Hotel ($350)"
 }, {
-  "timestamp" : 1771258569403,
+  "timestamp" : 1771274752166,
+  "from" : "Customer-13",
+  "to" : "Cappadocia Cave Hotel",
+  "type" : "NEGOTIATE",
+  "detail" : "Negotiation [1/1]: offer $304 (listed $350)"
+}, {
+  "timestamp" : 1771274752166,
+  "from" : "Cappadocia Cave Hotel",
+  "to" : "Customer-13",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Accepted offer $304/night"
+}, {
+  "timestamp" : 1771274752167,
+  "from" : "Customer-13",
+  "to" : "Cappadocia Cave Hotel",
+  "type" : "NEGOTIATE_ACCEPT",
+  "detail" : "Deal at $304/night"
+}, {
+  "timestamp" : 1771274752167,
+  "from" : "Cappadocia Cave Hotel",
+  "to" : "Customer-13",
+  "type" : "CONFIRM",
+  "detail" : "Confirmed! #CONF-1771274752167 - $304/night (was $350, 13,1% off)"
+}, {
+  "timestamp" : 1771274752470,
   "from" : "Customer-14",
   "to" : "Bodrum Boutique Hotel",
   "type" : "CFP",
   "detail" : "Looking for 3★ in Mugla, max $300"
 }, {
-  "timestamp" : 1771258569404,
+  "timestamp" : 1771274752470,
   "from" : "Bodrum Boutique Hotel",
   "to" : "Customer-14",
   "type" : "PROPOSAL",
   "detail" : "Bodrum Boutique Hotel - $280/night, 4★"
 }, {
-  "timestamp" : 1771258569405,
+  "timestamp" : 1771274752470,
   "from" : "Customer-14",
-  "to" : "Bodrum Boutique Hotel",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Bodrum Boutique Hotel at $280/night"
+  "to" : "System",
+  "type" : "SHORTLIST",
+  "detail" : "Top 1 candidates: Bodrum Boutique Hotel ($280)"
 }, {
-  "timestamp" : 1771258569406,
+  "timestamp" : 1771274752471,
   "from" : "Customer-14",
   "to" : "Bodrum Boutique Hotel",
   "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $240 (listed $280)"
+  "detail" : "Negotiation [1/1]: offer $240 (listed $280)"
 }, {
-  "timestamp" : 1771258569407,
+  "timestamp" : 1771274752471,
   "from" : "Bodrum Boutique Hotel",
   "to" : "Customer-14",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Accepted offer $240/night"
 }, {
-  "timestamp" : 1771258569408,
+  "timestamp" : 1771274752471,
   "from" : "Customer-14",
   "to" : "Bodrum Boutique Hotel",
   "type" : "NEGOTIATE_ACCEPT",
   "detail" : "Deal at $240/night"
 }, {
-  "timestamp" : 1771258569409,
+  "timestamp" : 1771274752472,
   "from" : "Bodrum Boutique Hotel",
   "to" : "Customer-14",
   "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258569408 - $240/night (was $280, 14,3% off)"
+  "detail" : "Confirmed! #CONF-1771274752471 - $240/night (was $280, 14,3% off)"
 }, {
-  "timestamp" : 1771258570915,
+  "timestamp" : 1771274752776,
   "from" : "Customer-15",
   "to" : "Bodrum Boutique Hotel",
   "type" : "CFP",
   "detail" : "Looking for 3★ in Mugla, max $290"
 }, {
-  "timestamp" : 1771258570916,
+  "timestamp" : 1771274752776,
   "from" : "Bodrum Boutique Hotel",
   "to" : "Customer-15",
-  "type" : "PROPOSAL",
-  "detail" : "Bodrum Boutique Hotel - $280/night, 4★"
+  "type" : "REFUSE",
+  "detail" : "No rooms available"
 }, {
-  "timestamp" : 1771258570917,
+  "timestamp" : 1771274752776,
   "from" : "Customer-15",
-  "to" : "Bodrum Boutique Hotel",
-  "type" : "EVALUATE",
-  "detail" : "Selected best: Bodrum Boutique Hotel at $280/night"
-}, {
-  "timestamp" : 1771258570917,
-  "from" : "Customer-15",
-  "to" : "Bodrum Boutique Hotel",
-  "type" : "NEGOTIATE",
-  "detail" : "Opening negotiation: offer $232 (listed $280)"
-}, {
-  "timestamp" : 1771258570917,
-  "from" : "Bodrum Boutique Hotel",
-  "to" : "Customer-15",
-  "type" : "DEMAND_PRESSURE",
-  "detail" : "High demand: 1/3 rooms occupied — minimum price raised to $243 (was $238)"
-}, {
-  "timestamp" : 1771258570917,
-  "from" : "Bodrum Boutique Hotel",
-  "to" : "Customer-15",
-  "type" : "COUNTER_OFFER",
-  "detail" : "Counter: $277/night (round 1)"
-}, {
-  "timestamp" : 1771258570917,
-  "from" : "Customer-15",
-  "to" : "Bodrum Boutique Hotel",
-  "type" : "COUNTER_OFFER",
-  "detail" : "Counter: $255/night (round 2/5)"
-}, {
-  "timestamp" : 1771258570918,
-  "from" : "Bodrum Boutique Hotel",
-  "to" : "Customer-15",
-  "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Accepted $255/night (round 2)"
-}, {
-  "timestamp" : 1771258570918,
-  "from" : "Customer-15",
-  "to" : "Bodrum Boutique Hotel",
-  "type" : "NEGOTIATE_ACCEPT",
-  "detail" : "Deal at $255/night"
-}, {
-  "timestamp" : 1771258570918,
-  "from" : "Bodrum Boutique Hotel",
-  "to" : "Customer-15",
-  "type" : "CONFIRM",
-  "detail" : "Confirmed! #CONF-1771258570918 - $255/night (was $280, 8,9% off)"
+  "to" : "System",
+  "type" : "FAIL",
+  "detail" : "No proposals received from any hotel — all hotels either refused or did not respond"
 } ]

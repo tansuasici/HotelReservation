@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { User, Building2, Send, Loader2, MessageCircle, FileText, Terminal, ChevronDown, ChevronRight, LayoutGrid } from "lucide-react";
+import { User, Building2, Send, Loader2, MessageCircle, FileText, ChevronDown, ChevronRight, LayoutGrid } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -341,7 +341,6 @@ export function AgentChat({ agent: externalAgent, open, onOpenChange, topology }
                 ) : (
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
                 )}
-                <Terminal className="h-3 w-3 text-indigo-500" />
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   System Prompt
                 </span>
