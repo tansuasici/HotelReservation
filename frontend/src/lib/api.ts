@@ -1,7 +1,9 @@
+import type { ChatMessage } from "@/lib/types";
+
 export async function chatWithAgent(
   agentId: string,
   message: string
-): Promise<{ agentId: string; response: string }> {
+): Promise<{ agentId: string; response: string; history: ChatMessage[] }> {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12,6 +14,22 @@ export async function chatWithAgent(
     throw new Error(body.error || `API ${res.status}`);
   }
   return res.json();
+}
+
+export async function getChatHistory(
+  agentId: string
+): Promise<ChatMessage[]> {
+  const res = await fetch(`/api/chat?agentId=${encodeURIComponent(agentId)}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.history || [];
+}
+
+export async function getAgentPrompt(agentId: string): Promise<string> {
+  const res = await fetch(`/api/chat?agentId=${encodeURIComponent(agentId)}&prompt=true`);
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data.systemPrompt || "";
 }
 
 export async function getAgentLog(agentId: string): Promise<string> {

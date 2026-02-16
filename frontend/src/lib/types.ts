@@ -118,6 +118,7 @@ export const MSG_COLORS: Record<string, string> = {
 };
 
 export const STATE_COLORS: Record<string, string> = {
+  IDLE: "#71717a",
   SEARCHING: "#6366f1",
   WAITING_PROPOSALS: "#f59e0b",
   EVALUATING: "#a855f7",

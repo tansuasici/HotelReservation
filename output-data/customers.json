@@ -1,0 +1,41 @@
+[ {
+  "customerId" : "Customer-1",
+  "desiredLocation" : "Istanbul",
+  "desiredRank" : 5,
+  "maxPrice" : 480.0,
+  "desiredPrice" : 384.0,
+  "state" : "IDLE",
+  "negotiationRound" : 0
+}, {
+  "customerId" : "Customer-2",
+  "desiredLocation" : "Ankara",
+  "desiredRank" : 3,
+  "maxPrice" : 280.0,
+  "desiredPrice" : 224.0,
+  "state" : "IDLE",
+  "negotiationRound" : 0
+}, {
+  "customerId" : "Customer-3",
+  "desiredLocation" : "Istanbul",
+  "desiredRank" : 3,
+  "maxPrice" : 180.0,
+  "desiredPrice" : 144.0,
+  "state" : "IDLE",
+  "negotiationRound" : 0
+}, {
+  "customerId" : "Customer-4",
+  "desiredLocation" : "Izmir",
+  "desiredRank" : 3,
+  "maxPrice" : 350.0,
+  "desiredPrice" : 280.0,
+  "state" : "IDLE",
+  "negotiationRound" : 0
+}, {
+  "customerId" : "Customer-5",
+  "desiredLocation" : "Antalya",
+  "desiredRank" : 4,
+  "maxPrice" : 550.0,
+  "desiredPrice" : 440.0,
+  "state" : "IDLE",
+  "negotiationRound" : 0
+} ]

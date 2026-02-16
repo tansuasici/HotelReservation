@@ -19,7 +19,6 @@ public class Hotel {
     private double rating;
     private int reviewCount;
     private List<String> images;
-    private ContactInfo contactInfo;
     private boolean available;
 
     public Hotel() {}
@@ -62,9 +61,6 @@ public class Hotel {
 
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
-
-    public ContactInfo getContactInfo() { return contactInfo; }
-    public void setContactInfo(ContactInfo contactInfo) { this.contactInfo = contactInfo; }
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
@@ -113,7 +109,6 @@ public class Hotel {
         public Builder rating(double rating) { hotel.rating = rating; return this; }
         public Builder reviewCount(int count) { hotel.reviewCount = count; return this; }
         public Builder images(List<String> images) { hotel.images = images; return this; }
-        public Builder contactInfo(ContactInfo info) { hotel.contactInfo = info; return this; }
         public Builder available(boolean available) { hotel.available = available; return this; }
 
         public Hotel build() {

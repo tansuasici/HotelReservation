@@ -1,14 +1,15 @@
 package hotel.reservation.data.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Location information for a hotel.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Location {
     private String city;
     private String country;
     private String district;
-    private Coordinates coordinates;
-
     public Location() {}
 
     public Location(String city, String country, String district) {
@@ -29,9 +30,6 @@ public class Location {
 
     public String getDistrict() { return district; }
     public void setDistrict(String district) { this.district = district; }
-
-    public Coordinates getCoordinates() { return coordinates; }
-    public void setCoordinates(Coordinates coordinates) { this.coordinates = coordinates; }
 
     @Override
     public String toString() {

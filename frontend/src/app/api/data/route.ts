@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
+export const dynamic = "force-dynamic";
+
 const DATA_DIR = join(process.cwd(), "..", "output-data");
 
 async function readJson(filename: string) {

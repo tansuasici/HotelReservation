@@ -15,13 +15,7 @@ public final class MessageTypes {
     public static final String MSG_REJECT = "Reject";           // Customer rejects proposal
     public static final String MSG_CONFIRM = "Confirm";         // Hotel confirms reservation
 
-    // Directory Facilitator Messages
-    public static final String MSG_DF_REGISTER = "DFRegister";  // Register with DF
-    public static final String MSG_DF_DEREGISTER = "DFDeregister"; // Deregister from DF
-    public static final String MSG_DF_SEARCH = "DFSearch";      // Search DF
-    public static final String MSG_DF_RESULT = "DFResult";      // DF search results
-
-    // Negotiation Messages (Bonus)
+    // Negotiation Messages
     public static final String MSG_NEGOTIATE_START = "NegotiateStart";
     public static final String MSG_COUNTER_OFFER = "CounterOffer";
     public static final String MSG_NEGOTIATE_ACCEPT = "NegotiateAccept";

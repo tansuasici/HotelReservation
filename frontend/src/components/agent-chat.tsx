@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { User, Building2, Send, Loader2, MessageCircle, FileText } from "lucide-react";
+import { User, Building2, Send, Loader2, MessageCircle, FileText, Terminal, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { chatWithAgent, getAgentLog } from "@/lib/api";
+import { chatWithAgent, getChatHistory, getAgentLog, getAgentPrompt } from "@/lib/api";
 import type {
   TopologyNode,
   Topology,
@@ -30,21 +30,40 @@ export function AgentChat({ agent, open, onOpenChange, topology }: Props) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [agentLog, setAgentLog] = useState<string>("");
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState<string>("");
+  const [promptOpen, setPromptOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevAgentRef = useRef<string | null>(null);
 
-  // Reset chat when agent changes
+  // When agent changes: fetch chat history and log from backend
   useEffect(() => {
-    if (agent && agent.name !== prevAgentRef.current) {
-      setMessages([]);
-      setAgentLog("");
-      prevAgentRef.current = agent.name;
+    if (!agent) return;
+    if (agent.name === prevAgentRef.current) return;
 
-      getAgentLog(agent.name)
-        .then(setAgentLog)
-        .catch(() => setAgentLog(""));
-    }
+    prevAgentRef.current = agent.name;
+    setLoadingHistory(true);
+    setSystemPrompt("");
+    setPromptOpen(false);
+
+    // Fetch history, log, and prompt in parallel
+    Promise.all([
+      getChatHistory(agent.name),
+      getAgentLog(agent.name),
+      getAgentPrompt(agent.name),
+    ])
+      .then(([history, log, prompt]) => {
+        setMessages(history);
+        setAgentLog(log);
+        setSystemPrompt(prompt);
+      })
+      .catch(() => {
+        setMessages([]);
+        setAgentLog("");
+        setSystemPrompt("");
+      })
+      .finally(() => setLoadingHistory(false));
   }, [agent]);
 
   useEffect(() => {
@@ -61,15 +80,15 @@ export function AgentChat({ agent, open, onOpenChange, topology }: Props) {
     if (!agent || !input.trim() || sending) return;
     const msg = input.trim();
     setInput("");
+
+    // Optimistic: show user message immediately
     setMessages((prev) => [...prev, { role: "user", content: msg }]);
     setSending(true);
 
     try {
       const res = await chatWithAgent(agent.name, msg);
-      setMessages((prev) => [
-        ...prev,
-        { role: "agent", content: res.response || "No response" },
-      ]);
+      // Backend returns the full history — use it as source of truth
+      setMessages(res.history);
     } catch (e) {
       setMessages((prev) => [
         ...prev,
@@ -157,6 +176,34 @@ export function AgentChat({ agent, open, onOpenChange, topology }: Props) {
             </div>
           )}
 
+          {/* System Prompt */}
+          {systemPrompt && (
+            <>
+              <button
+                onClick={() => setPromptOpen((v) => !v)}
+                className="w-full flex items-center gap-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 px-2.5 py-2 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/80"
+              >
+                {promptOpen ? (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                )}
+                <Terminal className="h-3 w-3 text-indigo-500" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  System Prompt
+                </span>
+              </button>
+
+              {promptOpen && (
+                <div className="rounded-lg bg-slate-900 dark:bg-slate-950 border border-slate-700 p-3 animate-slide-in">
+                  <pre className="text-[10px] leading-relaxed text-slate-300 max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words font-mono">
+                    {systemPrompt}
+                  </pre>
+                </div>
+              )}
+            </>
+          )}
+
           {/* Agent Activity Log */}
           {agentLog && (
             <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 p-2.5">
@@ -175,7 +222,13 @@ export function AgentChat({ agent, open, onOpenChange, topology }: Props) {
 
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-3">
-          {messages.length === 0 && (
+          {loadingHistory && (
+            <div className="flex h-full items-center justify-center animate-fade-in">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/40" />
+            </div>
+          )}
+
+          {!loadingHistory && messages.length === 0 && (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />

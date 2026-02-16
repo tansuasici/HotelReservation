@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useSimulation } from "@/hooks/use-simulation";
 import { useTheme } from "@/hooks/use-theme";
 import { Navbar } from "./navbar";
@@ -8,10 +9,14 @@ import { SimControls } from "./sim-controls";
 import { StatusPanel } from "./status-panel";
 import { CustomerPanel } from "./customer-panel";
 import { HotelPanel } from "./hotel-panel";
-import { NetworkGraph } from "./network-graph";
 import { ActivityFeed } from "./activity-feed";
 import { AgentChat } from "./agent-chat";
 import type { TopologyNode } from "@/lib/types";
+
+const NetworkGraph = dynamic(
+  () => import("./network-graph").then((m) => m.NetworkGraph),
+  { ssr: false }
+);
 
 export function Dashboard() {
   const sim = useSimulation();

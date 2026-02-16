@@ -6,6 +6,7 @@ import type { CustomerStatus } from "@/lib/types";
 import { STATE_COLORS } from "@/lib/types";
 
 const STATE_BADGE_CLASS: Record<string, string> = {
+  IDLE: "bg-zinc-50 text-zinc-500 border-zinc-200",
   SEARCHING: "bg-indigo-50 text-indigo-700 border-indigo-200",
   WAITING_PROPOSALS: "bg-amber-50 text-amber-700 border-amber-200",
   EVALUATING: "bg-purple-50 text-purple-700 border-purple-200",

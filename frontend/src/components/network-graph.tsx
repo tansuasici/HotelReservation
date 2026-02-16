@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Network as VisNetwork } from "vis-network";
 import { DataSet } from "vis-data";
-import { Network as NetworkIcon, Orbit } from "lucide-react";
+import { Orbit, Hotel, User } from "lucide-react";
 import type {
   Topology,
   TopologyNode,
@@ -22,6 +22,65 @@ import {
 function cityColor(city: string) {
   return CITY_COLORS[city] || DEFAULT_CITY_COLOR;
 }
+
+// --- Tooltip builders ---
+
+function buildHotelTooltip(node: TopologyNode): HTMLDivElement {
+  const div = document.createElement("div");
+  div.style.cssText =
+    "background:#1e1e2e;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-family:Inter,system-ui,sans-serif;font-size:12px;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);min-width:160px;";
+
+  const name = node.displayName || node.name;
+  const city = node.location || "";
+  const stars = node.rank || 0;
+  const price = node.basePrice || 0;
+
+  div.innerHTML =
+    `<div style="font-weight:700;font-size:13px;margin-bottom:4px;">${name}</div>` +
+    (city ? `<div style="color:#94a3b8;">${city}</div>` : "") +
+    (stars ? `<div style="color:#facc15;">${"\u2605".repeat(stars)}</div>` : "") +
+    (price ? `<div style="color:#4ade80;font-weight:600;">$${price}/night</div>` : "");
+
+  return div;
+}
+
+function buildCustomerTooltip(
+  node: TopologyNode,
+  customer?: CustomerStatus
+): HTMLDivElement {
+  const div = document.createElement("div");
+  div.style.cssText =
+    "background:#1e1e2e;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-family:Inter,system-ui,sans-serif;font-size:12px;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);min-width:160px;";
+
+  const name = node.displayName || node.name;
+  const desiredRank = customer?.desiredRank || node.desiredRank || 0;
+  const desiredLocation = customer?.desiredLocation || node.location || "";
+  const maxPrice = customer?.maxPrice || node.maxPrice || 0;
+  const state = customer?.state || "IDLE";
+  const stateColor = STATE_COLORS[state] || "#71717a";
+
+  div.innerHTML =
+    `<div style="font-weight:700;font-size:13px;margin-bottom:4px;">${name}</div>` +
+    (desiredLocation
+      ? `<div style="color:#94a3b8;">Looking for: ${desiredLocation} ${"\u2605".repeat(desiredRank)}</div>`
+      : "") +
+    (maxPrice ? `<div style="color:#94a3b8;">Max budget: $${maxPrice}</div>` : "") +
+    `<div style="color:${stateColor};font-weight:600;margin-top:2px;">${state}</div>`;
+
+  return div;
+}
+
+// Lucide icon SVGs as data URIs for vis-network nodes
+function svgDataUri(pathD: string, color: string, size = 24) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${pathD}</svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+// Lucide "Hotel" icon path
+const HOTEL_ICON_PATH = `<path d="M10 22v-6.57"/><path d="M12 11h.01"/><path d="M12 7h.01"/><path d="M14 15.43V22"/><path d="M15 16a5 5 0 0 0-6 0"/><path d="M16 11h.01"/><path d="M16 7h.01"/><path d="M8 11h.01"/><path d="M8 7h.01"/><rect x="4" y="2" width="16" height="20" rx="2"/>`;
+
+// Lucide "User" icon path
+const USER_ICON_PATH = `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`;
 
 interface Props {
   topology: Topology | null;
@@ -45,7 +104,9 @@ export function NetworkGraph({
   const nodesDSRef = useRef<DataSet<Record<string, unknown>> | null>(null);
   const edgesDSRef = useRef<DataSet<Record<string, unknown>> | null>(null);
   const nameMapRef = useRef<Record<string, string>>({});
+  const isDarkRef = useRef(isDark);
   const topoNodesRef = useRef<TopologyNode[]>([]);
+  const customersRef = useRef<CustomerStatus[]>([]);
   const lastActivityLen = useRef(0);
 
   // Build graph when topology changes
@@ -62,19 +123,26 @@ export function NetworkGraph({
       const isHotel = n.type === "HotelAgent";
       const city = n.location || "";
       const color = isHotel ? cityColor(city) : CUSTOMER_COLOR;
+      const iconSize = isHotel ? 28 + (n.rank || 3) * 2 : 32;
 
       return {
         id: n.name,
         label: isHotel ? n.displayName || n.name : n.name,
-        shape: isHotel ? "dot" : "star",
-        size: isHotel ? 14 + (n.rank || 3) * 3 : 22,
+        shape: "image",
+        image: svgDataUri(
+          isHotel ? HOTEL_ICON_PATH : USER_ICON_PATH,
+          color,
+          iconSize
+        ),
+        size: isHotel ? 18 + (n.rank || 3) * 2 : 22,
+        title: isHotel ? buildHotelTooltip(n) : buildCustomerTooltip(n),
         color: {
-          background: color,
-          border: color,
-          highlight: { background: color, border: "#4f46e5" },
+          background: "transparent",
+          border: "transparent",
+          highlight: { background: "transparent", border: "#4f46e5" },
         },
         font: {
-          color: isDark ? "#cbd5e1" : "#334155",
+          color: isDarkRef.current ? "#cbd5e1" : "#334155",
           size: 11,
           face: "Inter, system-ui, sans-serif",
         },
@@ -88,8 +156,8 @@ export function NetworkGraph({
         from: e.from,
         to: e.to,
         color: {
-          color: isDark ? "rgba(200,210,220,0.12)" : "rgba(100,116,139,0.2)",
-          highlight: isDark ? "rgba(200,210,220,0.35)" : "rgba(100,116,139,0.5)",
+          color: isDarkRef.current ? "rgba(200,210,220,0.12)" : "rgba(100,116,139,0.2)",
+          highlight: isDarkRef.current ? "rgba(200,210,220,0.35)" : "rgba(100,116,139,0.5)",
         },
         width: 1,
         smooth: { type: "continuous" },
@@ -110,8 +178,16 @@ export function NetworkGraph({
     });
     nameMapRef.current = nm;
 
+    // Create a DOM element outside React's tree for vis-network.
+    // vis-network manipulates its container's children directly,
+    // which conflicts with React's reconciler (removeChild errors).
+    const visDiv = document.createElement("div");
+    visDiv.style.width = "100%";
+    visDiv.style.height = "100%";
+    containerRef.current.appendChild(visDiv);
+
     const network = new VisNetwork(
-      containerRef.current,
+      visDiv,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { nodes: nodesDS as any, edges: edgesDS as any },
       {
@@ -142,6 +218,10 @@ export function NetworkGraph({
     });
 
     network.on("click", (params: { nodes?: string[] }) => {
+      // Hide tooltip on click
+      const tip = visDiv.querySelector(".vis-tooltip") as HTMLElement | null;
+      if (tip) tip.style.visibility = "hidden";
+
       if (params.nodes && params.nodes.length > 0) {
         const nodeData = topoNodesRef.current.find(
           (n) => n.name === params.nodes![0]
@@ -155,23 +235,40 @@ export function NetworkGraph({
 
     return () => {
       network.destroy();
+      visDiv.remove();
       networkRef.current = null;
     };
-  }, [topology, onNodeClick, isDark]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topology, onNodeClick]);
 
-  // Update customer node colors
+  // Update colors when theme changes (without rebuilding graph)
   useEffect(() => {
+    isDarkRef.current = isDark;
+    if (!nodesDSRef.current || !edgesDSRef.current) return;
+    const fontColor = isDark ? "#cbd5e1" : "#334155";
+    const edgeColor = isDark ? "rgba(200,210,220,0.12)" : "rgba(100,116,139,0.2)";
+    const edgeHighlight = isDark ? "rgba(200,210,220,0.35)" : "rgba(100,116,139,0.5)";
+
+    for (const node of nodesDSRef.current.get()) {
+      nodesDSRef.current.update({ id: node.id, font: { ...node.font as object, color: fontColor } });
+    }
+    for (const edge of edgesDSRef.current.get()) {
+      edgesDSRef.current.update({ id: edge.id, color: { color: edgeColor, highlight: edgeHighlight } });
+    }
+  }, [isDark]);
+
+  // Update customer node icons + tooltips when state changes
+  useEffect(() => {
+    customersRef.current = customers;
     if (!nodesDSRef.current || customers.length === 0) return;
     for (const c of customers) {
       const color = STATE_COLORS[c.state] || CUSTOMER_COLOR;
+      const topoNode = topoNodesRef.current.find((n) => n.name === c.customerId);
       try {
         nodesDSRef.current.update({
           id: c.customerId,
-          color: {
-            background: color,
-            border: color,
-            highlight: { background: color, border: "#4f46e5" },
-          },
+          image: svgDataUri(USER_ICON_PATH, color, 32),
+          title: topoNode ? buildCustomerTooltip(topoNode, c) : undefined,
         });
       } catch {
         /* node might not exist yet */
@@ -234,69 +331,69 @@ export function NetworkGraph({
     });
   }, [activity, animateEdge]);
 
-  // Empty state
-  if (!topology) {
-    return (
-      <div className="flex h-full items-center justify-center animate-fade-in">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/8 border border-indigo-500/10">
-            <Orbit className="h-7 w-7 text-indigo-500/50" />
-          </div>
-          <p className="text-sm text-muted-foreground/70">
-            Click <span className="font-semibold text-indigo-600">Setup</span>{" "}
-            to initialize the agent network
-          </p>
-          <p className="mt-1.5 text-[11px] text-muted-foreground/30 data-value">
-            7 Hotels &middot; 5 Customers &middot; CNP
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const hasTopology = !!topology;
+  const nodeCount = hasTopology
+    ? topology.nodes.filter(
+        (n) => n.type === "HotelAgent" || n.type === "CustomerAgent"
+      ).length
+    : 0;
+  const edgeCount = hasTopology ? topology.edges.length : 0;
 
-  const nodeCount = topology.nodes.filter(
-    (n) => n.type === "HotelAgent" || n.type === "CustomerAgent"
-  ).length;
-  const edgeCount = topology.edges.length;
-
+  // Always render the same DOM structure — vis-network manipulates containerRef
+  // children directly, so React must never add/remove it from the tree.
   return (
-    <>
-      <div ref={containerRef} className="h-full w-full" />
+    <div className="relative h-full w-full">
+      {/* vis-network canvas container — always in DOM, hidden when no topology */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{ visibility: hasTopology ? "visible" : "hidden" }}
+      />
+
+      {/* Empty state — shown on top when no topology */}
+      {!hasTopology && (
+        <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/8 border border-indigo-500/10">
+              <Orbit className="h-7 w-7 text-indigo-500/50" />
+            </div>
+            <p className="text-sm text-muted-foreground/70">
+              Click <span className="font-semibold text-indigo-600">Setup</span>{" "}
+              to initialize the agent network
+            </p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground/30 data-value">
+              7 Hotels &middot; 5 Customers &middot; CNP
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Overlay stats */}
-      <div className="absolute top-3 right-3 flex items-center gap-2 text-[10px] text-muted-foreground/40 data-value">
-        <span>{nodeCount} nodes</span>
-        <span>&middot;</span>
-        <span>{edgeCount} edges</span>
-      </div>
+      {hasTopology && (
+        <div className="absolute top-3 right-3 flex items-center gap-2 text-[10px] text-muted-foreground/40 data-value">
+          <span>{nodeCount} nodes</span>
+          <span>&middot;</span>
+          <span>{edgeCount} edges</span>
+        </div>
+      )}
 
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 rounded-lg glass-panel px-3 py-2 text-[10.5px]">
-        <div className="mb-1 flex items-center gap-1.5">
-          <span
-            className="inline-block h-2.5 w-2.5"
-            style={{
-              color: "#eab308",
-              fontSize: "10px",
-              lineHeight: "10px",
-            }}
-          >
-            &#9733;
-          </span>
-          <span className="text-muted-foreground/60">Customer</span>
+      {hasTopology && (
+        <div className="absolute bottom-3 left-3 rounded-lg glass-panel px-3 py-2 text-[10.5px]">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <User className="h-3 w-3" style={{ color: CUSTOMER_COLOR }} />
+            <span className="text-muted-foreground/60">Customer</span>
+          </div>
+          {Object.keys(CITY_COLORS)
+            .sort()
+            .map((city) => (
+              <div key={city} className="flex items-center gap-1.5">
+                <Hotel className="h-3 w-3" style={{ color: CITY_COLORS[city] }} />
+                <span className="text-muted-foreground/60">{city}</span>
+              </div>
+            ))}
         </div>
-        {Object.keys(CITY_COLORS)
-          .sort()
-          .map((city) => (
-            <div key={city} className="flex items-center gap-1.5">
-              <span
-                className="inline-block h-2 w-2 rounded-full"
-                style={{ background: CITY_COLORS[city] }}
-              />
-              <span className="text-muted-foreground/60">{city}</span>
-            </div>
-          ))}
-      </div>
-    </>
+      )}
+    </div>
   );
 }

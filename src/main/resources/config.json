@@ -8,11 +8,6 @@
   "cnp": {
     "PROPOSAL_DEADLINE_TICKS": "30",
     "MAX_NEGOTIATION_ROUNDS": "5",
-    "NEGOTIATION_ENABLED": "true",
-    "MIN_DISCOUNT_PERCENT": "15"
-  },
-  "api": {
-    "WEATHER_API_BASE": "https://api.openweathermap.org/data/2.5",
-    "CURRENCY_API_BASE": "https://api.exchangerate-api.com/v4/latest"
+    "NEGOTIATION_ENABLED": "true"
   }
 }
