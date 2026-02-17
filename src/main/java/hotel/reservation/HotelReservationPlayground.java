@@ -19,12 +19,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import hotel.reservation.agent.CustomerAgent;
+import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
-import hotel.reservation.api.HotelApiClient;
-import hotel.reservation.api.HotelDataServer;
+import hotel.reservation.data.model.CustomerSpec;
 import hotel.reservation.data.model.Hotel;
+import hotel.reservation.data.repository.CustomerRepository;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.CustomerRole;
+import hotel.reservation.role.DataFetcherRole;
 import hotel.reservation.role.HotelProviderRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +40,11 @@ import org.slf4j.LoggerFactory;
 public class HotelReservationPlayground extends Playground {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelReservationPlayground.class);
-    private static final int API_PORT = 7070;
+    private static final int API_PORT = 3001;
 
     private DirectoryFacilitator directoryFacilitator;
     private NetworkEnvironment hotelEnv;
-    private HotelDataServer hotelDataServer;
+    private DataFetcherAgent dataFetcherAgent;
     private final List<HotelAgent> hotelAgents = new ArrayList<>();
     private final List<CustomerAgent> customerAgents = new ArrayList<>();
 
@@ -61,21 +63,15 @@ public class HotelReservationPlayground extends Playground {
         LOGGER.info("╚════════════════════════════════════════════════════════╝");
         LOGGER.info("");
 
-        // Start Hotel Data API server
-        hotelDataServer = new HotelDataServer(API_PORT);
-        try {
-            hotelDataServer.start();
-            Runtime.getRuntime().addShutdownHook(new Thread(this::stopDataServer));
-        } catch (Exception e) {
-            LOGGER.warn("Could not start Hotel Data API on port {}: {}", API_PORT, e.getMessage());
-            hotelDataServer = null;
-        }
-
         // Create NetworkEnvironment - provides JGraphT graph topology + messaging
         hotelEnv = create(new NetworkEnvironment("HotelEnv"));
 
         // Create Directory Facilitator
         directoryFacilitator = create(new DirectoryFacilitator("DF"));
+
+        // Create DataFetcher Agent - SCOP Role for API data retrieval
+        dataFetcherAgent = create(new DataFetcherAgent(API_PORT));
+        hotelEnv.add(dataFetcherAgent);
 
         // Create Hotel Agents - data fetched from API (fallback: local repository)
         createHotelAgents();
@@ -90,18 +86,18 @@ public class HotelReservationPlayground extends Playground {
         LOGGER.info("┌─ SETUP COMPLETE ─────────────────────────────────────┐");
         LOGGER.info("│  Hotels: {}                                           │", directoryFacilitator.getRegisteredCount());
         LOGGER.info("│  Customers: {}                                        │", customerAgents.size());
-        LOGGER.info("│  Agents: {} ({} hotel + {} customer + DF + env)       │",
-            hotelAgents.size() + customerAgents.size() + 2, hotelAgents.size(), customerAgents.size());
+        LOGGER.info("│  Agents: {} ({} hotel + {} customer + DF + DataFetcher + env) │",
+            hotelAgents.size() + customerAgents.size() + 3, hotelAgents.size(), customerAgents.size());
         LOGGER.info("└──────────────────────────────────────────────────────┘");
         LOGGER.info("");
     }
 
     /**
-     * Create hotel agents by fetching data from the Hotel Data API.
+     * Create hotel agents by fetching data from the Hotel Data API via DataFetcherRole.
      */
     private void createHotelAgents() {
-        HotelApiClient apiClient = new HotelApiClient(API_PORT);
-        List<Hotel> hotels = apiClient.fetchAllHotels();
+        DataFetcherRole fetcherRole = dataFetcherAgent.as(DataFetcherRole.class);
+        List<Hotel> hotels = fetcherRole.fetchAllHotels();
         LOGGER.info("Fetched {} hotels from API (http://localhost:{})", hotels.size(), API_PORT);
 
         int successCount = 0;
@@ -128,60 +124,18 @@ public class HotelReservationPlayground extends Playground {
     }
 
     /**
-     * Create customer agents with diverse search criteria.
+     * Create customer agents by fetching data from the Customer Data API.
+     * Falls back to local CustomerRepository if the API is unavailable.
      */
     private void createCustomerAgents() {
-        // name, city, minStars, maxPrice
-        // ═══════════════════════════════════════════════════════════════
-        //  Scenario Coverage:
-        //  S1: Top-N 3 candidates + leverage       → C1, C2
-        //  S2: Sequential fallback (room sold out) → C1/C2 cascade
-        //  S3: Room competition (1 room, 2 buyers) → C3 vs C4, C11 vs C12, C14 vs C15
-        //  S4: Demand pressure (scarcity pricing)  → 1-room hotels
-        //  S5: Easy negotiation (big budget)        → C9
-        //  S6: Tight negotiation (budget ~= price) → C3, C4
-        //  S7: Guaranteed FAIL (no match)           → C5
-        //  S8: Single candidate (no leverage)       → C8, C10, C13
-        // ═══════════════════════════════════════════════════════════════
-        Object[][] specs = {
-            // --- Istanbul (5 customers → 4 hotels) ---
-            // h001: Grand 5★ $450 (2r), h002: Luxury 5★ $400 (2r),
-            // h003: Budget 3★ $150 (1r), h009: Comfort 4★ $280 (2r)
-            {"Customer-1",  "Istanbul", 4, 460.0},   // S1: matches h001,h002,h009 → Top-3 + leverage
-            {"Customer-2",  "Istanbul", 4, 450.0},   // S1+S2: same 3 hotels → competes with C1
-            {"Customer-3",  "Istanbul", 3, 170.0},   // S3+S6: Budget Inn $150 (1 room) → tight budget
-            {"Customer-4",  "Istanbul", 3, 160.0},   // S3+S6: same hotel → room race with C3
-            {"Customer-5",  "Istanbul", 5, 380.0},   // S7: no match (h001=$450, h002=$400 > budget)
+        List<CustomerSpec> specs = fetchCustomerSpecs();
+        LOGGER.info("Fetched {} customers from {}", specs.size(),
+            specs.isEmpty() ? "none" : "API/repository");
 
-            // --- Ankara (3 customers → 2 hotels) ---
-            // h005: Business 4★ $250 (2r), h010: Plaza 3★ $180 (1r)
-            {"Customer-6",  "Ankara",   3, 280.0},   // S1-partial: matches both → Top-2 + leverage
-            {"Customer-7",  "Ankara",   3, 260.0},   // S2: same 2 hotels → competes with C6
-            {"Customer-8",  "Ankara",   4, 270.0},   // S8: only h005 matches → single candidate
-
-            // --- Antalya (2 customers → 2 hotels) ---
-            // h007: Beach 5★ $500 (2r), h011: Garden 3★ $200 (1r)
-            {"Customer-9",  "Antalya",  3, 530.0},   // S5: both match → big budget, easy negotiation
-            {"Customer-10", "Antalya",  5, 520.0},   // S8: only h007 matches → single premium
-
-            // --- Izmir (2 customers → 1 hotel, 1 room) ---
-            // h004: Sea View 4★ $300 (1r)
-            {"Customer-11", "Izmir",    3, 340.0},   // S3+S4: 1 room → demand pressure + room race
-            {"Customer-12", "Izmir",    3, 320.0},   // S3: same hotel → loser FAILs
-
-            // --- Nevsehir (1 customer → 1 hotel, 1 room) ---
-            // h006: Cave 5★ $350 (1r)
-            {"Customer-13", "Nevsehir", 4, 380.0},   // S8: solo customer, moderate budget
-
-            // --- Mugla (2 customers → 1 hotel, 1 room) ---
-            // h008: Bodrum 4★ $280 (1r)
-            {"Customer-14", "Mugla",    3, 300.0},   // S3: 1 room, room competition
-            {"Customer-15", "Mugla",    3, 290.0},   // S3: same hotel → loser FAILs
-        };
-
-        for (Object[] s : specs) {
+        for (CustomerSpec spec : specs) {
             CustomerAgent customer = create(new CustomerAgent(
-                (String) s[0], (String) s[1], (int) s[2], (double) s[3]
+                spec.getName(), spec.getDesiredLocation(),
+                spec.getDesiredRank(), spec.getMaxPrice()
             ));
             hotelEnv.add(customer);
             customerAgents.add(customer);
@@ -190,6 +144,29 @@ public class HotelReservationPlayground extends Playground {
                 customer.getName(), customer.getDesiredRank(),
                 customer.getDesiredLocation(), customer.getMaxPrice());
         }
+    }
+
+    /**
+     * Fetch customer specs from API via DataFetcherRole, with fallback to local repository.
+     */
+    private List<CustomerSpec> fetchCustomerSpecs() {
+        // Try API via DataFetcherRole first
+        try {
+            DataFetcherRole fetcherRole = dataFetcherAgent.as(DataFetcherRole.class);
+            List<CustomerSpec> customers = fetcherRole.fetchAllCustomers();
+            if (!customers.isEmpty()) {
+                LOGGER.info("Fetched {} customers from API (http://localhost:{})", customers.size(), API_PORT);
+                return customers;
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Customer API unavailable: {}", e.getMessage());
+        }
+
+        // Fallback: load directly from repository
+        LOGGER.info("Falling back to local CustomerRepository");
+        CustomerRepository repo = new CustomerRepository();
+        repo.initialize();
+        return repo.findAll();
     }
 
     /**
@@ -258,16 +235,6 @@ public class HotelReservationPlayground extends Playground {
      */
     public NetworkEnvironment getHotelNetwork() {
         return hotelEnv;
-    }
-
-    /**
-     * Stop the Hotel Data API server if it is running.
-     */
-    public void stopDataServer() {
-        if (hotelDataServer != null) {
-            hotelDataServer.stop();
-            hotelDataServer = null;
-        }
     }
 
     /**
@@ -384,11 +351,11 @@ public class HotelReservationPlayground extends Playground {
     }
 
     /**
-     * Write hotels.json by fetching data from the Hotel Data API.
+     * Write hotels.json by fetching data from the Hotel Data API via DataFetcherRole.
      */
     private void writeHotels(ObjectMapper mapper, Path outputDir) throws IOException {
-        HotelApiClient apiClient = new HotelApiClient(API_PORT);
-        List<Hotel> hotels = apiClient.fetchAllHotels();
+        DataFetcherRole fetcherRole = dataFetcherAgent.as(DataFetcherRole.class);
+        List<Hotel> hotels = fetcherRole.fetchAllHotels();
         mapper.writeValue(outputDir.resolve("hotels.json").toFile(), hotels);
         LOGGER.info("  Written: hotels.json ({} hotels)", hotels.size());
     }

@@ -1,0 +1,109 @@
+{
+  "customers": [
+    {
+      "id": "c001",
+      "name": "Customer-1",
+      "desiredLocation": "Istanbul",
+      "desiredRank": 4,
+      "maxPrice": 460.0
+    },
+    {
+      "id": "c002",
+      "name": "Customer-2",
+      "desiredLocation": "Istanbul",
+      "desiredRank": 4,
+      "maxPrice": 450.0
+    },
+    {
+      "id": "c003",
+      "name": "Customer-3",
+      "desiredLocation": "Istanbul",
+      "desiredRank": 3,
+      "maxPrice": 170.0
+    },
+    {
+      "id": "c004",
+      "name": "Customer-4",
+      "desiredLocation": "Istanbul",
+      "desiredRank": 3,
+      "maxPrice": 160.0
+    },
+    {
+      "id": "c005",
+      "name": "Customer-5",
+      "desiredLocation": "Istanbul",
+      "desiredRank": 5,
+      "maxPrice": 380.0
+    },
+    {
+      "id": "c006",
+      "name": "Customer-6",
+      "desiredLocation": "Ankara",
+      "desiredRank": 3,
+      "maxPrice": 280.0
+    },
+    {
+      "id": "c007",
+      "name": "Customer-7",
+      "desiredLocation": "Ankara",
+      "desiredRank": 3,
+      "maxPrice": 260.0
+    },
+    {
+      "id": "c008",
+      "name": "Customer-8",
+      "desiredLocation": "Ankara",
+      "desiredRank": 4,
+      "maxPrice": 270.0
+    },
+    {
+      "id": "c009",
+      "name": "Customer-9",
+      "desiredLocation": "Antalya",
+      "desiredRank": 3,
+      "maxPrice": 530.0
+    },
+    {
+      "id": "c010",
+      "name": "Customer-10",
+      "desiredLocation": "Antalya",
+      "desiredRank": 5,
+      "maxPrice": 520.0
+    },
+    {
+      "id": "c011",
+      "name": "Customer-11",
+      "desiredLocation": "Izmir",
+      "desiredRank": 3,
+      "maxPrice": 340.0
+    },
+    {
+      "id": "c012",
+      "name": "Customer-12",
+      "desiredLocation": "Izmir",
+      "desiredRank": 3,
+      "maxPrice": 320.0
+    },
+    {
+      "id": "c013",
+      "name": "Customer-13",
+      "desiredLocation": "Nevsehir",
+      "desiredRank": 4,
+      "maxPrice": 380.0
+    },
+    {
+      "id": "c014",
+      "name": "Customer-14",
+      "desiredLocation": "Mugla",
+      "desiredRank": 3,
+      "maxPrice": 300.0
+    },
+    {
+      "id": "c015",
+      "name": "Customer-15",
+      "desiredLocation": "Mugla",
+      "desiredRank": 3,
+      "maxPrice": 290.0
+    }
+  ]
+}
