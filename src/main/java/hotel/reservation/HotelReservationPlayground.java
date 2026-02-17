@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public class HotelReservationPlayground extends Playground {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelReservationPlayground.class);
-    private static final int API_PORT = 3001;
+    private static final int API_PORT = 7070;
 
     private DirectoryFacilitator directoryFacilitator;
     private NetworkEnvironment hotelEnv;

@@ -73,7 +73,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch all hotels from Hotel Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels",
+            endpoint = "http://localhost:7070/api/hotels",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -111,7 +111,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single hotel by ID from Hotel Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels/{id}",
+            endpoint = "http://localhost:7070/api/hotels/{id}",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -147,7 +147,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Search hotels by city, minimum rank, and maximum price",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels/search",
+            endpoint = "http://localhost:7070/api/hotels/search",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -206,7 +206,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch all customers from Customer Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers",
+            endpoint = "http://localhost:7070/api/customers",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -244,7 +244,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single customer by ID from Customer Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers/{id}",
+            endpoint = "http://localhost:7070/api/customers/{id}",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -280,7 +280,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Search customers by city, minimum rank, and maximum price",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers/search",
+            endpoint = "http://localhost:7070/api/customers/search",
             method = HttpMethod.GET,
             timeout = 5000
         )
