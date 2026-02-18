@@ -461,11 +461,7 @@ public class HotelProviderRole extends Role {
      * Higher flexibility = faster price reduction. Scarce rooms = higher floor.
      */
     private double calculateHotelCounterOffer(int round, int maxRounds) {
-        double effectiveMin = getEffectiveMinPrice();
-        double progress = (double) round / maxRounds;
-        double reduction = (basePrice - effectiveMin) * progress * negotiationFlexibility;
-        double counterPrice = basePrice - reduction;
-        return Math.max(counterPrice, effectiveMin);
+        return NegotiationPricing.hotelCounterOffer(basePrice, getEffectiveMinPrice(), negotiationFlexibility, round, maxRounds);
     }
 
     // Configuration methods

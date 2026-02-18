@@ -540,8 +540,7 @@ public class CustomerRole extends Role {
         }
 
         // Counter-offer strategy with leverage
-        double progress = (double) negotiationRound / maxNegotiationRounds;
-        double counterPrice = desiredPrice + (maxPrice - desiredPrice) * progress;
+        double counterPrice = NegotiationPricing.customerCounterOffer(desiredPrice, maxPrice, negotiationRound, maxNegotiationRounds);
 
         // Don't offer more than the hotel is asking
         if (counterPrice >= hotelOffer.getOfferedPrice()) {
