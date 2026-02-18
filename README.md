@@ -76,8 +76,6 @@ mvn clean compile
 mvn spring-boot:run
 ```
 
-Server starts at **http://localhost:3001**.
-
 ### Frontend
 
 ```bash
@@ -85,8 +83,6 @@ cd webapp
 pnpm install
 pnpm dev
 ```
-
-Dashboard at **http://localhost:3000**.
 
 ## REST API
 
