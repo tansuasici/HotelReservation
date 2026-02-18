@@ -90,7 +90,6 @@ public class SimulationController {
             }
             case "stop" -> {
                 if (playground != null) {
-                    playground.writeOutputFiles();
                     playground.setExecutionState(ExecutionState.ENDED);
                     LOGGER.info("Simulation stopped");
                 }
@@ -115,6 +114,14 @@ public class SimulationController {
         }
 
         ExecutionState execState = playground.getExecutionState();
+
+        // Auto-end: if RUNNING and all customers finished, switch to ENDED
+        if (execState == ExecutionState.RUNNING && allCustomersDone()) {
+            playground.setExecutionState(ExecutionState.ENDED);
+            execState = ExecutionState.ENDED;
+            LOGGER.info("All customers done — simulation auto-ended");
+        }
+
         String stateStr = switch (execState) {
             case RUNNING -> "RUNNING";
             case PAUSED -> "PAUSED";
@@ -140,6 +147,24 @@ public class SimulationController {
         }
 
         return status;
+    }
+
+    private boolean allCustomersDone() {
+        try {
+            var customers = playground.getCustomerAgents();
+            if (customers.isEmpty()) return false;
+            for (CustomerAgent c : customers) {
+                CustomerRole role = c.as(CustomerRole.class);
+                if (role == null) return false;
+                String state = role.getCustomerState().name();
+                if (!"COMPLETED".equals(state) && !"FAILED".equals(state)) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // ==========================================
