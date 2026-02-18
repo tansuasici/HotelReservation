@@ -7,11 +7,10 @@ A multi-agent hotel reservation system built with the **SCOP Framework** and **T
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                     Next.js Frontend (webapp/)               │
-│                        localhost:3000                         │
 └──────────────────────┬───────────────────────────────────────┘
                        │ REST API
 ┌──────────────────────▼───────────────────────────────────────┐
-│                Spring Boot API (port 3001)                    │
+│                    Spring Boot API                            │
 │  SimulationController · TopologyController · AgentController  │
 │  ActivityController · CustomerStatusController                │
 ├──────────────────────────────────────────────────────────────┤
