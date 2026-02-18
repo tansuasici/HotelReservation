@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { join } from "path";
 
-const DATA_DIR = join(process.cwd(), "..", "output-data");
+const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
 
 interface ChatMsg {
   role: "user" | "agent";
@@ -22,33 +20,28 @@ type OllamaMessage = Record<string, any>;
 // In-memory per-agent chat history (persists within server process)
 const chatHistories = new Map<string, ChatMsg[]>();
 
-async function readJson(filename: string) {
+async function fetchText(url: string): Promise<string> {
   try {
-    const content = await readFile(join(DATA_DIR, filename), "utf-8");
-    return JSON.parse(content);
+    const res = await fetch(url);
+    if (!res.ok) return "";
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
+async function fetchJson(url: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }
 }
 
-async function readLog(agentId: string): Promise<string> {
-  try {
-    return await readFile(join(DATA_DIR, "log", `${agentId}.log`), "utf-8");
-  } catch {
-    return "";
-  }
-}
-
-async function readPrompt(agentId: string): Promise<string> {
-  try {
-    return await readFile(join(DATA_DIR, "prompts", `${agentId}.txt`), "utf-8");
-  } catch {
-    return "";
-  }
-}
-
 async function getAgentMeta(agentId: string): Promise<AgentMeta | null> {
-  const agents = await readJson("agents.json");
+  const agents = await fetchJson(`${BACKEND}/api/agents`);
   return agents?.find((a: AgentMeta) => a.name === agentId) || null;
 }
 
@@ -127,9 +120,9 @@ async function executeTool(name: string, args: Record<string, any>): Promise<str
   switch (name) {
     case "get_simulation_summary": {
       const [hotels, customers, activity] = await Promise.all([
-        readJson("hotels.json"),
-        readJson("customers.json"),
-        readJson("activity.json"),
+        fetchJson(`${BACKEND}/api/data/hotels`),
+        fetchJson(`${BACKEND}/api/customers/status`),
+        fetchJson(`${BACKEND}/api/activity?since=0`),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const completed = customers?.filter((c: any) => c.state === "COMPLETED").length || 0;
@@ -145,10 +138,9 @@ async function executeTool(name: string, args: Record<string, any>): Promise<str
       });
     }
     case "get_hotels": {
-      const hotels = await readJson("hotels.json");
+      const hotels = await fetchJson(`${BACKEND}/api/data/hotels`);
       if (!hotels) return "No hotel data available.";
       const city = args.city as string | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const filtered = city
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? hotels.filter((h: any) => h.location?.city?.toLowerCase() === city.toLowerCase())
@@ -165,7 +157,7 @@ async function executeTool(name: string, args: Record<string, any>): Promise<str
       })));
     }
     case "get_customers": {
-      const customers = await readJson("customers.json");
+      const customers = await fetchJson(`${BACKEND}/api/customers/status`);
       if (!customers) return "No customer data available.";
       const id = args.customerId as string | undefined;
       const filtered = id
@@ -175,7 +167,7 @@ async function executeTool(name: string, args: Record<string, any>): Promise<str
       return JSON.stringify(filtered);
     }
     case "get_activity_log": {
-      const activity = await readJson("activity.json");
+      const activity = await fetchJson(`${BACKEND}/api/activity?since=0`);
       if (!activity) return "No activity data available.";
       const agent = args.agent as string | undefined;
       const filtered = agent
@@ -225,7 +217,7 @@ export async function GET(request: Request) {
   if (includePrompt) {
     result.systemPrompt = agentId === "Playground"
       ? await buildPlaygroundContext()
-      : await readPrompt(agentId);
+      : await fetchText(`${BACKEND}/api/agents/${agentId}/prompt`);
   }
 
   return NextResponse.json(result);
@@ -353,9 +345,9 @@ async function streamAgentChat(
   sendEvent: EventSender
 ): Promise<string> {
   const [prompt, log, activity] = await Promise.all([
-    readPrompt(agentId),
-    readLog(agentId),
-    readJson("activity.json"),
+    fetchText(`${BACKEND}/api/agents/${agentId}/prompt`),
+    fetchText(`${BACKEND}/api/agents/${agentId}/log`),
+    fetchJson(`${BACKEND}/api/activity?since=0`),
   ]);
 
   const meta = await getAgentMeta(agentId);

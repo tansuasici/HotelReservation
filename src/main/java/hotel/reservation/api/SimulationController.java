@@ -4,8 +4,12 @@ import ai.scop.core.Agent;
 import ai.scop.core.Conversation;
 import ai.scop.core.ExecutionState;
 import ai.scop.core.env.network.NetworkEnvironment;
-import ai.scop.core.env.network.NetworkMetrics;
+import ai.scop.ui.command.impl.exec.web_service.dto.NetworkEnvironmentDTO;
+import ai.scop.ui.command.impl.exec.web_service.dto.NetworkMetricsDTO;
 import ai.scop.ui.config.Configurator;
+import com.tnsai.annotations.AgentSpec;
+import com.tnsai.annotations.LLMSpec;
+import com.tnsai.integration.scop.SCOPBridge;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.HotelReservationPlayground;
 import hotel.reservation.agent.CustomerAgent;
@@ -13,8 +17,10 @@ import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.RoomProposal;
 import hotel.reservation.role.CustomerRole;
+import hotel.reservation.role.HotelProviderRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -119,11 +125,19 @@ public class SimulationController {
         status.put("state", stateStr);
         status.put("currentTick", playground.getTick() != null ? playground.getTick().now() : 0);
 
-        var agents = playground.getScenarioAgents();
-        status.put("agentCount", agents != null ? agents.size() : 0);
+        try {
+            var agents = playground.getScenarioAgents();
+            status.put("agentCount", agents != null ? agents.size() : 0);
+        } catch (Exception e) {
+            status.put("agentCount", 0);
+        }
 
-        DirectoryFacilitator df = playground.getDirectoryFacilitator();
-        status.put("registeredHotels", df != null ? df.getRegisteredCount() : 0);
+        try {
+            DirectoryFacilitator df = playground.getDirectoryFacilitator();
+            status.put("registeredHotels", df != null ? df.getRegisteredCount() : 0);
+        } catch (Exception e) {
+            status.put("registeredHotels", 0);
+        }
 
         return status;
     }
@@ -133,89 +147,73 @@ public class SimulationController {
     // ==========================================
 
     @GetMapping("/network/topology")
-    public Map<String, Object> getTopology() {
-        Map<String, Object> result = new LinkedHashMap<>();
-        List<Map<String, Object>> nodes = new ArrayList<>();
-        List<Map<String, String>> edges = new ArrayList<>();
-
+    public ResponseEntity<?> getTopology() {
         if (playground == null) {
-            result.put("nodes", nodes);
-            result.put("edges", edges);
-            return result;
+            return ResponseEntity.ok(Map.of("nodes", List.of(), "edges", List.of()));
         }
 
-        Set<String> edgeSet = new HashSet<>();
-        var agents = playground.getScenarioAgents();
-        if (agents != null) {
-            for (var agent : agents) {
-                Map<String, Object> node = new LinkedHashMap<>();
-                node.put("name", agent.getName());
-                node.put("displayName", agent.getDisplayName());
-                node.put("type", agent.getClass().getSimpleName());
+        List<NetworkEnvironmentDTO> networks = playground.getAgents(NetworkEnvironment.class).stream()
+                .map(NetworkEnvironmentDTO::new)
+                .toList();
 
-                if (agent instanceof HotelAgent ha) {
-                    node.put("hotelId", ha.getHotelId());
-                    node.put("location", ha.getLocation());
-                    node.put("rank", ha.getRank());
-                    node.put("basePrice", ha.getBasePrice());
-                    node.put("availableRooms", ha.getAvailableRooms());
-                    node.put("totalRooms", ha.getTotalRooms());
-                } else if (agent instanceof CustomerAgent ca) {
-                    node.put("location", ca.getDesiredLocation());
-                    node.put("desiredRank", ca.getDesiredRank());
-                    node.put("maxPrice", ca.getMaxPrice());
-                }
+        if (networks.isEmpty()) {
+            return ResponseEntity.ok(Map.of("nodes", List.of(), "edges", List.of()));
+        }
 
-                nodes.add(node);
+        // Base topology from scop-ui DTO
+        NetworkEnvironmentDTO net = networks.get(0);
 
-                try {
-                    var neighbors = playground.getAgentNeighbors(agent);
-                    if (neighbors != null) {
-                        for (var neighbor : neighbors) {
-                            String edgeKey = agent.getName().compareTo(neighbor.getName()) < 0
-                                    ? agent.getName() + "->" + neighbor.getName()
-                                    : neighbor.getName() + "->" + agent.getName();
-                            if (edgeSet.add(edgeKey)) {
-                                edges.add(Map.of("from", agent.getName(), "to", neighbor.getName()));
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    // ignore
-                }
+        // Enrich nodes with hotel-reservation specific fields
+        List<Map<String, Object>> enrichedNodes = net.nodes().stream().map(node -> {
+            Map<String, Object> n = new LinkedHashMap<>();
+            // Generic fields from scop-ui NodeDTO
+            n.put("name", node.name());
+            n.put("type", node.type());
+            n.put("colorCode", node.colorCode());
+            n.put("degree", node.degree());
+            n.put("neighbors", node.neighbors());
+
+            // Domain-specific enrichment
+            Agent agent = playground.findAgent(node.name());
+            if (agent instanceof HotelAgent ha) {
+                n.put("displayName", ha.getDisplayName());
+                n.put("hotelId", ha.getHotelId());
+                n.put("location", ha.getLocation());
+                n.put("rank", ha.getRank());
+                n.put("basePrice", ha.getBasePrice());
+                n.put("availableRooms", ha.getAvailableRooms());
+                n.put("totalRooms", ha.getTotalRooms());
+            } else if (agent instanceof CustomerAgent ca) {
+                n.put("displayName", ca.getDisplayName());
+                n.put("location", ca.getDesiredLocation());
+                n.put("desiredRank", ca.getDesiredRank());
+                n.put("maxPrice", ca.getMaxPrice());
             }
-        }
 
-        result.put("nodes", nodes);
-        result.put("edges", edges);
-        return result;
+            return n;
+        }).toList();
+
+        return ResponseEntity.ok(Map.of(
+                "name", net.name(),
+                "nodes", enrichedNodes,
+                "edges", net.edges()
+        ));
     }
 
     @GetMapping("/network/metrics")
-    public Map<String, Object> getNetworkMetrics() {
-        Map<String, Object> metricsMap = new LinkedHashMap<>();
-        if (playground == null) return metricsMap;
+    public ResponseEntity<?> getNetworkMetrics() {
+        if (playground == null) return ResponseEntity.ok(Map.of());
 
         try {
             NetworkEnvironment env = playground.getHotelNetwork();
             if (env != null) {
-                NetworkMetrics m = env.getNetworkMetrics();
-                metricsMap.put("nodeCount", m.getNodeCount());
-                metricsMap.put("edgeCount", m.getEdgeCount());
-                metricsMap.put("averageDegree", m.getAverageDegree());
-                metricsMap.put("density", m.getDensity());
-                metricsMap.put("averageClusteringCoefficient", m.getAverageClusteringCoefficient());
-                metricsMap.put("averagePathLength", m.getAveragePathLength());
-                metricsMap.put("diameter", m.getDiameter());
-                metricsMap.put("connectedComponents", m.getConnectedComponents());
-                metricsMap.put("smallWorld", m.isSmallWorld());
-                metricsMap.put("smallWorldExplanation", m.getSmallWorldExplanation());
+                return ResponseEntity.ok(new NetworkMetricsDTO(env.getNetworkMetrics()));
             }
         } catch (Exception e) {
             LOGGER.warn("Could not get network metrics: {}", e.getMessage());
         }
 
-        return metricsMap;
+        return ResponseEntity.ok(Map.of());
     }
 
     // ==========================================
@@ -350,6 +348,95 @@ public class SimulationController {
 
         String response = conversation.chat(message);
         return ResponseEntity.ok(Map.of("response", response != null ? response : "No response"));
+    }
+
+    // ==========================================
+    // AGENTS (metadata, prompt, log)
+    // ==========================================
+
+    @GetMapping("/agents")
+    public List<Map<String, Object>> getAgents() {
+        if (playground == null) return Collections.emptyList();
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            var agents = playground.getScenarioAgents();
+            if (agents == null) return result;
+            for (var agent : agents) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("name", agent.getName());
+                m.put("displayName", agent.getDisplayName());
+                m.put("type", agent.getClass().getSimpleName());
+
+                AgentSpec spec = agent.getClass().getAnnotation(AgentSpec.class);
+                if (spec != null) {
+                    LLMSpec llm = spec.llm();
+                    if (llm != null && !llm.model().isEmpty()) {
+                        Map<String, Object> llmMap = new LinkedHashMap<>();
+                        llmMap.put("provider", llm.provider().name());
+                        llmMap.put("model", llm.model());
+                        llmMap.put("temperature", llm.temperature());
+                        m.put("llm", llmMap);
+                    }
+                }
+                result.add(m);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error building agent list: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping(value = "/agents/{id}/prompt", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getAgentPrompt(@PathVariable String id) {
+        if (playground == null) {
+            return ResponseEntity.status(400).body("Simulation not initialized");
+        }
+
+        Agent agent = playground.findAgent(id);
+        if (agent == null) {
+            return ResponseEntity.status(404).body("Agent not found: " + id);
+        }
+
+        try {
+            SCOPBridge bridge = SCOPBridge.getInstance();
+            if (agent instanceof CustomerAgent ca) {
+                CustomerRole role = ca.as(CustomerRole.class);
+                if (role != null) {
+                    return ResponseEntity.ok(bridge.buildSystemPromptFromAnnotations(role));
+                }
+            } else if (agent instanceof HotelAgent ha) {
+                HotelProviderRole role = ha.as(HotelProviderRole.class);
+                if (role != null) {
+                    return ResponseEntity.ok(bridge.buildSystemPromptFromAnnotations(role));
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error building prompt for {}: {}", id, e.getMessage());
+        }
+
+        return ResponseEntity.ok("");
+    }
+
+    @GetMapping(value = "/agents/{id}/log", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getAgentLog(@PathVariable String id) {
+        if (playground == null) {
+            return ResponseEntity.status(400).body("Simulation not initialized");
+        }
+
+        // Build log from activity entries involving this agent
+        Agent agent = playground.findAgent(id);
+        String displayName = agent != null ? agent.getDisplayName() : id;
+
+        StringBuilder sb = new StringBuilder();
+        for (var entry : ActivityLog.getEntriesSince(0)) {
+            if (id.equals(entry.from()) || id.equals(entry.to()) ||
+                displayName.equals(entry.from()) || displayName.equals(entry.to())) {
+                sb.append(String.format("[%s] %s → %s: %s%n",
+                        entry.type(), entry.from(), entry.to(), entry.detail()));
+            }
+        }
+        return ResponseEntity.ok(sb.toString());
     }
 
     // ==========================================

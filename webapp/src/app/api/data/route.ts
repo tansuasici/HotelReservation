@@ -1,32 +1,33 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { join } from "path";
 
 export const dynamic = "force-dynamic";
 
-const DATA_DIR = join(process.cwd(), "..", "output-data");
+const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
 
-async function readJson(filename: string) {
+async function fetchJson(url: string) {
   try {
-    const content = await readFile(join(DATA_DIR, filename), "utf-8");
-    return JSON.parse(content);
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }
 }
 
 export async function GET() {
-  const [topology, hotels, customers, activity, agents] = await Promise.all([
-    readJson("topology.json"),
-    readJson("hotels.json"),
-    readJson("customers.json"),
-    readJson("activity.json"),
-    readJson("agents.json"),
+  const [topology, hotels, customers, activity] = await Promise.all([
+    fetchJson(`${BACKEND}/api/network/topology`),
+    fetchJson(`${BACKEND}/api/data/hotels`),
+    fetchJson(`${BACKEND}/api/customers/status`),
+    fetchJson(`${BACKEND}/api/activity?since=0`),
   ]);
 
   if (!topology) {
-    return NextResponse.json({ error: "No simulation data found. Run the simulation first." }, { status: 404 });
+    return NextResponse.json(
+      { error: "No simulation data found. Is the backend running?" },
+      { status: 404 }
+    );
   }
 
-  return NextResponse.json({ topology, hotels, customers, activity, agents });
+  return NextResponse.json({ topology, hotels, customers, activity });
 }
