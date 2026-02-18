@@ -7,6 +7,18 @@
 target/
 *.jar
 *.war
+*.class
+
+# Runtime outputs
+output-data/
+
+# Extracted framework artifacts
+ai/
+META-INF/
+
+# Generated files
+full-classpath.txt
+.next/
 
 # IDE files
 .idea/
