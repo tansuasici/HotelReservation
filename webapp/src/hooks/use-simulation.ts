@@ -75,6 +75,7 @@ export function useSimulation() {
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingActiveRef = useRef(false);
   const staticLoadedRef = useRef(false);
 
   // Progressive reveal refs
@@ -186,16 +187,14 @@ export function useSimulation() {
       ) {
         simEndedRef.current = true;
         stopPolling();
-        // Send stop to backend
         fetch("/api/sim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "stop" }),
         }).catch(() => {});
         setStatus((prev) => ({ ...prev, state: "ENDED", message: "All customers finished" }));
-        if (revealTimerRef.current) {
-          startRevealTimer(100);
-        }
+        startRevealTimer(100);
+        return;
       }
 
       // If no reveal timer is running and there's new data to reveal, start one
@@ -214,6 +213,7 @@ export function useSimulation() {
   }, [startRevealTimer]);
 
   function stopPolling() {
+    pollingActiveRef.current = false;
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -221,6 +221,7 @@ export function useSimulation() {
   }
 
   const pollState = useCallback(async () => {
+    if (!pollingActiveRef.current) return;
     try {
       const res = await fetch("/api/sim");
       if (!res.ok) return;
@@ -276,6 +277,7 @@ export function useSimulation() {
 
   const startPolling = useCallback(() => {
     stopPolling();
+    pollingActiveRef.current = true;
     pollRef.current = setInterval(pollState, 1500);
   }, [pollState]);
 
