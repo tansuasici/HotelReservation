@@ -7,8 +7,6 @@ import com.tnsai.annotations.LLMSpec;
 import com.tnsai.annotations.LLMSpec.Provider;
 import hotel.reservation.role.CustomerRole;
 import hotel.reservation.role.pricing.LinearPricingStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Customer Agent - Represents a customer looking for hotel rooms.
@@ -23,8 +21,6 @@ import org.slf4j.LoggerFactory;
     )
 )
 public class CustomerAgent extends Agent {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CustomerAgent.class);
 
     private final String desiredLocation;
     private final int desiredRank;
@@ -61,7 +57,7 @@ public class CustomerAgent extends Agent {
 
     @Override
     protected void setup() {
-        LOGGER.info("[{}] Customer Agent starting - Looking for {} star hotel in {} (max ${}/night)",
+        getLogger().info("[{}] Customer Agent starting - Looking for {} star hotel in {} (max ${}/night)",
             getName(), desiredRank, desiredLocation, maxPrice);
 
         // Adopt the customer role
@@ -71,7 +67,7 @@ public class CustomerAgent extends Agent {
         // Conversation role - for chat (like LifeAgent)
         adopt(new Conversation(this, getPlayground()));
 
-        LOGGER.info("[{}] Customer Agent ready", getName());
+        getLogger().info("[{}] Customer Agent ready", getName());
     }
 
     @Override

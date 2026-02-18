@@ -11,9 +11,6 @@ import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -56,8 +53,6 @@ import java.util.concurrent.ConcurrentHashMap;
     )
 )
 public class HotelProviderRole extends Role {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(HotelProviderRole.class);
 
     @State(description = "Unique hotel identifier")
     private final String hotelId;
@@ -136,12 +131,12 @@ public class HotelProviderRole extends Role {
     @Action(type = ActionType.LOCAL, description = "Process incoming CFP and decide whether to make a proposal")
     public void handleCFPMessage(Message<RoomQuery> message) {
         RoomQuery query = message.getPayload();
-        LOGGER.info("[{}] Received CFP from {}: {}",
+        getLogger().info("[{}] Received CFP from {}: {}",
             getOwner().getName(), message.getSender(), query);
 
         // Check if hotel matches the query criteria
         if (!matchesQuery(query)) {
-            LOGGER.info("[{}] Query does not match hotel criteria - ignoring",
+            getLogger().info("[{}] Query does not match hotel criteria - ignoring",
                 getOwner().getName());
             return;
         }
@@ -149,7 +144,7 @@ public class HotelProviderRole extends Role {
         // Check room availability
         HotelAgent hotelAgent = (HotelAgent) getOwner();
         if (hotelAgent.getAvailableRooms() <= 0) {
-            LOGGER.info("[{}] No rooms available - sending refusal",
+            getLogger().info("[{}] No rooms available - sending refusal",
                 getOwner().getName());
             sendRefusal(message.getSender(), "No rooms available");
             return;
@@ -157,7 +152,7 @@ public class HotelProviderRole extends Role {
 
         // Simulate random decision to respond (availability simulation)
         if (!shouldRespond()) {
-            LOGGER.info("[{}] Decided not to respond to CFP (simulating unavailability)",
+            getLogger().info("[{}] Decided not to respond to CFP (simulating unavailability)",
                 getOwner().getName());
             sendRefusal(message.getSender(), "Hotel currently unavailable");
             return;
@@ -214,7 +209,7 @@ public class HotelProviderRole extends Role {
         proposal.setAmenities(List.of("wifi", "breakfast"));
         proposal.setRating(4.5);
 
-        LOGGER.info("[{}] Sending proposal to {}: {} - ${}/night",
+        getLogger().info("[{}] Sending proposal to {}: {} - ${}/night",
             getOwner().getName(), customer, hotelName, basePrice);
         ActivityLog.log(hotelName, customer.getAgentName(), "PROPOSAL",
             String.format("%s - $%.0f/night, %d★", hotelName, basePrice, rank));
@@ -228,7 +223,7 @@ public class HotelProviderRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Send refusal message to customer")
     private void sendRefusal(Identifier customer, String reason) {
-        LOGGER.info("[{}] Sending refusal to {}: {}",
+        getLogger().info("[{}] Sending refusal to {}: {}",
             getOwner().getName(), customer, reason);
         ActivityLog.log(hotelName, customer.getAgentName(), "REFUSE", reason);
 
@@ -241,13 +236,13 @@ public class HotelProviderRole extends Role {
     @Action(type = ActionType.LOCAL, description = "Process reservation acceptance and send confirmation")
     public void handleAcceptMessage(Message<ReservationRequest> message) {
         ReservationRequest request = message.getPayload();
-        LOGGER.info("[{}] Received ACCEPT from {}: {}",
+        getLogger().info("[{}] Received ACCEPT from {}: {}",
             getOwner().getName(), message.getSender(), request);
 
         // Try to reserve a room
         HotelAgent hotelAgent = (HotelAgent) getOwner();
         if (!hotelAgent.reserveRoom()) {
-            LOGGER.info("[{}] Room no longer available - sending refusal",
+            getLogger().info("[{}] Room no longer available - sending refusal",
                 getOwner().getName());
             sendRefusal(message.getSender(), "Room no longer available");
             return;
@@ -266,7 +261,7 @@ public class HotelProviderRole extends Role {
         confirmation.setCheckInDate(request.getCheckInDate());
         confirmation.setCheckOutDate(request.getCheckOutDate());
 
-        LOGGER.info("[{}] Reservation CONFIRMED: {} - Total: ${}",
+        getLogger().info("[{}] Reservation CONFIRMED: {} - Total: ${}",
             getOwner().getName(),
             confirmation.getConfirmationNumber(),
             confirmation.getTotalPrice());
@@ -285,7 +280,7 @@ public class HotelProviderRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Process proposal rejection from customer")
     public void handleRejectMessage(Message<String> message) {
-        LOGGER.info("[{}] Proposal REJECTED by {}: {}",
+        getLogger().info("[{}] Proposal REJECTED by {}: {}",
             getOwner().getName(), message.getSender(), message.getPayload());
         // Clean up if needed
     }
@@ -300,7 +295,7 @@ public class HotelProviderRole extends Role {
     @Action(type = ActionType.LOCAL, description = "Process customer's negotiation start request")
     public void handleNegotiateStartMessage(Message<NegotiationOffer> message) {
         NegotiationOffer offer = message.getPayload();
-        LOGGER.info("[{}] Received NegotiateStart from {}: offered ${} for {} (original ${})",
+        getLogger().info("[{}] Received NegotiateStart from {}: offered ${} for {} (original ${})",
             getOwner().getName(), message.getSender(), offer.getOfferedPrice(),
             hotelName, offer.getOriginalPrice());
 
@@ -309,7 +304,7 @@ public class HotelProviderRole extends Role {
         double effectiveMin = getEffectiveMinPrice();
         HotelAgent ha = (HotelAgent) getOwner();
         if (effectiveMin > baseMinPrice) {
-            LOGGER.info("[{}] Demand pressure: {}/{} rooms occupied → min price raised from ${} to ${}",
+            getLogger().info("[{}] Demand pressure: {}/{} rooms occupied → min price raised from ${} to ${}",
                 getOwner().getName(), ha.getTotalRooms() - ha.getAvailableRooms(), ha.getTotalRooms(),
                 String.format("%.0f", baseMinPrice), String.format("%.0f", effectiveMin));
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "DEMAND_PRESSURE",
@@ -319,7 +314,7 @@ public class HotelProviderRole extends Role {
 
         if (offer.getOfferedPrice() >= effectiveMin) {
             // Customer's offer is acceptable - accept negotiation
-            LOGGER.info("[{}] Customer offer ${} is acceptable (min: ${}). Accepting negotiation.",
+            getLogger().info("[{}] Customer offer ${} is acceptable (min: ${}). Accepting negotiation.",
                 getOwner().getName(), offer.getOfferedPrice(), effectiveMin);
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
                 String.format("Accepted offer $%.0f/night", offer.getOfferedPrice()));
@@ -335,7 +330,7 @@ public class HotelProviderRole extends Role {
         } else {
             // Counter-offer: start from basePrice and reduce based on flexibility
             double counterPrice = calculateHotelCounterOffer(1, offer.getMaxRounds());
-            LOGGER.info("[{}] Counter-offering ${} (customer offered ${})",
+            getLogger().info("[{}] Counter-offering ${} (customer offered ${})",
                 getOwner().getName(), counterPrice, offer.getOfferedPrice());
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
                 String.format("Counter: $%.0f/night (round 1)", counterPrice));
@@ -357,7 +352,7 @@ public class HotelProviderRole extends Role {
     public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
         NegotiationOffer offer = message.getPayload();
         int round = offer.getRound();
-        LOGGER.info("[{}] Received CounterOffer from {}: ${} (round {}/{})",
+        getLogger().info("[{}] Received CounterOffer from {}: ${} (round {}/{})",
             getOwner().getName(), message.getSender(), offer.getOfferedPrice(),
             round, offer.getMaxRounds());
 
@@ -367,7 +362,7 @@ public class HotelProviderRole extends Role {
 
         if (offer.getOfferedPrice() >= effectiveMin) {
             // Accept the counter-offer
-            LOGGER.info("[{}] Accepting counter-offer of ${}", getOwner().getName(), offer.getOfferedPrice());
+            getLogger().info("[{}] Accepting counter-offer of ${}", getOwner().getName(), offer.getOfferedPrice());
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "NEGOTIATE_ACCEPT",
                 String.format("Accepted $%.0f/night (round %d)", offer.getOfferedPrice(), round));
 
@@ -382,7 +377,7 @@ public class HotelProviderRole extends Role {
         } else if (round >= offer.getMaxRounds()) {
             // Last round - send final offer or reject
             double finalPrice = effectiveMin;
-            LOGGER.info("[{}] Final round. Sending last offer: ${}", getOwner().getName(), finalPrice);
+            getLogger().info("[{}] Final round. Sending last offer: ${}", getOwner().getName(), finalPrice);
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
                 String.format("Final offer: $%.0f/night", finalPrice));
 
@@ -397,7 +392,7 @@ public class HotelProviderRole extends Role {
         } else {
             // Counter with a lower price
             double counterPrice = calculateHotelCounterOffer(round, offer.getMaxRounds());
-            LOGGER.info("[{}] Counter-offering ${} in round {}", getOwner().getName(), counterPrice, round);
+            getLogger().info("[{}] Counter-offering ${} in round {}", getOwner().getName(), counterPrice, round);
             ActivityLog.log(hotelName, message.getSender().getAgentName(), "COUNTER_OFFER",
                 String.format("Counter: $%.0f/night (round %d)", counterPrice, round));
 
@@ -418,13 +413,13 @@ public class HotelProviderRole extends Role {
     @Action(type = ActionType.LOCAL, description = "Process negotiation acceptance and confirm reservation")
     public void handleNegotiateAcceptMessage(Message<ReservationRequest> message) {
         ReservationRequest request = message.getPayload();
-        LOGGER.info("[{}] Received NegotiateAccept from {}: {}",
+        getLogger().info("[{}] Received NegotiateAccept from {}: {}",
             getOwner().getName(), message.getSender(), request);
 
         // Try to reserve a room
         HotelAgent hotelAgent = (HotelAgent) getOwner();
         if (!hotelAgent.reserveRoom()) {
-            LOGGER.info("[{}] Room no longer available - sending refusal",
+            getLogger().info("[{}] Room no longer available - sending refusal",
                 getOwner().getName());
             sendRefusal(message.getSender(), "Room no longer available");
             return;
@@ -449,7 +444,7 @@ public class HotelProviderRole extends Role {
             confirmation.setDiscountPercent(((basePrice - negotiatedPrice) / basePrice) * 100);
         }
 
-        LOGGER.info("[{}] Negotiated reservation CONFIRMED: {} - ${}/night (was ${}, {}% off)",
+        getLogger().info("[{}] Negotiated reservation CONFIRMED: {} - ${}/night (was ${}, {}% off)",
             getOwner().getName(), confirmation.getConfirmationNumber(),
             negotiatedPrice, basePrice, String.format("%.1f", confirmation.getDiscountPercent()));
         ActivityLog.log(hotelName, message.getSender().getAgentName(), "CONFIRM",

@@ -9,9 +9,6 @@ import com.tnsai.enums.ActionType;
 import com.tnsai.enums.HttpMethod;
 import hotel.reservation.data.model.CustomerSpec;
 import hotel.reservation.data.model.Hotel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -46,8 +43,6 @@ import java.util.StringJoiner;
     }
 )
 public class DataFetcherRole extends Role {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DataFetcherRole.class);
 
     private final String baseUrl;
     private final HttpClient httpClient;
@@ -92,14 +87,14 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 List<Hotel> hotels = objectMapper.readValue(response.body(),
                         new TypeReference<>() {});
-                LOGGER.info("Fetched {} hotels from API", hotels.size());
+                getLogger().info("Fetched {} hotels from API", hotels.size());
                 return hotels;
             } else {
-                LOGGER.warn("API returned status {}", response.statusCode());
+                getLogger().warn("API returned status {}", response.statusCode());
                 return Collections.emptyList();
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch hotels from API: {}", e.getMessage());
+            getLogger().error("Failed to fetch hotels from API: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -131,11 +126,11 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 return objectMapper.readValue(response.body(), Hotel.class);
             } else {
-                LOGGER.warn("Hotel API returned status {} for id={}", response.statusCode(), id);
+                getLogger().warn("Hotel API returned status {} for id={}", response.statusCode(), id);
                 return null;
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch hotel {}: {}", id, e.getMessage());
+            getLogger().error("Failed to fetch hotel {}: {}", id, e.getMessage());
             return null;
         }
     }
@@ -182,15 +177,15 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 List<Hotel> hotels = objectMapper.readValue(response.body(),
                         new TypeReference<>() {});
-                LOGGER.info("Search returned {} hotels (city={}, minRank={}, maxPrice={})",
+                getLogger().info("Search returned {} hotels (city={}, minRank={}, maxPrice={})",
                         hotels.size(), city, minRank, maxPrice);
                 return hotels;
             } else {
-                LOGGER.warn("Search API returned status {}", response.statusCode());
+                getLogger().warn("Search API returned status {}", response.statusCode());
                 return Collections.emptyList();
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to search hotels from API: {}", e.getMessage());
+            getLogger().error("Failed to search hotels from API: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -225,14 +220,14 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 List<CustomerSpec> customers = objectMapper.readValue(response.body(),
                         new TypeReference<>() {});
-                LOGGER.info("Fetched {} customers from API", customers.size());
+                getLogger().info("Fetched {} customers from API", customers.size());
                 return customers;
             } else {
-                LOGGER.warn("API returned status {}", response.statusCode());
+                getLogger().warn("API returned status {}", response.statusCode());
                 return Collections.emptyList();
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch customers from API: {}", e.getMessage());
+            getLogger().error("Failed to fetch customers from API: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -264,11 +259,11 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 return objectMapper.readValue(response.body(), CustomerSpec.class);
             } else {
-                LOGGER.warn("Customer API returned status {} for id={}", response.statusCode(), id);
+                getLogger().warn("Customer API returned status {} for id={}", response.statusCode(), id);
                 return null;
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to fetch customer {}: {}", id, e.getMessage());
+            getLogger().error("Failed to fetch customer {}: {}", id, e.getMessage());
             return null;
         }
     }
@@ -315,15 +310,15 @@ public class DataFetcherRole extends Role {
             if (response.statusCode() == 200) {
                 List<CustomerSpec> customers = objectMapper.readValue(response.body(),
                         new TypeReference<>() {});
-                LOGGER.info("Search returned {} customers (city={}, minRank={}, maxPrice={})",
+                getLogger().info("Search returned {} customers (city={}, minRank={}, maxPrice={})",
                         customers.size(), city, minRank, maxPrice);
                 return customers;
             } else {
-                LOGGER.warn("Search API returned status {}", response.statusCode());
+                getLogger().warn("Search API returned status {}", response.statusCode());
                 return Collections.emptyList();
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to search customers from API: {}", e.getMessage());
+            getLogger().error("Failed to search customers from API: {}", e.getMessage());
             return Collections.emptyList();
         }
     }

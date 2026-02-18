@@ -9,8 +9,6 @@ import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.HotelProviderRole;
 import hotel.reservation.role.pricing.LinearPricingStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 
@@ -28,8 +26,6 @@ import java.util.Random;
     )
 )
 public class HotelAgent extends Agent {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(HotelAgent.class);
 
     private final String hotelId;
 
@@ -81,9 +77,9 @@ public class HotelAgent extends Agent {
 
     @Override
     protected void setup() {
-        LOGGER.info("[{}] Hotel Agent starting for hotelId: {}", getName(), hotelId);
+        getLogger().info("[{}] Hotel Agent starting for hotelId: {}", getName(), hotelId);
 
-        LOGGER.info("[{}] Hotel data loaded: {} ({} star) in {} - ${}/night",
+        getLogger().info("[{}] Hotel data loaded: {} ({} star) in {} - ${}/night",
             getName(), hotelName, rank, location, basePrice);
 
         // Adopt the hotel provider role
@@ -96,7 +92,7 @@ public class HotelAgent extends Agent {
         // Register with Directory Facilitator
         registerWithDF();
 
-        LOGGER.info("[{}] Hotel Agent ready", getName());
+        getLogger().info("[{}] Hotel Agent ready", getName());
     }
 
     /**
@@ -115,9 +111,9 @@ public class HotelAgent extends Agent {
                 basePrice
             );
             df.register(entry);
-            LOGGER.info("[{}] Registered with Directory Facilitator", getName());
+            getLogger().info("[{}] Registered with Directory Facilitator", getName());
         } else {
-            LOGGER.warn("[{}] Directory Facilitator not found!", getName());
+            getLogger().warn("[{}] Directory Facilitator not found!", getName());
         }
     }
 
