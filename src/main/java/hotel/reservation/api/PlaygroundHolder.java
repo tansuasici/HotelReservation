@@ -92,22 +92,25 @@ public class PlaygroundHolder {
         }
 
         ExecutionState execState = playground.getExecutionState();
+        boolean allDone = allCustomersDone();
 
-        // Auto-end: if RUNNING and all customers finished, switch to ENDED
-        if (execState == ExecutionState.RUNNING && allCustomersDone()) {
+        // Auto-end: if active (RUNNING or STEP) and all customers finished, switch to ENDED
+        if (allDone && execState != ExecutionState.ENDED && execState != ExecutionState.PAUSED
+                && execState != ExecutionState.INITIALIZED) {
             playground.setExecutionState(ExecutionState.ENDED);
             execState = ExecutionState.ENDED;
             LOGGER.info("All customers done - simulation auto-ended");
         }
 
         String stateStr = switch (execState) {
-            case RUNNING -> "RUNNING";
+            case RUNNING, STEP, PRE_EPISODE, POST_EPISODE -> "RUNNING";
             case PAUSED -> "PAUSED";
             case ENDED -> "ENDED";
             default -> "SETUP";
         };
 
         status.put("state", stateStr);
+        status.put("allDone", allDone);
         status.put("currentTick", playground.getTick() != null ? playground.getTick().now() : 0);
 
         try {

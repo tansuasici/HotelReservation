@@ -16,12 +16,12 @@ export async function GET() {
       );
     }
     const data = await res.json();
-    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED";
+    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED" && !data.allDone;
     console.log("[SIM] ← GET /simulation/status → %j", data);
-    console.log("[SIM]   response → { state: %s, tick: %d, alive: %s }", data.state, data.currentTick ?? 0, processAlive);
+    console.log("[SIM]   response → { state: %s, tick: %d, alive: %s, allDone: %s }", data.state, data.currentTick ?? 0, processAlive, data.allDone ?? false);
     return NextResponse.json({
-      state: data.state,
-      message: data.message || "",
+      state: data.allDone ? "ENDED" : data.state,
+      message: data.allDone ? "All customers finished" : (data.message || ""),
       currentTick: data.currentTick ?? 0,
       processAlive,
     });
@@ -55,12 +55,12 @@ export async function POST(req: Request) {
       );
     }
     const data = await res.json();
-    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED";
+    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED" && !data.allDone;
     console.log("[SIM] ← POST response: %j", data);
-    console.log("[SIM]   response → { state: %s, alive: %s }", data.state, processAlive);
+    console.log("[SIM]   response → { state: %s, alive: %s, allDone: %s }", data.state, processAlive, data.allDone ?? false);
     return NextResponse.json({
-      state: data.state,
-      message: data.message || "",
+      state: data.allDone ? "ENDED" : data.state,
+      message: data.allDone ? "All customers finished" : (data.message || ""),
       processAlive,
     });
   } catch (e) {
