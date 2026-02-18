@@ -1,0 +1,247 @@
+[ {
+  "name" : "HotelEnv",
+  "displayName" : "HotelEnv",
+  "type" : "NetworkEnvironment"
+}, {
+  "name" : "DF",
+  "displayName" : "DF",
+  "type" : "DirectoryFacilitator"
+}, {
+  "name" : "DataFetcher",
+  "displayName" : "DataFetcher",
+  "type" : "DataFetcherAgent"
+}, {
+  "name" : "Hotel-h008",
+  "displayName" : "Bodrum Boutique Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h009",
+  "displayName" : "Istanbul Comfort Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h010",
+  "displayName" : "Ankara Plaza Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h011",
+  "displayName" : "Antalya Garden Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h001",
+  "displayName" : "Grand Istanbul Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h002",
+  "displayName" : "Luxury Palace Istanbul",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h003",
+  "displayName" : "Budget Inn Istanbul",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h004",
+  "displayName" : "Sea View Resort",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h005",
+  "displayName" : "Ankara Business Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h006",
+  "displayName" : "Cappadocia Cave Hotel",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Hotel-h007",
+  "displayName" : "Antalya Beach Resort",
+  "type" : "HotelAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "minimax-m2.1:cloud",
+    "temperature" : 0.5
+  }
+}, {
+  "name" : "Customer-11",
+  "displayName" : "Customer-11",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-10",
+  "displayName" : "Customer-10",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-2",
+  "displayName" : "Customer-2",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-13",
+  "displayName" : "Customer-13",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-1",
+  "displayName" : "Customer-1",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-12",
+  "displayName" : "Customer-12",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-8",
+  "displayName" : "Customer-8",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-7",
+  "displayName" : "Customer-7",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-9",
+  "displayName" : "Customer-9",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-4",
+  "displayName" : "Customer-4",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-15",
+  "displayName" : "Customer-15",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-3",
+  "displayName" : "Customer-3",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-14",
+  "displayName" : "Customer-14",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-6",
+  "displayName" : "Customer-6",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+}, {
+  "name" : "Customer-5",
+  "displayName" : "Customer-5",
+  "type" : "CustomerAgent",
+  "llm" : {
+    "provider" : "OLLAMA",
+    "model" : "glm-4.7:cloud",
+    "temperature" : 0.7
+  }
+} ]

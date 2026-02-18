@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import hotel.reservation.config.EnvConfig;
 import hotel.reservation.agent.CustomerAgent;
 import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class HotelReservationPlayground extends Playground {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HotelReservationPlayground.class);
-    private static final int API_PORT = 7070;
+    private static final int API_PORT = EnvConfig.apiPort();
 
     private DirectoryFacilitator directoryFacilitator;
     private NetworkEnvironment hotelEnv;
@@ -41,8 +42,8 @@ public class HotelReservationPlayground extends Playground {
     @Override
     protected void initializeParameters() {
         super.initializeParameters();
-        Params.setParameter(Playground.P_TIME_OUT_TICK, "100000");
-        Params.setParameter(Playground.P_STEP_DELAY, "1500");
+        Params.setParameter(Playground.P_TIME_OUT_TICK, String.valueOf(EnvConfig.playgroundTimeoutTick()));
+        Params.setParameter(Playground.P_STEP_DELAY, String.valueOf(EnvConfig.playgroundStepDelay()));
     }
 
     @Override

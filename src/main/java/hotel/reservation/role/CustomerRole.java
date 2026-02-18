@@ -12,6 +12,8 @@ import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
+import hotel.reservation.config.EnvConfig;
+import hotel.reservation.role.pricing.BuyerPricingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +79,8 @@ public class CustomerRole extends Role {
     @State(description = "Desired price for negotiation")
     private final double desiredPrice;
 
+    private final BuyerPricingStrategy pricingStrategy;
+
     // State management
     @State(description = "Current state in the reservation process")
     private CustomerState state = CustomerState.IDLE;
@@ -92,7 +96,7 @@ public class CustomerRole extends Role {
 
     // Deadline management
     private long searchStartTime;
-    private static final long PROPOSAL_DEADLINE_MS = 30000;  // 30 seconds
+    private static final long PROPOSAL_DEADLINE_MS = EnvConfig.cnpProposalDeadlineMs();
 
     // Store DFEntry list for sending messages
     private List<DFEntry> matchingHotels = new ArrayList<>();
@@ -102,7 +106,7 @@ public class CustomerRole extends Role {
     private int negotiationRound = 0;
 
     @State(description = "Maximum negotiation rounds")
-    private int maxNegotiationRounds = 5;
+    private int maxNegotiationRounds = EnvConfig.cnpMaxNegotiationRounds();
 
     @State(description = "Proposal being negotiated")
     private RoomProposal negotiatingWith = null;
@@ -111,7 +115,7 @@ public class CustomerRole extends Role {
     private final List<NegotiationOffer> negotiationHistory = new ArrayList<>();
 
     // Top-N candidate system
-    private static final int MAX_CANDIDATES = 3;
+    private static final int MAX_CANDIDATES = EnvConfig.cnpMaxCandidates();
 
     @State(description = "Shortlisted hotel candidates for sequential negotiation")
     private List<RoomProposal> topCandidates = new ArrayList<>();
@@ -132,12 +136,14 @@ public class CustomerRole extends Role {
 
     public CustomerRole(Agent owner, String envName,
                         String desiredLocation, int desiredRank,
-                        double maxPrice, double desiredPrice) {
+                        double maxPrice, double desiredPrice,
+                        BuyerPricingStrategy pricingStrategy) {
         super(owner, envName);
         this.desiredLocation = desiredLocation;
         this.desiredRank = desiredRank;
         this.maxPrice = maxPrice;
         this.desiredPrice = desiredPrice;
+        this.pricingStrategy = pricingStrategy;
     }
 
     /**
@@ -540,7 +546,7 @@ public class CustomerRole extends Role {
         }
 
         // Counter-offer strategy with leverage
-        double counterPrice = NegotiationPricing.customerCounterOffer(desiredPrice, maxPrice, negotiationRound, maxNegotiationRounds);
+        double counterPrice = pricingStrategy.counterOffer(desiredPrice, maxPrice, negotiationRound, maxNegotiationRounds);
 
         // Don't offer more than the hotel is asking
         if (counterPrice >= hotelOffer.getOfferedPrice()) {

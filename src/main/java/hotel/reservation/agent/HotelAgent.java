@@ -8,6 +8,7 @@ import com.tnsai.annotations.LLMSpec.Provider;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.HotelProviderRole;
+import hotel.reservation.role.pricing.LinearPricingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +87,8 @@ public class HotelAgent extends Agent {
             getName(), hotelName, rank, location, basePrice);
 
         // Adopt the hotel provider role
-        adopt(new HotelProviderRole(this, "HotelEnv", hotelId, hotelName, location, rank, basePrice));
+        adopt(new HotelProviderRole(this, "HotelEnv", hotelId, hotelName, location, rank, basePrice,
+            new LinearPricingStrategy()));
 
         // Conversation role - for chat (like LifeAgent)
         adopt(new Conversation(this, getPlayground()));

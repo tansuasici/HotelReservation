@@ -10,6 +10,7 @@ import com.tnsai.enums.ActionType;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.message.*;
+import hotel.reservation.role.pricing.SellerPricingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,11 +90,14 @@ public class HotelProviderRole extends Role {
     @State(description = "How flexible the hotel is in negotiation (0.0-1.0)")
     private double negotiationFlexibility;
 
+    private final SellerPricingStrategy pricingStrategy;
+
     private final Map<String, Integer> currentNegotiations = new ConcurrentHashMap<>();
 
     public HotelProviderRole(Agent owner, String envName,
                              String hotelId, String hotelName, String location,
-                             int rank, double basePrice) {
+                             int rank, double basePrice,
+                             SellerPricingStrategy pricingStrategy) {
         super(owner, envName);
         this.hotelId = hotelId;
         this.hotelName = hotelName;
@@ -102,6 +106,7 @@ public class HotelProviderRole extends Role {
         this.basePrice = basePrice;
         this.baseMinPrice = basePrice * 0.85;
         this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
+        this.pricingStrategy = pricingStrategy;
     }
 
     /**
@@ -461,7 +466,7 @@ public class HotelProviderRole extends Role {
      * Higher flexibility = faster price reduction. Scarce rooms = higher floor.
      */
     private double calculateHotelCounterOffer(int round, int maxRounds) {
-        return NegotiationPricing.hotelCounterOffer(basePrice, getEffectiveMinPrice(), negotiationFlexibility, round, maxRounds);
+        return pricingStrategy.counterOffer(basePrice, getEffectiveMinPrice(), negotiationFlexibility, round, maxRounds);
     }
 
     // Configuration methods

@@ -6,6 +6,7 @@ import com.tnsai.annotations.AgentSpec;
 import com.tnsai.annotations.LLMSpec;
 import com.tnsai.annotations.LLMSpec.Provider;
 import hotel.reservation.role.CustomerRole;
+import hotel.reservation.role.pricing.LinearPricingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +65,8 @@ public class CustomerAgent extends Agent {
             getName(), desiredRank, desiredLocation, maxPrice);
 
         // Adopt the customer role
-        adopt(new CustomerRole(this, "HotelEnv", desiredLocation, desiredRank, maxPrice, desiredPrice));
+        adopt(new CustomerRole(this, "HotelEnv", desiredLocation, desiredRank, maxPrice, desiredPrice,
+            new LinearPricingStrategy()));
 
         // Conversation role - for chat (like LifeAgent)
         adopt(new Conversation(this, getPlayground()));
