@@ -178,6 +178,26 @@ export function useSimulation() {
       fullActivityRef.current = newActivity;
       fullCustomersRef.current = newCustomers;
 
+      // Auto-stop: if all customers reached a terminal state, stop the simulation
+      if (
+        newCustomers.length > 0 &&
+        !simEndedRef.current &&
+        newCustomers.every((c) => c.state === "COMPLETED" || c.state === "FAILED")
+      ) {
+        simEndedRef.current = true;
+        stopPolling();
+        // Send stop to backend
+        fetch("/api/sim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "stop" }),
+        }).catch(() => {});
+        setStatus((prev) => ({ ...prev, state: "ENDED", message: "All customers finished" }));
+        if (revealTimerRef.current) {
+          startRevealTimer(100);
+        }
+      }
+
       // If no reveal timer is running and there's new data to reveal, start one
       if (!revealTimerRef.current && revealIndexRef.current < newActivity.length) {
         startRevealTimer(simEndedRef.current ? 100 : 700);
