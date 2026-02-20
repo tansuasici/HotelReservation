@@ -70,6 +70,22 @@ public class CustomerAgent extends Agent {
         getLogger().info("[{}] Customer Agent ready", getName());
     }
 
+    /**
+     * Called every simulation tick. Checks proposal deadline
+     * so customers don't get stuck waiting for unresponsive hotels.
+     */
+    @Override
+    protected void makeStep() {
+        super.makeStep();
+        CustomerRole role = as(CustomerRole.class);
+        if (role != null) {
+            if (role.getCustomerState() == CustomerRole.CustomerState.IDLE) {
+                role.startSearch();
+            }
+            role.tickCheck();
+        }
+    }
+
     @Override
     public String getDisplayName() {
         return getName();

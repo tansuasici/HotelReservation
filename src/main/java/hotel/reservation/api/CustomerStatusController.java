@@ -20,10 +20,34 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 public class CustomerStatusController {
 
-    private final PlaygroundHolder holder;
+    private final PlaygroundAccess holder;
 
-    public CustomerStatusController(PlaygroundHolder holder) {
+    public CustomerStatusController(PlaygroundAccess holder) {
         this.holder = holder;
+    }
+
+    @GetMapping("/customers/allDone")
+    public Map<String, Object> allDone() {
+        if (!holder.isActive()) {
+            return Map.of("allDone", false);
+        }
+        try {
+            var customers = holder.get().getCustomerAgents();
+            if (customers.isEmpty()) {
+                return Map.of("allDone", false);
+            }
+            for (CustomerAgent c : customers) {
+                CustomerRole role = c.as(CustomerRole.class);
+                if (role == null) return Map.of("allDone", false);
+                String state = role.getCustomerState().name();
+                if (!"COMPLETED".equals(state) && !"FAILED".equals(state)) {
+                    return Map.of("allDone", false);
+                }
+            }
+            return Map.of("allDone", true);
+        } catch (Exception e) {
+            return Map.of("allDone", false);
+        }
     }
 
     @GetMapping("/customers/status")

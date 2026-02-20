@@ -958,6 +958,17 @@ public class CustomerRole extends Role {
         afterHandleConfirmMessage(auditParams);
     }
 
+    /**
+     * Periodic tick check — called by CustomerAgent.makeStep() each tick.
+     * Ensures proposal deadline is enforced even if no messages arrive
+     * (e.g., when hotels silently ignore CFPs).
+     */
+    public void tickCheck() {
+        if (state == CustomerState.WAITING_PROPOSALS) {
+            checkProposalDeadline();
+        }
+    }
+
     // Getters for state inspection
     public CustomerState getCustomerState() { return state; }
     public Map<String, RoomProposal> getProposals() { return new HashMap<>(proposals); }

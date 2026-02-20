@@ -13,17 +13,41 @@ import type {
 /**
  * Derive a customer's visual state from the last revealed activity message
  * that involves that customer (by customerId).
+ *
+ * Only protocol-level message types are included here. Hook/system types
+ * (SEASON_ADJUST, STRATEGY, DYNAMIC_PRICING, etc.) are intentionally excluded
+ * so they don't override meaningful state transitions.
+ * REJECT is also excluded — it fires after ACCEPT to losing hotels and would
+ * override the correct RESERVING state.
  */
 const MSG_TO_STATE: Record<string, string> = {
   CFP: "SEARCHING",
-  PROPOSAL: "EVALUATING",
-  REFUSE: "SEARCHING",
+  PROPOSAL: "WAITING_PROPOSALS",
+  REFUSE: "WAITING_PROPOSALS",
   EVALUATE: "EVALUATING",
+  SHORTLIST: "EVALUATING",
+  ACCEPT: "RESERVING",
   NEGOTIATE: "NEGOTIATING",
   COUNTER_OFFER: "NEGOTIATING",
-  NEGOTIATE_ACCEPT: "NEGOTIATING",
-  NEGOTIATE_REJECT: "SEARCHING",
+  NEGOTIATE_ACCEPT: "RESERVING",
+  NEGOTIATE_REJECT: "EVALUATING",
+  FALLBACK: "NEGOTIATING",
   CONFIRM: "COMPLETED",
+  AUDIT: "COMPLETED",
+  FAIL: "FAILED",
+};
+
+/** State priority — higher number = more advanced in the protocol flow.
+ *  Used to prevent backward transitions (e.g., a late CFP overriding WAITING_PROPOSALS). */
+const STATE_PRIORITY: Record<string, number> = {
+  IDLE: 0,
+  SEARCHING: 1,
+  WAITING_PROPOSALS: 2,
+  EVALUATING: 3,
+  NEGOTIATING: 4,
+  RESERVING: 5,
+  COMPLETED: 6,
+  FAILED: 6,
 };
 
 function deriveCustomerStates(
@@ -36,28 +60,31 @@ function deriveCustomerStates(
   // If all messages have been revealed, use the real API states
   if (allRevealed) return fullCustomers;
 
-  // Build a map: customerId → last relevant message type
-  const lastMsgType: Record<string, string> = {};
+  // Build a map: customerId → derived state
+  const derivedState: Record<string, string> = {};
   for (const entry of revealedActivity) {
-    // Check if from or to is a customer
+    const targetState = MSG_TO_STATE[entry.type];
+    if (!targetState) continue;
     for (const c of fullCustomers) {
       if (entry.from === c.customerId || entry.to === c.customerId) {
-        lastMsgType[c.customerId] = entry.type;
+        const current = derivedState[c.customerId] || "IDLE";
+        const currentPri = STATE_PRIORITY[current] ?? 0;
+        const newPri = STATE_PRIORITY[targetState] ?? 0;
+
+        if (
+          newPri > currentPri ||
+          targetState === "FAILED" ||
+          (current === "NEGOTIATING" && targetState === "EVALUATING")
+        ) {
+          derivedState[c.customerId] = targetState;
+        }
       }
     }
   }
 
   return fullCustomers.map((c) => {
-    const msgType = lastMsgType[c.customerId];
-    if (!msgType) {
-      // No message revealed for this customer yet → IDLE
-      return { ...c, state: "IDLE" };
-    }
-    const derived = MSG_TO_STATE[msgType];
-    if (derived) {
-      return { ...c, state: derived };
-    }
-    return { ...c, state: "IDLE" };
+    const state = derivedState[c.customerId];
+    return state ? { ...c, state } : { ...c, state: "IDLE" };
   });
 }
 
@@ -106,29 +133,32 @@ export function useSimulation() {
     initPollCountRef.current = 0;
   }
 
-  /** Reveal the next message and derive customer states */
+  /** Reveal the next batch of messages and derive customer states. */
   const revealNext = useCallback(() => {
     const full = fullActivityRef.current;
     const idx = revealIndexRef.current;
 
     if (idx >= full.length) {
-      // All caught up — if sim ended, stop the timer
+      setCustomers(fullCustomersRef.current);
       if (simEndedRef.current) {
         stopRevealTimer();
-        setCustomers(fullCustomersRef.current);
       }
       return;
     }
 
-    revealIndexRef.current = idx + 1;
-    const revealed = full.slice(0, idx + 1);
+    const remaining = full.length - idx;
+    const batchSize = remaining > 80 ? 8 : remaining > 40 ? 5 : remaining > 15 ? 3 : 1;
+    const newIdx = Math.min(idx + batchSize, full.length);
+
+    revealIndexRef.current = newIdx;
+    const revealed = full.slice(0, newIdx);
     setActivity(revealed);
     setCustomers(
       deriveCustomerStates(revealed, fullCustomersRef.current, false)
     );
   }, []);
 
-  /** Start reveal timer with given interval (no-op if user explicitly stopped) */
+  /** Start reveal timer with given interval */
   const startRevealTimer = useCallback(
     (intervalMs: number) => {
       if (userStoppedRef.current) return;
@@ -147,7 +177,6 @@ export function useSimulation() {
       if (!res.ok) return;
       const data = await res.json();
 
-      // First load: full topology + hotels
       if (!staticLoadedRef.current && data.topology) {
         setTopology(data.topology);
         setHotels(data.hotels || []);
@@ -158,7 +187,6 @@ export function useSimulation() {
           registeredHotels: data.hotels?.length || 0,
         }));
       } else if (staticLoadedRef.current && data.topology) {
-        // Subsequent loads: update availableRooms on hotel nodes
         setTopology((prev) => {
           if (!prev) return prev;
           const freshNodes = data.topology.nodes as { name: string; availableRooms?: number }[];
@@ -178,13 +206,12 @@ export function useSimulation() {
         });
       }
 
-      // Store full data in refs (progressive reveal will drip-feed to state)
       const newActivity: ActivityEntry[] = data.activity || [];
       const newCustomers: CustomerStatus[] = data.customers || [];
       fullActivityRef.current = newActivity;
       fullCustomersRef.current = newCustomers;
 
-      // Auto-stop: if all customers reached a terminal state, stop the simulation
+      // Auto-stop: if all customers reached terminal state, send real stop
       if (
         newCustomers.length > 0 &&
         !simEndedRef.current &&
@@ -198,16 +225,14 @@ export function useSimulation() {
           body: JSON.stringify({ action: "stop" }),
         }).catch(() => {});
         setStatus((prev) => ({ ...prev, state: "ENDED", message: "All customers finished" }));
-        startRevealTimer(100);
+        startRevealTimer(60);
         return;
       }
 
-      // If no reveal timer is running and there's new data to reveal, start one
       if (!revealTimerRef.current && revealIndexRef.current < newActivity.length) {
-        startRevealTimer(simEndedRef.current ? 100 : 700);
+        startRevealTimer(simEndedRef.current ? 60 : 250);
       }
 
-      // If nothing to reveal (e.g. initial setup), set customers directly
       if (newActivity.length === 0) {
         setCustomers(newCustomers);
         setActivity([]);
@@ -232,7 +257,6 @@ export function useSimulation() {
       if (!res.ok || userStoppedRef.current) return;
       const data = await res.json();
 
-      // Re-check after async: user may have clicked Stop while fetch was in-flight
       if (userStoppedRef.current) return;
 
       setStatus((prev) => ({
@@ -242,10 +266,8 @@ export function useSimulation() {
         currentTick: data.currentTick ?? prev.currentTick,
       }));
 
-      // Still waiting for Java to start — keep polling, don't load data yet
       if (data.state === "NOT_INITIALIZED") {
         initPollCountRef.current++;
-        // Timeout after ~30s (20 polls × 1.5s) — Java failed to start
         if (initPollCountRef.current > 20) {
           stopPolling();
           setupLoadingRef.current = false;
@@ -259,7 +281,6 @@ export function useSimulation() {
       }
       initPollCountRef.current = 0;
 
-      // Setup finished — Java has started and reached a real state
       if (setupLoadingRef.current) {
         setupLoadingRef.current = false;
         setLoading(false);
@@ -269,12 +290,10 @@ export function useSimulation() {
       if (!data.processAlive || data.state === "PAUSED" || data.state === "ENDED") {
         stopPolling();
 
-        // Mark sim as ended — speed up reveal
         if (data.state === "ENDED") {
           simEndedRef.current = true;
-          // If timer is running, restart with faster interval
           if (revealTimerRef.current) {
-            startRevealTimer(100);
+            startRevealTimer(60);
           }
         }
 
@@ -282,7 +301,6 @@ export function useSimulation() {
         return;
       }
 
-      // While RUNNING, keep loading fresh data each poll
       if (data.state === "RUNNING") {
         await loadData();
       }
@@ -309,19 +327,32 @@ export function useSimulation() {
 
   const doAction = useCallback(
     async (action: string) => {
-      // ── Stop: freeze everything in place, pause backend ──
+      // ── Stop: send real "stop" to SCOP, freeze UI ──
       if (action === "stop") {
         userStoppedRef.current = true;
         stopPolling();
         stopRevealTimer();
 
-        // Always pause backend so user can resume with Run
+        fetch("/api/sim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "stop" }),
+        }).catch(() => {});
+        setStatus((prev) => ({ ...prev, state: "ENDED", message: "Stopped" }));
+        return;
+      }
+
+      // ── Pause: send "pause" to SCOP, stop polling/reveal ──
+      if (action === "pause") {
+        stopPolling();
+        stopRevealTimer();
+
         fetch("/api/sim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "pause" }),
         }).catch(() => {});
-        setStatus((prev) => ({ ...prev, state: "PAUSED", message: "Stopped" }));
+        setStatus((prev) => ({ ...prev, state: "PAUSED", message: "Paused" }));
         return;
       }
 

@@ -26,12 +26,17 @@ async function fetchJson(label: string, url: string) {
 export async function GET() {
   console.log("[DATA] → fetching 4 endpoints in parallel");
 
-  const [topology, hotels, customers, activity] = await Promise.all([
-    fetchJson("topology", `${BACKEND}/api/network/topology`),
+  const [scopNetwork, hotels, customers, activity] = await Promise.all([
+    fetchJson("network", `${BACKEND}/api/scop/playground/environment/network`),
     fetchJson("hotels", `${BACKEND}/api/data/hotels`),
     fetchJson("customers", `${BACKEND}/api/customers/status`),
     fetchJson("activity", `${BACKEND}/api/activity?since=0`),
   ]);
+
+  // SCOP returns array of NetworkEnvironmentDTOs — pick HotelEnv
+  const topology = Array.isArray(scopNetwork)
+    ? scopNetwork.find((env: any) => env.name === "HotelEnv") ?? scopNetwork[0]
+    : scopNetwork;
 
   if (!topology) {
     console.log("[DATA] ✗ topology null — returning 404");
@@ -39,6 +44,56 @@ export async function GET() {
       { error: "No simulation data found. Is the backend running?" },
       { status: 404 }
     );
+  }
+
+  // Enrich topology nodes with business data from hotels/customers
+  // SCOP DTO only has: name, type, colorCode, degree, neighbors
+  // We need: displayName, location, rank, basePrice, totalRooms, etc.
+  if (topology.nodes) {
+    const hotelMap = new Map<string, any>();
+    if (hotels) {
+      for (const h of hotels as any[]) {
+        hotelMap.set(h.id, h);
+      }
+    }
+    const customerMap = new Map<string, any>();
+    if (customers) {
+      for (const c of customers as any[]) {
+        customerMap.set(c.customerId, c);
+      }
+    }
+
+    topology.nodes = topology.nodes.map((node: any) => {
+      if (node.type === "HotelAgent") {
+        // Agent name is "Hotel-h001", hotel id is "h001"
+        const hotelId = node.name.replace("Hotel-", "");
+        const hotel = hotelMap.get(hotelId);
+        if (hotel) {
+          return {
+            ...node,
+            displayName: hotel.name,
+            hotelId: hotel.id,
+            location: hotel.location?.city ?? hotel.city ?? "",
+            rank: hotel.rank,
+            basePrice: hotel.pricePerNight,
+            totalRooms: hotel.totalRooms,
+          };
+        }
+      }
+      if (node.type === "CustomerAgent") {
+        const customer = customerMap.get(node.name);
+        if (customer) {
+          return {
+            ...node,
+            displayName: node.name,
+            location: customer.desiredLocation,
+            desiredRank: customer.desiredRank,
+            maxPrice: customer.maxPrice,
+          };
+        }
+      }
+      return node;
+    });
   }
 
   console.log(

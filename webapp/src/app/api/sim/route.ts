@@ -4,25 +4,58 @@ export const dynamic = "force-dynamic";
 
 const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
 
-// GET — read simulation state from Spring Boot
+/**
+ * Map SCOP ExecutionState to simplified SimState.
+ * SCOP states: NOT_INIT, INITIALIZED, RUNNING, STEP, PRE_EPISODE, POST_EPISODE, PAUSED, ENDED
+ */
+function mapState(scopState: string): string {
+  switch (scopState) {
+    case "RUNNING":
+    case "STEP":
+    case "PRE_EPISODE":
+    case "POST_EPISODE":
+      return "RUNNING";
+    case "PAUSED":
+    case "INITIALIZED":
+      return "PAUSED";
+    case "ENDED":
+      return "ENDED";
+    default:
+      return "NOT_INITIALIZED";
+  }
+}
+
+// GET — read simulation state from SCOP playground + allDone
 export async function GET() {
   try {
-    const res = await fetch(`${BACKEND}/api/simulation/status`);
-    if (!res.ok) {
-      console.log("[SIM] ✗ Backend not reachable (status %d)", res.status);
+    const [pgRes, allDoneRes] = await Promise.all([
+      fetch(`${BACKEND}/api/scop/playground`),
+      fetch(`${BACKEND}/api/customers/allDone`),
+    ]);
+
+    if (!pgRes.ok) {
+      console.log("[SIM] ✗ SCOP playground not reachable (status %d)", pgRes.status);
       return NextResponse.json(
         { state: "NOT_INITIALIZED", message: "Backend not reachable", processAlive: false },
         { status: 502 }
       );
     }
-    const data = await res.json();
-    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED" && !data.allDone;
-    console.log("[SIM] ← GET /simulation/status → %j", data);
-    console.log("[SIM]   response → { state: %s, tick: %d, alive: %s, allDone: %s }", data.state, data.currentTick ?? 0, processAlive, data.allDone ?? false);
+
+    const pgData = await pgRes.json();
+    const allDoneData = allDoneRes.ok ? await allDoneRes.json() : { allDone: false };
+    const allDone: boolean = allDoneData.allDone === true;
+
+    const scopState: string = pgData.executionState || pgData.state || "NOT_INIT";
+    const state = allDone ? "ENDED" : mapState(scopState);
+    const processAlive = state === "RUNNING";
+    const currentTick: number = pgData.tick ?? pgData.currentTick ?? 0;
+
+    console.log("[SIM] ← SCOP state=%s → mapped=%s, tick=%d, allDone=%s", scopState, state, currentTick, allDone);
+
     return NextResponse.json({
-      state: data.allDone ? "ENDED" : data.state,
-      message: data.allDone ? "All customers finished" : (data.message || ""),
-      currentTick: data.currentTick ?? 0,
+      state,
+      message: allDone ? "All customers finished" : "",
+      currentTick,
       processAlive,
     });
   } catch (e) {
@@ -34,16 +67,17 @@ export async function GET() {
   }
 }
 
-// POST — send action to Spring Boot simulation
+// POST — send action to SCOP playground
 export async function POST(req: Request) {
   const body = await req.json();
   const action: string = body.action;
-  console.log("[SIM] → POST /simulation?action=%s  body: %j", action, body);
+  console.log("[SIM] → POST /api/scop/playground?action=%s", action);
 
   try {
-    const res = await fetch(`${BACKEND}/api/simulation?action=${action}`, {
+    const res = await fetch(`${BACKEND}/api/scop/playground?action=${action}`, {
       method: "POST",
     });
+
     if (!res.ok) {
       const text = await res.text();
       let parsed;
@@ -54,13 +88,19 @@ export async function POST(req: Request) {
         { status: res.status }
       );
     }
-    const data = await res.json();
-    const processAlive = data.state !== "ENDED" && data.state !== "NOT_INITIALIZED" && !data.allDone;
-    console.log("[SIM] ← POST response: %j", data);
-    console.log("[SIM]   response → { state: %s, alive: %s, allDone: %s }", data.state, processAlive, data.allDone ?? false);
+
+    const pgData = await res.json();
+    const scopState: string = pgData.executionState || pgData.state || "NOT_INIT";
+    const state = mapState(scopState);
+    const currentTick: number = pgData.tick ?? pgData.currentTick ?? 0;
+    const processAlive = state === "RUNNING";
+
+    console.log("[SIM] ← POST response: scopState=%s → %s, tick=%d", scopState, state, currentTick);
+
     return NextResponse.json({
-      state: data.allDone ? "ENDED" : data.state,
-      message: data.allDone ? "All customers finished" : (data.message || ""),
+      state,
+      message: "",
+      currentTick,
       processAlive,
     });
   } catch (e) {

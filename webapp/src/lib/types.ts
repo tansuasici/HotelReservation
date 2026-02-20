@@ -87,6 +87,11 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ScopConfig {
+  run: Record<string, string>;
+  cnp: Record<string, string>;
+}
+
 export type SimState =
   | "NOT_INITIALIZED"
   | "PAUSED"
@@ -114,10 +119,14 @@ export const MSG_COLORS: Record<string, string> = {
   REJECT: "#ef4444",
   CONFIRM: "#34d399",
   EVALUATE: "#a855f7",
+  SHORTLIST: "#a855f7",
   NEGOTIATE: "#06b6d4",
   COUNTER_OFFER: "#f59e0b",
   NEGOTIATE_ACCEPT: "#22c55e",
   NEGOTIATE_REJECT: "#ef4444",
+  FALLBACK: "#f59e0b",
+  FAIL: "#ef4444",
+  AUDIT: "#34d399",
 };
 
 export const STATE_COLORS: Record<string, string> = {

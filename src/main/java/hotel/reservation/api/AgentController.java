@@ -25,9 +25,9 @@ public class AgentController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentController.class);
 
-    private final PlaygroundHolder holder;
+    private final PlaygroundAccess holder;
 
-    public AgentController(PlaygroundHolder holder) {
+    public AgentController(PlaygroundAccess holder) {
         this.holder = holder;
     }
 

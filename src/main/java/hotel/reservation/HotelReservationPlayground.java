@@ -19,18 +19,15 @@ import hotel.reservation.data.model.Hotel;
 import hotel.reservation.data.repository.CustomerRepository;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.DataFetcherRole;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Hotel Reservation Playground - Main simulation environment.
  * Sets up the Directory Facilitator, Hotel Agents, and Customer Agents.
  *
- * Hotel data is fetched from the Hotel Data API (Javalin REST server on port 7070).
+ * Hotel data is fetched from the Hotel Data API (Spring Boot on port 3001).
  */
 public class HotelReservationPlayground extends Playground {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HotelReservationPlayground.class);
     private static final int API_PORT = EnvConfig.apiPort();
 
     private DirectoryFacilitator directoryFacilitator;
@@ -48,11 +45,16 @@ public class HotelReservationPlayground extends Playground {
 
     @Override
     protected void setup() {
-        LOGGER.info("");
-        LOGGER.info("╔════════════════════════════════════════════════════════╗");
-        LOGGER.info("║     HOTEL RESERVATION MULTI-AGENT SYSTEM               ║");
-        LOGGER.info("╚════════════════════════════════════════════════════════╝");
-        LOGGER.info("");
+        // Clear lists in case setup() is called more than once on the same instance
+        hotelAgents.clear();
+        customerAgents.clear();
+        ActivityLog.clear();
+
+        getLogger().info("");
+        getLogger().info("╔════════════════════════════════════════════════════════╗");
+        getLogger().info("║     HOTEL RESERVATION MULTI-AGENT SYSTEM               ║");
+        getLogger().info("╚═══════════════════════════════════╤═╤═╤═╤═╤═╤═╤═╤═╤═╗");
+        getLogger().info("");
 
         // Create NetworkEnvironment - provides JGraphT graph topology + messaging
         hotelEnv = create(new NetworkEnvironment("HotelEnv"));
@@ -73,14 +75,14 @@ public class HotelReservationPlayground extends Playground {
         // Generate network topology from runtime CSV
         regenerateNetwork();
 
-        LOGGER.info("");
-        LOGGER.info("┌─ SETUP COMPLETE ─────────────────────────────────────┐");
-        LOGGER.info("│  Hotels: {}                                           │", directoryFacilitator.getRegisteredCount());
-        LOGGER.info("│  Customers: {}                                        │", customerAgents.size());
-        LOGGER.info("│  Agents: {} ({} hotel + {} customer + DF + DataFetcher + env) │",
+        getLogger().info("");
+        getLogger().info("┌─ SETUP COMPLETE ─────────────────────────────────────┐");
+        getLogger().info("│  Hotels: {}                                           │", directoryFacilitator.getRegisteredCount());
+        getLogger().info("│  Customers: {}                                        │", customerAgents.size());
+        getLogger().info("│  Agents: {} ({} hotel + {} customer + DF + DataFetcher + env) │",
             hotelAgents.size() + customerAgents.size() + 3, hotelAgents.size(), customerAgents.size());
-        LOGGER.info("└──────────────────────────────────────────────────────┘");
-        LOGGER.info("");
+        getLogger().info("└──────────────────────────────────────────────────────┘");
+        getLogger().info("");
     }
 
     /**
@@ -89,7 +91,7 @@ public class HotelReservationPlayground extends Playground {
     private void createHotelAgents() {
         DataFetcherRole fetcherRole = dataFetcherAgent.as(DataFetcherRole.class);
         List<Hotel> hotels = fetcherRole.fetchAllHotels();
-        LOGGER.info("Fetched {} hotels from API (http://localhost:{})", hotels.size(), API_PORT);
+        getLogger().info("Fetched {} hotels from API (http://localhost:{})", hotels.size(), API_PORT);
 
         int successCount = 0;
         for (Hotel hotel : hotels) {
@@ -105,13 +107,13 @@ public class HotelReservationPlayground extends Playground {
             hotelAgents.add(agent);
             if (agent.isDataLoaded()) {
                 successCount++;
-                LOGGER.info("  {} - {} ({}★ ${}/night)",
+                getLogger().info("  {} - {} ({}★ ${}/night)",
                     agent.getHotelId(), agent.getHotelName(),
                     agent.getRank(), agent.getBasePrice());
             }
         }
 
-        LOGGER.info("Loaded {}/{} hotels from API", successCount, hotels.size());
+        getLogger().info("Loaded {}/{} hotels from API", successCount, hotels.size());
     }
 
     /**
@@ -120,7 +122,7 @@ public class HotelReservationPlayground extends Playground {
      */
     private void createCustomerAgents() {
         List<CustomerSpec> specs = fetchCustomerSpecs();
-        LOGGER.info("Fetched {} customers from {}", specs.size(),
+        getLogger().info("Fetched {} customers from {}", specs.size(),
             specs.isEmpty() ? "none" : "API/repository");
 
         for (CustomerSpec spec : specs) {
@@ -131,7 +133,7 @@ public class HotelReservationPlayground extends Playground {
             hotelEnv.add(customer);
             customerAgents.add(customer);
 
-            LOGGER.info("Customer: {} → {}★ {} (max ${})",
+            getLogger().info("Customer: {} → {}★ {} (max ${})",
                 customer.getName(), customer.getDesiredRank(),
                 customer.getDesiredLocation(), customer.getMaxPrice());
         }
@@ -146,15 +148,15 @@ public class HotelReservationPlayground extends Playground {
             DataFetcherRole fetcherRole = dataFetcherAgent.as(DataFetcherRole.class);
             List<CustomerSpec> customers = fetcherRole.fetchAllCustomers();
             if (!customers.isEmpty()) {
-                LOGGER.info("Fetched {} customers from API (http://localhost:{})", customers.size(), API_PORT);
+                getLogger().info("Fetched {} customers from API (http://localhost:{})", customers.size(), API_PORT);
                 return customers;
             }
         } catch (Exception e) {
-            LOGGER.warn("Customer API unavailable: {}", e.getMessage());
+            getLogger().warn("Customer API unavailable: {}", e.getMessage());
         }
 
         // Fallback: load directly from repository
-        LOGGER.info("Falling back to local CustomerRepository");
+        getLogger().info("Falling back to local CustomerRepository");
         CustomerRepository repo = new CustomerRepository();
         repo.initialize();
         return repo.findAll();
@@ -169,7 +171,7 @@ public class HotelReservationPlayground extends Playground {
         hotelEnv.add(hotel);
         hotelAgents.add(hotel);
         regenerateNetwork();
-        LOGGER.info("Added hotel: {}", hotel);
+        getLogger().info("Added hotel: {}", hotel);
         return hotel;
     }
 
@@ -181,7 +183,7 @@ public class HotelReservationPlayground extends Playground {
         hotelEnv.add(customer);
         customerAgents.add(customer);
         regenerateNetwork();
-        LOGGER.info("Added customer: {}", customer);
+        getLogger().info("Added customer: {}", customer);
         return customer;
     }
 
@@ -200,7 +202,7 @@ public class HotelReservationPlayground extends Playground {
         if (customer != null) {
             customer.startSearch();
         } else {
-            LOGGER.warn("Customer not found: {}", customerName);
+            getLogger().warn("Customer not found: {}", customerName);
         }
     }
 
@@ -208,7 +210,7 @@ public class HotelReservationPlayground extends Playground {
      * Trigger search for all customer agents.
      */
     public void triggerAllSearches() {
-        LOGGER.info("Triggering search for {} customers", customerAgents.size());
+        getLogger().info("Triggering search for {} customers", customerAgents.size());
         for (CustomerAgent customer : customerAgents) {
             customer.startSearch();
         }
@@ -249,7 +251,7 @@ public class HotelReservationPlayground extends Playground {
             hotelEnv.generateNetwork(csvPath, "from", "to", ',');
             logNetworkMetrics();
         } catch (IOException e) {
-            LOGGER.error("Failed to generate network topology: {}", e.getMessage());
+            getLogger().error("Failed to generate network topology: {}", e.getMessage());
         }
     }
 
@@ -287,7 +289,7 @@ public class HotelReservationPlayground extends Playground {
         }
 
         Files.write(csvPath, lines);
-        LOGGER.info("Generated topology CSV: {} edges", lines.size() - 1);
+        getLogger().info("Generated topology CSV: {} edges", lines.size() - 1);
         return csvPath;
     }
 
@@ -297,22 +299,22 @@ public class HotelReservationPlayground extends Playground {
     private void logNetworkMetrics() {
         try {
             NetworkMetrics metrics = hotelEnv.getNetworkMetrics();
-            LOGGER.info("");
-            LOGGER.info("┌─ NETWORK METRICS ────────────────────────────────────┐");
-            LOGGER.info("│  Nodes: {}  Edges: {}  Components: {}",
+            getLogger().info("");
+            getLogger().info("┌─ NETWORK METRICS ────────────────────────────────────┐");
+            getLogger().info("│  Nodes: {}  Edges: {}  Components: {}",
                 metrics.getNodeCount(), metrics.getEdgeCount(), metrics.getConnectedComponents());
-            LOGGER.info("│  Avg Degree: {}  Density: {}",
+            getLogger().info("│  Avg Degree: {}  Density: {}",
                 String.format("%.2f", metrics.getAverageDegree()),
                 String.format("%.4f", metrics.getDensity()));
-            LOGGER.info("│  Clustering: {}  Avg Path: {}  Diameter: {}",
+            getLogger().info("│  Clustering: {}  Avg Path: {}  Diameter: {}",
                 String.format("%.4f", metrics.getAverageClusteringCoefficient()),
                 String.format("%.2f", metrics.getAveragePathLength()),
                 metrics.getDiameter());
-            LOGGER.info("│  Small-world: {} ({})",
+            getLogger().info("│  Small-world: {} ({})",
                 metrics.isSmallWorld(), metrics.getSmallWorldExplanation());
-            LOGGER.info("└──────────────────────────────────────────────────────┘");
+            getLogger().info("└──────────────────────────────────────────────────────┘");
         } catch (Exception e) {
-            LOGGER.warn("Could not compute network metrics: {}", e.getMessage());
+            getLogger().warn("Could not compute network metrics: {}", e.getMessage());
         }
     }
 }

@@ -34,9 +34,9 @@ public final class EnvConfig {
 
     // ── Playground Timing ───────────────────────────────────
 
-    /** Internal data-fetch API port (Hotel Data API). */
+    /** Internal data-fetch API port (same Spring Boot server). */
     public static int apiPort() {
-        return getInt("API_PORT", 7070);
+        return getInt("API_PORT", 3001);
     }
 
     /** Playground timeout tick count. */

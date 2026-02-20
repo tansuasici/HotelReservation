@@ -145,8 +145,9 @@ public class HotelProviderRole extends Role {
 
         // Check if hotel matches the query criteria
         if (!matchesQuery(query)) {
-            getLogger().info("[{}] Query does not match hotel criteria - ignoring",
+            getLogger().info("[{}] Query does not match hotel criteria - sending refusal",
                 getOwner().getName());
+            sendRefusal(message.getSender(), "Does not match criteria");
             return;
         }
 

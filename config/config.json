@@ -1,8 +1,13 @@
 {
-  "Run": {
+  "run": {
     "PLAYGROUND_NAME": "hotel.reservation.HotelReservationPlayground",
-    "STEP_DELAY": 10,
-    "NUMBER_OF_EPISODES": 1,
-    "TIMEOUT_TICK": 200
+    "TIMEOUT_TICK": "999999",
+    "STEP_DELAY": "50",
+    "NUMBER_OF_EPISODES": "1"
+  },
+  "cnp": {
+    "PROPOSAL_DEADLINE_TICKS": "30",
+    "MAX_NEGOTIATION_ROUNDS": "5",
+    "NEGOTIATION_ENABLED": "true"
   }
 }

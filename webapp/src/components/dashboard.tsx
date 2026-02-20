@@ -6,11 +6,11 @@ import { useSimulation } from "@/hooks/use-simulation";
 import { useTheme } from "@/hooks/use-theme";
 import { Navbar } from "./navbar";
 import { SimControls } from "./sim-controls";
-import { StatusPanel } from "./status-panel";
 import { CustomerPanel } from "./customer-panel";
 import { HotelPanel } from "./hotel-panel";
 import { ActivityFeed } from "./activity-feed";
 import { AgentChat } from "./agent-chat";
+import { ConfigPanel } from "./config-panel";
 import type { TopologyNode } from "@/lib/types";
 
 const NetworkGraph = dynamic(
@@ -23,6 +23,7 @@ export function Dashboard() {
   const { isDark, toggle: toggleTheme } = useTheme();
   const [selectedAgent, setSelectedAgent] = useState<TopologyNode | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const handleNodeClick = useCallback((node: TopologyNode) => {
     setSelectedAgent(node);
@@ -38,16 +39,17 @@ export function Dashboard() {
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT SIDEBAR — fixed width, internal scroll */}
         <aside className="flex w-72 shrink-0 flex-col overflow-hidden glass-panel-solid border-r border-border">
-          {/* Pinned controls — never scrolls */}
+          {/* Pinned controls + status — never scrolls */}
           <SimControls
             simState={sim.simState}
+            status={sim.status}
             loading={sim.loading}
             revealing={sim.revealing}
             onAction={sim.doAction}
+            onConfigOpen={() => setConfigOpen(true)}
           />
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <StatusPanel status={sim.status} />
             <CustomerPanel customers={sim.customers} />
             <HotelPanel hotels={sim.hotels} />
           </div>
@@ -78,6 +80,13 @@ export function Dashboard() {
         open={chatOpen}
         onOpenChange={setChatOpen}
         topology={sim.topology}
+      />
+
+      {/* Config Panel Sheet */}
+      <ConfigPanel
+        open={configOpen}
+        onOpenChange={setConfigOpen}
+        simState={sim.simState}
       />
     </div>
   );
