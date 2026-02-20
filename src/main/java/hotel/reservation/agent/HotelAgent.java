@@ -5,8 +5,6 @@ import ai.scop.core.Conversation;
 import com.tnsai.annotations.AgentSpec;
 import com.tnsai.annotations.LLMSpec;
 import com.tnsai.annotations.LLMSpec.Provider;
-import hotel.reservation.df.DFEntry;
-import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.role.HotelProviderRole;
 import hotel.reservation.role.pricing.LinearPricingStrategy;
 
@@ -83,38 +81,17 @@ public class HotelAgent extends Agent {
             getName(), hotelName, rank, location, basePrice);
 
         // Adopt the hotel provider role
-        adopt(new HotelProviderRole(this, "HotelEnv", hotelId, hotelName, location, rank, basePrice,
-            new LinearPricingStrategy()));
+        HotelProviderRole providerRole = new HotelProviderRole(this, "HotelEnv",
+            hotelId, hotelName, location, rank, basePrice, new LinearPricingStrategy());
+        adopt(providerRole);
 
         // Conversation role - for chat (like LifeAgent)
         adopt(new Conversation(this, getPlayground()));
 
-        // Register with Directory Facilitator
-        registerWithDF();
+        // Register with Directory Facilitator (delegated to role with validation hooks)
+        providerRole.registerWithDF();
 
         getLogger().info("[{}] Hotel Agent ready", getName());
-    }
-
-    /**
-     * Register this hotel with the Directory Facilitator.
-     */
-    private void registerWithDF() {
-        DirectoryFacilitator df = getPlayground().getAgent(DirectoryFacilitator.class, "DF");
-        if (df != null) {
-            DFEntry entry = new DFEntry(
-                getName(),
-                getName(),
-                hotelId,
-                hotelName,
-                location,
-                rank,
-                basePrice
-            );
-            df.register(entry);
-            getLogger().info("[{}] Registered with Directory Facilitator", getName());
-        } else {
-            getLogger().warn("[{}] Directory Facilitator not found!", getName());
-        }
     }
 
     @Override

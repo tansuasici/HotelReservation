@@ -4,6 +4,7 @@ import ai.scop.core.Agent;
 import ai.scop.core.Identifier;
 import ai.scop.core.Role;
 import ai.scop.core.messaging.Message;
+import com.tnsai.actions.ActionParams;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
@@ -14,6 +15,8 @@ import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.config.EnvConfig;
 import hotel.reservation.role.pricing.BuyerPricingStrategy;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -109,6 +112,19 @@ public class CustomerRole extends Role {
     @State(description = "Negotiation history")
     private final List<NegotiationOffer> negotiationHistory = new ArrayList<>();
 
+    // Market analytics (populated by @AfterAction hooks)
+    @State(description = "Total proposals received for analytics")
+    private int totalProposalCount = 0;
+
+    @State(description = "Sum of all proposal prices for average calculation")
+    private double proposalPriceSum = 0.0;
+
+    @State(description = "Lowest proposal price seen")
+    private double lowestProposalPrice = Double.MAX_VALUE;
+
+    @State(description = "Highest proposal price seen")
+    private double highestProposalPrice = 0.0;
+
     // Top-N candidate system
     private static final int MAX_CANDIDATES = EnvConfig.cnpMaxCandidates();
 
@@ -160,6 +176,10 @@ public class CustomerRole extends Role {
         negotiatingWith = null;
         negotiationRound = 0;
         negotiationHistory.clear();
+        totalProposalCount = 0;
+        proposalPriceSum = 0.0;
+        lowestProposalPrice = Double.MAX_VALUE;
+        highestProposalPrice = 0.0;
         searchStartTime = System.currentTimeMillis();
 
         getLogger().info("");
@@ -207,16 +227,68 @@ public class CustomerRole extends Role {
         broadcastCFP(matchingHotels);
     }
 
+    // ==========================================
+    // HOOK: Seasonal Price Adjustment for CFP
+    // ==========================================
+
+    /**
+     * Before broadcasting CFP, adjust maxPrice based on season.
+     * Summer/holiday months (Jun-Aug, Dec): increase maxPrice by 15-20%
+     * Shoulder season (Apr-May, Sep-Oct): no change
+     * Off-season (Jan-Mar, Nov): decrease maxPrice by 10%
+     */
+    @BeforeAction("broadcastCFP")
+    private ActionParams beforeBroadcastCFP(ActionParams params) {
+        Month currentMonth = LocalDate.now().getMonth();
+        double effectiveMaxPrice = maxPrice;
+        String seasonLabel;
+
+        switch (currentMonth) {
+            case JUNE, JULY, AUGUST -> {
+                effectiveMaxPrice = maxPrice * 1.15; // Summer: +15%
+                seasonLabel = "SUMMER (+15%)";
+            }
+            case DECEMBER -> {
+                effectiveMaxPrice = maxPrice * 1.20; // Holiday: +20%
+                seasonLabel = "HOLIDAY (+20%)";
+            }
+            case JANUARY, FEBRUARY, MARCH, NOVEMBER -> {
+                effectiveMaxPrice = maxPrice * 0.90; // Off-season: -10%
+                seasonLabel = "OFF_SEASON (-10%)";
+            }
+            default -> {
+                seasonLabel = "SHOULDER (no change)";
+            }
+        }
+
+        effectiveMaxPrice = Math.round(effectiveMaxPrice * 100.0) / 100.0;
+        params.set("effectiveMaxPrice", effectiveMaxPrice);
+        params.set("seasonLabel", seasonLabel);
+
+        getLogger().info("[{}] SEASON_ADJUST: month={}, season={}, maxPrice ${} → effective ${}",
+            getOwner().getName(), currentMonth, seasonLabel, maxPrice, effectiveMaxPrice);
+        ActivityLog.log(getOwner().getName(), "System", "SEASON_ADJUST",
+            String.format("Season: %s — Budget $%.0f → $%.0f", seasonLabel, maxPrice, effectiveMaxPrice));
+
+        return params;
+    }
+
     /**
      * Broadcast CFP to all matching hotel agents.
+     * Uses seasonally adjusted maxPrice via @BeforeAction hook.
      */
     @Action(type = ActionType.LOCAL, description = "Send Call For Proposals to all matching hotels")
     private void broadcastCFP(List<DFEntry> hotels) {
+        // Before-hook: seasonal price adjustment
+        ActionParams params = new ActionParams(new HashMap<>(), "broadcastCFP");
+        params = beforeBroadcastCFP(params);
+        double effectiveMaxPrice = params.getDouble("effectiveMaxPrice");
+
         RoomQuery query = new RoomQuery(
             getOwner().getName(),
             desiredLocation,
             desiredRank,
-            maxPrice
+            effectiveMaxPrice
         );
 
         // Register ALL pending responses FIRST to prevent race condition
@@ -229,7 +301,7 @@ public class CustomerRole extends Role {
         for (DFEntry hotel : hotels) {
             getLogger().info("[{}] Sending CFP to {}", getOwner().getName(), hotel.getHotelName());
             ActivityLog.log(getOwner().getName(), hotel.getHotelName(), "CFP",
-                String.format("Looking for %d★ in %s, max $%.0f", desiredRank, desiredLocation, maxPrice));
+                String.format("Looking for %d★ in %s, max $%.0f", desiredRank, desiredLocation, effectiveMaxPrice));
 
             HotelAgent hotelAgent = getAgent(HotelAgent.class, hotel.getAgentName());
             if (hotelAgent != null) {
@@ -242,6 +314,44 @@ public class CustomerRole extends Role {
 
         getLogger().info("[{}] CFP broadcast complete - waiting for {} responses",
             getOwner().getName(), pendingResponses.size());
+    }
+
+    // ==========================================
+    // HOOK: Market Analytics for Proposals
+    // ==========================================
+
+    /**
+     * After handling a proposal, update market analytics.
+     * Tracks running average, min/max price, and detects price anomalies (>50% above average).
+     */
+    @AfterAction("handleProposalMessage")
+    private void afterHandleProposalMessage(ActionParams params) {
+        double price = params.getDouble("proposalPrice");
+        String hotelName = params.getString("hotelName");
+
+        totalProposalCount++;
+        proposalPriceSum += price;
+        lowestProposalPrice = Math.min(lowestProposalPrice, price);
+        highestProposalPrice = Math.max(highestProposalPrice, price);
+
+        double avgPrice = proposalPriceSum / totalProposalCount;
+
+        getLogger().info("[{}] Market analytics: {} proposals, avg=${}, range=[${}–${}]",
+            getOwner().getName(), totalProposalCount,
+            String.format("%.0f", avgPrice),
+            String.format("%.0f", lowestProposalPrice),
+            String.format("%.0f", highestProposalPrice));
+
+        // Anomaly detection: price > 50% above average
+        if (totalProposalCount > 1 && price > avgPrice * 1.5) {
+            getLogger().warn("[{}] PRICE_ANOMALY: {} at ${} is {}% above average ${}",
+                getOwner().getName(), hotelName, price,
+                String.format("%.0f", ((price - avgPrice) / avgPrice) * 100),
+                String.format("%.0f", avgPrice));
+            ActivityLog.log(getOwner().getName(), hotelName, "PRICE_ANOMALY",
+                String.format("$%.0f is %.0f%% above market average $%.0f",
+                    price, ((price - avgPrice) / avgPrice) * 100, avgPrice));
+        }
     }
 
     /**
@@ -263,6 +373,12 @@ public class CustomerRole extends Role {
         // Store proposal
         proposals.put(proposal.getProposalId(), proposal);
         pendingResponses.remove(message.getSender().getAgentName());
+
+        // After-hook: market analytics
+        ActionParams params = new ActionParams(new HashMap<>(), "handleProposalMessage");
+        params.set("proposalPrice", proposal.getPricePerNight());
+        params.set("hotelName", proposal.getHotelName());
+        afterHandleProposalMessage(params);
 
         // Check if all responses received or deadline passed
         checkProposalDeadline();
@@ -429,9 +545,69 @@ public class CustomerRole extends Role {
     // NEGOTIATION METHODS
     // ==========================================
 
+    // ==========================================
+    // HOOK: Negotiation Strategy Preparation
+    // ==========================================
+
+    /**
+     * Before starting negotiation, calculate aggressiveness factor based on market data.
+     * More candidates or price above market → more aggressive.
+     * Fewer candidates or price at/below market → more conservative.
+     */
+    @BeforeAction("startNegotiationWithCandidate")
+    private ActionParams beforeStartNegotiation(ActionParams params) {
+        double marketAvg = totalProposalCount > 0 ? proposalPriceSum / totalProposalCount : maxPrice;
+        double candidatePrice = params.getDouble("candidatePrice");
+        int candidateCount = params.getInt("candidateCount");
+
+        // Aggressiveness factor: 0.0 (conservative) to 1.0 (aggressive)
+        double aggressiveness = 0.5; // baseline
+
+        // More candidates → more aggressive (leverage)
+        if (candidateCount >= 3) {
+            aggressiveness += 0.15;
+        } else if (candidateCount == 1) {
+            aggressiveness -= 0.20;
+        }
+
+        // Price above market average → more aggressive
+        if (candidatePrice > marketAvg * 1.1) {
+            aggressiveness += 0.15;
+        } else if (candidatePrice < marketAvg * 0.9) {
+            aggressiveness -= 0.10;
+        }
+
+        // Clamp to [0.1, 0.9]
+        aggressiveness = Math.max(0.1, Math.min(0.9, aggressiveness));
+
+        // Calculate initial offer based on aggressiveness
+        // High aggressiveness → offer closer to desiredPrice
+        // Low aggressiveness → offer closer to candidatePrice
+        double offerPrice = desiredPrice + (candidatePrice - desiredPrice) * (1.0 - aggressiveness);
+        offerPrice = Math.round(offerPrice * 100.0) / 100.0;
+
+        params.set("aggressiveness", aggressiveness);
+        params.set("offerPrice", offerPrice);
+        params.set("marketAvg", marketAvg);
+
+        String strategyLabel = aggressiveness >= 0.7 ? "AGGRESSIVE" :
+                               aggressiveness >= 0.4 ? "MODERATE" : "CONSERVATIVE";
+        params.set("strategyLabel", strategyLabel);
+
+        getLogger().info("[{}] STRATEGY: {} (aggressiveness={}), marketAvg=${}, offer=${}",
+            getOwner().getName(), strategyLabel,
+            String.format("%.2f", aggressiveness),
+            String.format("%.0f", marketAvg), offerPrice);
+        ActivityLog.log(getOwner().getName(), "System", "STRATEGY",
+            String.format("Strategy: %s (%.0f%% aggressive) — Market avg $%.0f, opening at $%.0f",
+                strategyLabel, aggressiveness * 100, marketAvg, offerPrice));
+
+        return params;
+    }
+
     /**
      * Start price negotiation with the candidate at given index.
-     * Uses competing candidate's price as leverage if available.
+     * Uses strategy from @BeforeAction hook for initial offer calculation.
      */
     @Action(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel")
     private void startNegotiationWithCandidate(int candidateIndex) {
@@ -452,8 +628,14 @@ public class CustomerRole extends Role {
         negotiationRound = 1;
         negotiationHistory.clear();
 
-        // First offer: desiredPrice
-        double offerPrice = desiredPrice;
+        // Before-hook: strategy preparation
+        ActionParams strategyParams = new ActionParams(new HashMap<>(), "startNegotiationWithCandidate");
+        strategyParams.set("candidatePrice", proposal.getPricePerNight());
+        strategyParams.set("candidateCount", topCandidates.size() - candidateIndex);
+        strategyParams = beforeStartNegotiation(strategyParams);
+
+        // First offer: from strategy hook (replaces fixed desiredPrice)
+        double offerPrice = strategyParams.getDouble("offerPrice");
 
         // Leverage: mention competing offer
         RoomProposal competing = getCompetingCandidate();
@@ -714,6 +896,42 @@ public class CustomerRole extends Role {
         }
     }
 
+    // ==========================================
+    // HOOK: Reservation Audit Trail
+    // ==========================================
+
+    /**
+     * After receiving confirmation, create an audit trail.
+     * Calculates savings, market signal (BELOW/ABOVE/AT_MARKET).
+     */
+    @AfterAction("handleConfirmMessage")
+    private void afterHandleConfirmMessage(ActionParams params) {
+        double finalPrice = params.getDouble("finalPrice");
+        double originalPrice = params.getDouble("originalPrice");
+        double marketAvg = totalProposalCount > 0 ? proposalPriceSum / totalProposalCount : finalPrice;
+
+        // Calculate savings
+        double savings = originalPrice > 0 ? originalPrice - finalPrice : 0;
+        double savingsPercent = originalPrice > 0 ? (savings / originalPrice) * 100 : 0;
+
+        // Market signal
+        String marketSignal;
+        if (finalPrice < marketAvg * 0.95) {
+            marketSignal = "BELOW_MARKET";
+        } else if (finalPrice > marketAvg * 1.05) {
+            marketSignal = "ABOVE_MARKET";
+        } else {
+            marketSignal = "AT_MARKET";
+        }
+
+        getLogger().info("[{}] AUDIT: finalPrice=${}, originalPrice=${}, savings=${} ({}%), signal={}",
+            getOwner().getName(), finalPrice, originalPrice, savings,
+            String.format("%.1f", savingsPercent), marketSignal);
+        ActivityLog.log(getOwner().getName(), params.getString("hotelName"), "AUDIT",
+            String.format("Final $%.0f (was $%.0f), saved $%.0f (%.1f%%) — %s (avg $%.0f)",
+                finalPrice, originalPrice, savings, savingsPercent, marketSignal, marketAvg));
+    }
+
     /**
      * Handle Confirmation message from hotel.
      */
@@ -730,6 +948,14 @@ public class CustomerRole extends Role {
         getLogger().info("  Total: ${}", confirmation.getTotalPrice());
         getLogger().info("  Status: {}", confirmation.getStatus());
         getLogger().info("========================================");
+
+        // After-hook: audit trail
+        ActionParams auditParams = new ActionParams(new HashMap<>(), "handleConfirmMessage");
+        auditParams.set("finalPrice", confirmation.getPricePerNight());
+        auditParams.set("originalPrice", confirmation.getOriginalPrice() > 0
+            ? confirmation.getOriginalPrice() : confirmation.getPricePerNight());
+        auditParams.set("hotelName", confirmation.getHotelName());
+        afterHandleConfirmMessage(auditParams);
     }
 
     // Getters for state inspection

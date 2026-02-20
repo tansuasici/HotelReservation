@@ -4,13 +4,17 @@ import ai.scop.core.Agent;
 import ai.scop.core.Identifier;
 import ai.scop.core.Role;
 import ai.scop.core.messaging.Message;
+import com.tnsai.actions.ActionParams;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.HotelAgent;
+import hotel.reservation.df.DFEntry;
+import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -37,6 +41,11 @@ import java.util.concurrent.ConcurrentHashMap;
             name = "Negotiation",
             description = "Handle price negotiations with customers",
             actions = {"handleNegotiateStartMessage", "handleCounterOfferMessage", "handleNegotiateAcceptMessage"}
+        ),
+        @Responsibility(
+            name = "Registration",
+            description = "Register hotel with Directory Facilitator after validation",
+            actions = {"registerWithDF"}
         )
     },
     llm = @LLMSpec(
@@ -193,29 +202,96 @@ public class HotelProviderRole extends Role {
         return random.nextDouble() < responseRate;
     }
 
+    // ==========================================
+    // HOOK: Dynamic Pricing for sendProposal
+    // ==========================================
+
+    /**
+     * Before sending a proposal, adjust price based on occupancy (dynamic pricing).
+     * Low demand (occupancy < 30%): discount 5%
+     * Normal demand (30-70%): base price or slight increase
+     * High demand (>70%): premium 10-25%
+     */
+    @BeforeAction("sendProposal")
+    private ActionParams beforeSendProposal(ActionParams params) {
+        HotelAgent ha = (HotelAgent) getOwner();
+        int total = ha.getTotalRooms();
+        int avail = ha.getAvailableRooms();
+        double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
+
+        double multiplier;
+        String demandLevel;
+        if (occupancyRate < 0.3) {
+            multiplier = 0.95; // Low demand discount
+            demandLevel = "LOW";
+        } else if (occupancyRate < 0.7) {
+            multiplier = 1.0 + (occupancyRate - 0.3) * 0.25; // 1.0 to 1.10
+            demandLevel = "NORMAL";
+        } else {
+            multiplier = 1.10 + (occupancyRate - 0.7) * 0.50; // 1.10 to 1.25
+            demandLevel = "HIGH";
+        }
+
+        double dynamicPrice = Math.round(basePrice * multiplier * 100.0) / 100.0;
+        params.set("dynamicPrice", dynamicPrice);
+        params.set("demandLevel", demandLevel);
+        params.set("occupancyRate", occupancyRate);
+
+        getLogger().info("[{}] Dynamic pricing: occupancy={}%, demand={}, multiplier={}, base=${} → dynamic=${}",
+            getOwner().getName(),
+            String.format("%.0f", occupancyRate * 100), demandLevel,
+            String.format("%.2f", multiplier), basePrice, dynamicPrice);
+
+        return params;
+    }
+
+    /**
+     * After sending a proposal, log the sent proposal details to ActivityLog.
+     */
+    @AfterAction("sendProposal")
+    private void afterSendProposal(ActionParams params) {
+        double dynamicPrice = params.getDouble("dynamicPrice");
+        String demandLevel = params.getString("demandLevel");
+        String customerName = params.getString("customerName");
+
+        ActivityLog.log(hotelName, customerName, "DYNAMIC_PRICING",
+            String.format("Demand: %s — Base $%.0f → Offered $%.0f", demandLevel, basePrice, dynamicPrice));
+    }
+
     /**
      * Send a proposal to the customer.
+     * Uses dynamic pricing based on occupancy via @BeforeAction hook.
      */
     @Action(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer")
     private void sendProposal(Identifier customer) {
+        // Create ActionParams and invoke before-hook
+        ActionParams params = new ActionParams(new HashMap<>(), "sendProposal");
+        params.set("customerName", customer.getAgentName());
+        params = beforeSendProposal(params);
+
+        double dynamicPrice = params.getDouble("dynamicPrice");
+
         RoomProposal proposal = new RoomProposal(
             hotelId,
             hotelName,
             location,
             rank,
-            basePrice,
+            dynamicPrice,
             "standard"  // Default room type
         );
         proposal.setAmenities(List.of("wifi", "breakfast"));
         proposal.setRating(4.5);
 
         getLogger().info("[{}] Sending proposal to {}: {} - ${}/night",
-            getOwner().getName(), customer, hotelName, basePrice);
+            getOwner().getName(), customer, hotelName, dynamicPrice);
         ActivityLog.log(hotelName, customer.getAgentName(), "PROPOSAL",
-            String.format("%s - $%.0f/night, %d★", hotelName, basePrice, rank));
+            String.format("%s - $%.0f/night, %d★", hotelName, dynamicPrice, rank));
 
         // Use Role's sendMessage method
         sendMessage(MessageTypes.MSG_PROPOSAL, proposal, customer);
+
+        // Invoke after-hook
+        afterSendProposal(params);
     }
 
     /**
@@ -475,6 +551,108 @@ public class HotelProviderRole extends Role {
 
     public boolean isAvailable() {
         return available;
+    }
+
+    // ==========================================
+    // HOOK: DF Registration Validation
+    // ==========================================
+
+    /**
+     * Validate hotel data before registering with Directory Facilitator.
+     * Checks: basePrice > 0, totalRooms > 0, location != null, rank 1-5.
+     */
+    @BeforeAction("registerWithDF")
+    private ActionParams beforeRegisterWithDF(ActionParams params) {
+        HotelAgent ha = (HotelAgent) getOwner();
+        boolean valid = true;
+        StringBuilder issues = new StringBuilder();
+
+        if (basePrice <= 0) {
+            issues.append("basePrice must be > 0 (got ").append(basePrice).append("); ");
+            valid = false;
+        }
+        if (ha.getTotalRooms() <= 0) {
+            issues.append("totalRooms must be > 0 (got ").append(ha.getTotalRooms()).append("); ");
+            valid = false;
+        }
+        if (location == null || location.isBlank()) {
+            issues.append("location must not be null/blank; ");
+            valid = false;
+        }
+        if (rank < 1 || rank > 5) {
+            issues.append("rank must be 1-5 (got ").append(rank).append("); ");
+            valid = false;
+        }
+
+        params.set("valid", valid);
+        params.set("issues", issues.toString());
+
+        if (!valid) {
+            getLogger().warn("[{}] VALIDATION_FAIL for DF registration: {}",
+                getOwner().getName(), issues);
+            ActivityLog.log(hotelName, "DirectoryFacilitator", "VALIDATION_FAIL", issues.toString());
+        } else {
+            getLogger().info("[{}] DF registration validation passed", getOwner().getName());
+        }
+
+        return params;
+    }
+
+    /**
+     * Log the result of DF registration (success or failure).
+     */
+    @AfterAction("registerWithDF")
+    private void afterRegisterWithDF(ActionParams params) {
+        boolean registered = params.getBoolean("registered");
+        if (registered) {
+            getLogger().info("[{}] REGISTERED with Directory Facilitator successfully", getOwner().getName());
+            ActivityLog.log(hotelName, "DirectoryFacilitator", "REGISTERED",
+                String.format("%s (%d★, $%.0f/night) in %s", hotelName, rank, basePrice, location));
+        } else {
+            String reason = params.has("issues") ? params.getString("issues") : "Unknown reason";
+            getLogger().warn("[{}] Failed to register with DF: {}", getOwner().getName(), reason);
+            ActivityLog.log(hotelName, "DirectoryFacilitator", "REGISTER_FAIL", reason);
+        }
+    }
+
+    /**
+     * Register this hotel with the Directory Facilitator.
+     * Moved from HotelAgent to HotelProviderRole for proper hook support.
+     */
+    @Action(type = ActionType.LOCAL, description = "Register hotel with Directory Facilitator after validation")
+    public void registerWithDF() {
+        // Before-hook: validate data
+        ActionParams params = new ActionParams(new HashMap<>(), "registerWithDF");
+        params = beforeRegisterWithDF(params);
+
+        if (!params.getBoolean("valid")) {
+            params.set("registered", false);
+            afterRegisterWithDF(params);
+            return;
+        }
+
+        // Perform registration
+        DirectoryFacilitator df = getOwner().getPlayground()
+            .getAgent(DirectoryFacilitator.class, "DF");
+        boolean registered = false;
+        if (df != null) {
+            DFEntry entry = new DFEntry(
+                getOwner().getName(),
+                getOwner().getName(),
+                hotelId,
+                hotelName,
+                location,
+                rank,
+                basePrice
+            );
+            registered = df.register(entry);
+        } else {
+            getLogger().warn("[{}] Directory Facilitator not found!", getOwner().getName());
+        }
+
+        // After-hook: log result
+        params.set("registered", registered);
+        afterRegisterWithDF(params);
     }
 
     // Getters
