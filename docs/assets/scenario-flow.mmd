@@ -1,0 +1,104 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}, 'flowchart': {'curve': 'basis', 'nodeSpacing': 30, 'rankSpacing': 40}}}%%
+flowchart TD
+    START([🟢 Simülasyon Başlat]) --> S1
+
+    %% ── SETUP ──
+    S1["<b>1 │ SETUP</b><br/>Playground.setup()"]
+    S1 --> S2["DataFetcherAgent → REST API<br/><i>fetchAllHotels() + fetchAllCustomers()</i>"]
+    S2 --> S3["HotelAgent × N oluştur<br/><i>Her biri HotelProviderRole + Conversation adopt eder</i>"]
+    S3 --> S4["⚡ beforeRegisterWithDF → DF.register()<br/><i>Validasyon: fiyat>0, oda>0, yıldız 1-5</i>"]
+    S4 --> S5["CustomerAgent × M oluştur<br/><i>Her biri CustomerRole + Conversation adopt eder</i>"]
+    S5 --> S6["NetworkEnvironment topoloji oluştur<br/><i>Customer↔Hotel + AynıŞehirOtel↔Otel</i>"]
+
+    %% ── SEARCH ──
+    S6 --> A1
+    A1["<b>2 │ ARAMA</b><br/>makeStep() → IDLE algıla → startSearch()"]
+    A1 --> A2["DF.search(şehir, yıldız, maxFiyat)<br/><i>Kriterlere uyan otelleri bul</i>"]
+    A2 --> A3{Eşleşen otel var mı?}
+    A3 -->|Hayır| FAIL1([❌ FAILED<br/><i>Uygun otel yok</i>])
+
+    %% ── CFP ──
+    A3 -->|Evet| C1
+    C1["<b>3 │ CFP YAYINI</b><br/>⚡ beforeBroadcastCFP → Sezon ayarı"]
+    C1 --> C2["☀️Yaz +%15 · 🎄Aralık +%20 · ❄️Kış -%10"]
+    C2 --> C3["MSG_CFP → tüm eşleşen oteller<br/><i>RoomQuery: şehir, yıldız, efektif maxFiyat</i>"]
+
+    %% ── HOTEL RESPONSE ──
+    C3 --> H1
+    H1["<b>4 │ OTEL YANITI</b><br/>handleCFPMessage()"]
+    H1 --> H2{Kriter uyuyor mu?<br/>Oda var mı?}
+    H2 -->|Hayır| H3["MSG_REFUSE gönder"]
+    H2 -->|Evet| H4["⚡ beforeSendProposal → Dinamik fiyat<br/><i>📉Düşük ×0.95 · 📊Normal ×1.0-1.10 · 📈Yüksek ×1.10-1.25</i>"]
+    H4 --> H5["MSG_PROPOSAL gönder<br/><i>RoomProposal: dinamik fiyat</i>"]
+
+    %% ── EVALUATE ──
+    H3 --> E1
+    H5 --> E1
+    E1["<b>5 │ DEĞERLENDİRME</b><br/>⚡ afterHandleProposalMessage → Pazar analitik"]
+    E1 --> E2{Tüm yanıtlar geldi<br/>veya deadline doldu?}
+    E2 -->|Hayır| E1
+    E2 -->|Evet| E3["evaluateProposals()<br/><i>Fiyata göre sırala → Top-N kısa liste</i>"]
+    E3 --> E4{Teklif var mı?}
+    E4 -->|Hayır| FAIL2([❌ FAILED<br/><i>Teklif gelmedi</i>])
+    E4 -->|Evet| E5["Kısa listeye girmeyen otelleri REJECT"]
+    E5 --> E6{En iyi fiyat ≤<br/>desiredPrice?}
+    E6 -->|Evet| R1
+
+    %% ── NEGOTIATION ──
+    E6 -->|Hayır| N1
+    N1["<b>6 │ PAZARLIK</b><br/>⚡ beforeStartNegotiation → Strateji hesapla"]
+    N1 --> N2["Agresiflik: pazar ort. + aday sayısı<br/><i>açılış = desired + (listed-desired) × (1-agresiflik)</i>"]
+    N2 --> N3["MSG_NEGOTIATE_START → Otel<br/><i>+ kaldıraç: rakip otel fiyatı</i>"]
+    N3 --> N4["Otel: effectiveMinPrice hesapla<br/><i>baseMin + (base-baseMin) × doluluk²</i>"]
+    N4 --> N5{Müşteri teklifi ≥<br/>effectiveMin?}
+    N5 -->|Evet| N6["MSG_NEGOTIATE_ACCEPT ✅"]
+    N5 -->|Hayır| N7["Otel: MSG_COUNTER_OFFER<br/><i>Satıcı LinearPricingStrategy</i>"]
+    N7 --> N8{Otel teklifi ≤<br/>desiredPrice?}
+    N8 -->|Evet| N6
+    N8 -->|Hayır| N9{Max round<br/>aşıldı mı?}
+    N9 -->|Hayır| N10["Müşteri: counter-offer hesapla<br/><i>desired + (max-desired) × round/maxRound</i>"]
+    N10 --> N11{Bizim teklifimiz ≥<br/>otel teklifi?}
+    N11 -->|Evet| N6
+    N11 -->|Hayır| N12["MSG_COUNTER_OFFER → Otel<br/><i>+ kaldıraç mesajı</i>"]
+    N12 --> N4
+    N9 -->|Evet| N13{Son teklif ≤<br/>maxPrice?}
+    N13 -->|Evet| N6
+    N13 -->|Hayır| N14["rejectAndTryNext()"]
+    N14 --> N15{Sonraki aday<br/>var mı?}
+    N15 -->|Evet| N1
+    N15 -->|Hayır| FAIL3([❌ FAILED<br/><i>Tüm adaylar tükendi</i>])
+
+    %% ── RESERVATION ──
+    N6 --> R1
+    R1["<b>7 │ REZERVASYON</b><br/>MSG_NEGOTIATE_ACCEPT / MSG_ACCEPT"]
+    R1 --> R2["Otel: reserveRoom()<br/><i>synchronized: availableRooms--</i>"]
+    R2 --> R3{Oda müsait mi?}
+    R3 -->|Hayır| R4["MSG_REFUSE"] --> N14
+    R3 -->|Evet| R5["MSG_CONFIRM<br/><i>ReservationConfirmation: onay no, fiyat, indirim</i>"]
+    R5 --> R6["state = COMPLETED"]
+    R6 --> R7["⚡ afterHandleConfirmMessage → AUDIT<br/><i>tasarruf %, pazar sinyali (BELOW/AT/ABOVE_MARKET)</i>"]
+    R7 --> DONE([🟢 Rezervasyon Tamamlandı])
+
+    %% ── LLM (SIDE) ──
+    R6 -.-> L1
+    L1["<b>8 │ LLM CHAT</b><br/>POST /api/agents/{'{'}id{'}'}/chat"]
+    L1 --> L2["Conversation.chat() → SCOPBridge"]
+    L2 --> L3["buildSystemPrompt()<br/><i>@AgentSpec + @RoleSpec + @State</i>"]
+    L3 --> L4["🤖 Ollama API<br/><i>Customer: glm-4.7:cloud</i><br/><i>Hotel: minimax-m2.1:cloud</i>"]
+    L4 --> L5{tool_call<br/>var mı?}
+    L5 -->|Evet| L6["executeToolCall()<br/><i>@Action metotunu çağır</i>"] --> L4
+    L5 -->|Hayır| L7["💬 Yanıt döndür"]
+
+    %% ── STYLES ──
+    classDef phase fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef hook fill:#fce4ec,stroke:#c62828,stroke-width:1px,stroke-dasharray: 5 5
+    classDef decision fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    classDef success fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px,color:#1b5e20
+    classDef fail fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#b71c1c
+    classDef llm fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#004d40
+    classDef msg fill:#f3e5f5,stroke:#6a1b9a,stroke-width:1px
+
+    class S1,A1,C1,H1,E1,N1,R1,L1 phase
+    class DONE,START success
+    class FAIL1,FAIL2,FAIL3 fail
+    class L1,L2,L3,L4,L5,L6,L7 llm

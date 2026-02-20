@@ -39,16 +39,6 @@ public final class EnvConfig {
         return getInt("API_PORT", 3001);
     }
 
-    /** Playground timeout tick count. */
-    public static int playgroundTimeoutTick() {
-        return getInt("PLAYGROUND_TIMEOUT_TICK", 100_000);
-    }
-
-    /** Playground step delay in milliseconds. */
-    public static int playgroundStepDelay() {
-        return getInt("PLAYGROUND_STEP_DELAY", 1500);
-    }
-
     // ── Helpers ─────────────────────────────────────────────
 
     private static String get(String key, String defaultValue) {

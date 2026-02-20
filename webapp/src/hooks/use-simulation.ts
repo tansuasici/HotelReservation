@@ -11,15 +11,16 @@ import type {
 } from "@/lib/types";
 
 /**
- * Derive a customer's visual state from the last revealed activity message
- * that involves that customer (by customerId).
- *
- * Only protocol-level message types are included here. Hook/system types
- * (SEASON_ADJUST, STRATEGY, DYNAMIC_PRICING, etc.) are intentionally excluded
- * so they don't override meaningful state transitions.
- * REJECT is also excluded — it fires after ACCEPT to losing hotels and would
- * override the correct RESERVING state.
+ * Maximum number of activity entries to keep in the UI.
+ * Older entries are dropped to prevent memory/DOM bloat.
  */
+const MAX_ACTIVITY_UI = 300;
+
+/**
+ * When the reveal backlog exceeds this, skip animation entirely.
+ */
+const SKIP_REVEAL_THRESHOLD = 200;
+
 const MSG_TO_STATE: Record<string, string> = {
   CFP: "SEARCHING",
   PROPOSAL: "WAITING_PROPOSALS",
@@ -37,8 +38,6 @@ const MSG_TO_STATE: Record<string, string> = {
   FAIL: "FAILED",
 };
 
-/** State priority — higher number = more advanced in the protocol flow.
- *  Used to prevent backward transitions (e.g., a late CFP overriding WAITING_PROPOSALS). */
 const STATE_PRIORITY: Record<string, number> = {
   IDLE: 0,
   SEARCHING: 1,
@@ -56,11 +55,8 @@ function deriveCustomerStates(
   allRevealed: boolean
 ): CustomerStatus[] {
   if (fullCustomers.length === 0) return [];
-
-  // If all messages have been revealed, use the real API states
   if (allRevealed) return fullCustomers;
 
-  // Build a map: customerId → derived state
   const derivedState: Record<string, string> = {};
   for (const entry of revealedActivity) {
     const targetState = MSG_TO_STATE[entry.type];
@@ -86,6 +82,11 @@ function deriveCustomerStates(
     const state = derivedState[c.customerId];
     return state ? { ...c, state } : { ...c, state: "IDLE" };
   });
+}
+
+/** Tail-window: keep only the last N entries */
+function tailWindow(arr: ActivityEntry[], max: number): ActivityEntry[] {
+  return arr.length > max ? arr.slice(arr.length - max) : arr;
 }
 
 export function useSimulation() {
@@ -115,6 +116,7 @@ export function useSimulation() {
   const initPollCountRef = useRef(0);
   const setupLoadingRef = useRef(false);
   const userStoppedRef = useRef(false);
+  const lastActivityTimestamp = useRef(0);
 
   function stopRevealTimer() {
     if (revealTimerRef.current) {
@@ -131,6 +133,7 @@ export function useSimulation() {
     revealIndexRef.current = 0;
     simEndedRef.current = false;
     initPollCountRef.current = 0;
+    lastActivityTimestamp.current = 0;
   }
 
   /** Reveal the next batch of messages and derive customer states. */
@@ -146,12 +149,20 @@ export function useSimulation() {
       return;
     }
 
+    // Adaptive batch: much more aggressive for large backlogs
     const remaining = full.length - idx;
-    const batchSize = remaining > 80 ? 8 : remaining > 40 ? 5 : remaining > 15 ? 3 : 1;
-    const newIdx = Math.min(idx + batchSize, full.length);
+    let batchSize: number;
+    if (remaining > 500) batchSize = 100;
+    else if (remaining > 200) batchSize = 40;
+    else if (remaining > 80) batchSize = 15;
+    else if (remaining > 30) batchSize = 5;
+    else batchSize = 1;
 
+    const newIdx = Math.min(idx + batchSize, full.length);
     revealIndexRef.current = newIdx;
-    const revealed = full.slice(0, newIdx);
+
+    // Only send the tail window to state (DOM)
+    const revealed = tailWindow(full.slice(0, newIdx), MAX_ACTIVITY_UI);
     setActivity(revealed);
     setCustomers(
       deriveCustomerStates(revealed, fullCustomersRef.current, false)
@@ -171,9 +182,22 @@ export function useSimulation() {
     [revealNext]
   );
 
+  /**
+   * Skip reveal entirely — show all data immediately.
+   * Used when backlog is too large to animate meaningfully.
+   */
+  const skipReveal = useCallback(() => {
+    stopRevealTimer();
+    const full = fullActivityRef.current;
+    revealIndexRef.current = full.length;
+    setActivity(tailWindow(full, MAX_ACTIVITY_UI));
+    setCustomers(fullCustomersRef.current);
+  }, []);
+
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch("/api/data");
+      const since = lastActivityTimestamp.current;
+      const res = await fetch(`/api/data?since=${since}`);
       if (!res.ok) return;
       const data = await res.json();
 
@@ -208,10 +232,24 @@ export function useSimulation() {
 
       const newActivity: ActivityEntry[] = data.activity || [];
       const newCustomers: CustomerStatus[] = data.customers || [];
-      fullActivityRef.current = newActivity;
+
+      // Merge incremental activity into the full buffer
+      if (newActivity.length > 0) {
+        // If since > 0, these are NEW entries; append them
+        if (since > 0) {
+          fullActivityRef.current = [...fullActivityRef.current, ...newActivity];
+        } else {
+          fullActivityRef.current = newActivity;
+        }
+        // Track the latest timestamp for incremental fetch
+        const lastEntry = newActivity[newActivity.length - 1];
+        if (lastEntry) {
+          lastActivityTimestamp.current = lastEntry.timestamp;
+        }
+      }
       fullCustomersRef.current = newCustomers;
 
-      // Auto-stop: if all customers reached terminal state, send real stop
+      // Auto-stop: if all customers reached terminal state
       if (
         newCustomers.length > 0 &&
         !simEndedRef.current &&
@@ -225,22 +263,34 @@ export function useSimulation() {
           body: JSON.stringify({ action: "stop" }),
         }).catch(() => {});
         setStatus((prev) => ({ ...prev, state: "ENDED", message: "All customers finished" }));
-        startRevealTimer(60);
+
+        // If backlog is huge, skip reveal; otherwise fast-reveal
+        const backlog = fullActivityRef.current.length - revealIndexRef.current;
+        if (backlog > SKIP_REVEAL_THRESHOLD) {
+          skipReveal();
+        } else {
+          startRevealTimer(60);
+        }
         return;
       }
 
-      if (!revealTimerRef.current && revealIndexRef.current < newActivity.length) {
+      // Decide reveal strategy based on backlog size
+      const backlog = fullActivityRef.current.length - revealIndexRef.current;
+      if (backlog > SKIP_REVEAL_THRESHOLD && !revealTimerRef.current) {
+        // Too far behind — skip animation, show data directly
+        skipReveal();
+      } else if (!revealTimerRef.current && backlog > 0) {
         startRevealTimer(simEndedRef.current ? 60 : 250);
       }
 
-      if (newActivity.length === 0) {
+      if (fullActivityRef.current.length === 0) {
         setCustomers(newCustomers);
         setActivity([]);
       }
     } catch {
       /* */
     }
-  }, [startRevealTimer]);
+  }, [startRevealTimer, skipReveal]);
 
   function stopPolling() {
     pollingActiveRef.current = false;
@@ -286,13 +336,15 @@ export function useSimulation() {
         setLoading(false);
       }
 
-      // Stop polling on stable states: PAUSED, ENDED, or process dead
       if (!data.processAlive || data.state === "PAUSED" || data.state === "ENDED") {
         stopPolling();
 
         if (data.state === "ENDED") {
           simEndedRef.current = true;
-          if (revealTimerRef.current) {
+          const backlog = fullActivityRef.current.length - revealIndexRef.current;
+          if (backlog > SKIP_REVEAL_THRESHOLD) {
+            skipReveal();
+          } else if (revealTimerRef.current) {
             startRevealTimer(60);
           }
         }
@@ -307,7 +359,7 @@ export function useSimulation() {
     } catch {
       /* */
     }
-  }, [loadData, startRevealTimer]);
+  }, [loadData, startRevealTimer, skipReveal]);
 
   const startPolling = useCallback(() => {
     stopPolling();
@@ -315,7 +367,6 @@ export function useSimulation() {
     pollRef.current = setInterval(pollState, 1500);
   }, [pollState]);
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       stopPolling();
@@ -327,7 +378,6 @@ export function useSimulation() {
 
   const doAction = useCallback(
     async (action: string) => {
-      // ── Stop: send real "stop" to SCOP, freeze UI ──
       if (action === "stop") {
         userStoppedRef.current = true;
         stopPolling();
@@ -342,7 +392,6 @@ export function useSimulation() {
         return;
       }
 
-      // ── Pause: send "pause" to SCOP, stop polling/reveal ──
       if (action === "pause") {
         stopPolling();
         stopRevealTimer();
@@ -358,7 +407,6 @@ export function useSimulation() {
 
       setLoading(true);
 
-      // Reset UI on setup
       if (action === "setup") {
         userStoppedRef.current = false;
         setTopology(null);

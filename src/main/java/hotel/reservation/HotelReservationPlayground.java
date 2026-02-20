@@ -1,7 +1,6 @@
 package hotel.reservation;
 
 import ai.scop.core.Agent;
-import ai.scop.core.Params;
 import ai.scop.core.Playground;
 import ai.scop.core.env.network.NetworkEnvironment;
 import ai.scop.core.env.network.NetworkMetrics;
@@ -35,13 +34,6 @@ public class HotelReservationPlayground extends Playground {
     private DataFetcherAgent dataFetcherAgent;
     private final List<HotelAgent> hotelAgents = new ArrayList<>();
     private final List<CustomerAgent> customerAgents = new ArrayList<>();
-
-    @Override
-    protected void initializeParameters() {
-        super.initializeParameters();
-        Params.setParameter(Playground.P_TIME_OUT_TICK, String.valueOf(EnvConfig.playgroundTimeoutTick()));
-        Params.setParameter(Playground.P_STEP_DELAY, String.valueOf(EnvConfig.playgroundStepDelay()));
-    }
 
     @Override
     protected void setup() {
@@ -221,6 +213,13 @@ public class HotelReservationPlayground extends Playground {
      */
     public List<CustomerAgent> getCustomerAgents() {
         return new ArrayList<>(customerAgents);
+    }
+
+    /**
+     * Get all hotel agents.
+     */
+    public List<HotelAgent> getHotelAgents() {
+        return new ArrayList<>(hotelAgents);
     }
 
     /**

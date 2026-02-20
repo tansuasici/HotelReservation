@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { MessageSquare, Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ActivityEntry } from "@/lib/types";
 import { MSG_COLORS } from "@/lib/types";
+
+/** Max items to render in the DOM at once */
+const MAX_RENDER = 150;
 
 const TYPE_BADGE_CLASS: Record<string, string> = {
   CFP: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
@@ -30,10 +33,23 @@ function formatTime(ts: number): string {
 
 export function ActivityFeed({ activity }: { activity: ActivityEntry[] }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prevLenRef = useRef(0);
 
+  // Only render the last MAX_RENDER entries
+  const visible = useMemo(() => {
+    if (activity.length <= MAX_RENDER) return activity;
+    return activity.slice(activity.length - MAX_RENDER);
+  }, [activity]);
+
+  // Auto-scroll only when new items arrive (not on every render)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (activity.length > prevLenRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevLenRef.current = activity.length;
   }, [activity.length]);
+
+  const truncated = activity.length - visible.length;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -62,7 +78,12 @@ export function ActivityFeed({ activity }: { activity: ActivityEntry[] }) {
           </div>
         ) : (
           <div className="space-y-1.5">
-            {activity.map((entry, i) => (
+            {truncated > 0 && (
+              <div className="text-center text-[10px] text-muted-foreground/40 py-1">
+                {truncated} older messages hidden
+              </div>
+            )}
+            {visible.map((entry, i) => (
               <ActivityItem key={`${entry.timestamp}-${i}`} entry={entry} />
             ))}
             <div ref={bottomRef} />

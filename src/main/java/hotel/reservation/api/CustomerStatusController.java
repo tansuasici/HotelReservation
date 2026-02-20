@@ -2,6 +2,7 @@ package hotel.reservation.api;
 
 import ai.scop.core.Agent;
 import hotel.reservation.agent.CustomerAgent;
+import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.message.RoomProposal;
 import hotel.reservation.role.CustomerRole;
 import org.springframework.http.ResponseEntity;
@@ -70,6 +71,28 @@ public class CustomerStatusController {
             return ResponseEntity.ok(buildCustomerStatus(ca));
         }
         return ResponseEntity.status(404).body(Map.of("error", "Customer not found: " + id));
+    }
+
+    @GetMapping("/hotels/status")
+    public List<Map<String, Object>> getHotelsStatus() {
+        if (!holder.isActive()) return Collections.emptyList();
+
+        return holder.get().getHotelAgents().stream()
+                .map(this::buildHotelStatus)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> buildHotelStatus(HotelAgent hotel) {
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("hotelId", hotel.getHotelId());
+        status.put("agentName", hotel.getName());
+        status.put("hotelName", hotel.getHotelName());
+        status.put("location", hotel.getLocation());
+        status.put("rank", hotel.getRank());
+        status.put("basePrice", hotel.getBasePrice());
+        status.put("totalRooms", hotel.getTotalRooms());
+        status.put("availableRooms", hotel.getAvailableRooms());
+        return status;
     }
 
     private Map<String, Object> buildCustomerStatus(CustomerAgent customer) {

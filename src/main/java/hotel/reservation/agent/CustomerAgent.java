@@ -81,8 +81,11 @@ public class CustomerAgent extends Agent {
         if (role != null) {
             if (role.getCustomerState() == CustomerRole.CustomerState.IDLE) {
                 role.startSearch();
+            } else {
+                // Tick-driven: only one action per tick
+                // startSearch already did work this tick, so tickCheck runs on next tick
+                role.tickCheck();
             }
-            role.tickCheck();
         }
     }
 

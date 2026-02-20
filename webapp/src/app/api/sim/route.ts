@@ -74,6 +74,11 @@ export async function POST(req: Request) {
   console.log("[SIM] → POST /api/scop/playground?action=%s", action);
 
   try {
+    // Reset playground before setup so SCOP creates a fresh instance
+    if (action === "setup") {
+      await fetch(`${BACKEND}/api/playground/reset`, { method: "POST" }).catch(() => {});
+    }
+
     const res = await fetch(`${BACKEND}/api/scop/playground?action=${action}`, {
       method: "POST",
     });

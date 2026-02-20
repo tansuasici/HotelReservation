@@ -43,4 +43,20 @@ public class PlaygroundAccess {
     public boolean isActive() {
         return get() != null;
     }
+
+    /**
+     * Reset the playground field in SCOP Controller for re-setup.
+     * SCOP's getPlaygroundInstance() caches the old instance;
+     * we null it out so a fresh playground is created on next setup.
+     */
+    public void resetPlayground() {
+        try {
+            Field f = Controller.class.getDeclaredField("playground");
+            f.setAccessible(true);
+            f.set(scopController, null);
+            LOGGER.info("Reset SCOP Controller playground field for re-setup");
+        } catch (Exception e) {
+            LOGGER.warn("Could not reset playground: {}", e.getMessage());
+        }
+    }
 }

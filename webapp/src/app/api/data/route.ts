@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
+const ACTIVITY_LIMIT = 500; // Max activity entries to fetch per request
 
 async function fetchJson(label: string, url: string) {
   try {
@@ -23,14 +24,18 @@ async function fetchJson(label: string, url: string) {
   }
 }
 
-export async function GET() {
-  console.log("[DATA] → fetching 4 endpoints in parallel");
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const since = searchParams.get("since") || "0";
 
-  const [scopNetwork, hotels, customers, activity] = await Promise.all([
+  console.log("[DATA] → fetching endpoints (since=%s)", since);
+
+  const [scopNetwork, hotels, customers, activity, hotelsStatus] = await Promise.all([
     fetchJson("network", `${BACKEND}/api/scop/playground/environment/network`),
     fetchJson("hotels", `${BACKEND}/api/data/hotels`),
     fetchJson("customers", `${BACKEND}/api/customers/status`),
-    fetchJson("activity", `${BACKEND}/api/activity?since=0`),
+    fetchJson("activity", `${BACKEND}/api/activity?since=${since}&limit=${ACTIVITY_LIMIT}`),
+    fetchJson("hotelsStatus", `${BACKEND}/api/hotels/status`),
   ]);
 
   // SCOP returns array of NetworkEnvironmentDTOs — pick HotelEnv
@@ -47,13 +52,18 @@ export async function GET() {
   }
 
   // Enrich topology nodes with business data from hotels/customers
-  // SCOP DTO only has: name, type, colorCode, degree, neighbors
-  // We need: displayName, location, rank, basePrice, totalRooms, etc.
   if (topology.nodes) {
     const hotelMap = new Map<string, any>();
     if (hotels) {
       for (const h of hotels as any[]) {
         hotelMap.set(h.id, h);
+      }
+    }
+    // Runtime hotel status (availableRooms, etc.)
+    const hotelStatusMap = new Map<string, any>();
+    if (hotelsStatus) {
+      for (const hs of hotelsStatus as any[]) {
+        hotelStatusMap.set(hs.hotelId, hs);
       }
     }
     const customerMap = new Map<string, any>();
@@ -65,9 +75,9 @@ export async function GET() {
 
     topology.nodes = topology.nodes.map((node: any) => {
       if (node.type === "HotelAgent") {
-        // Agent name is "Hotel-h001", hotel id is "h001"
         const hotelId = node.name.replace("Hotel-", "");
         const hotel = hotelMap.get(hotelId);
+        const runtimeStatus = hotelStatusMap.get(hotelId);
         if (hotel) {
           return {
             ...node,
@@ -76,7 +86,8 @@ export async function GET() {
             location: hotel.location?.city ?? hotel.city ?? "",
             rank: hotel.rank,
             basePrice: hotel.pricePerNight,
-            totalRooms: hotel.totalRooms,
+            totalRooms: runtimeStatus?.totalRooms ?? hotel.totalRooms,
+            availableRooms: runtimeStatus?.availableRooms,
           };
         }
       }

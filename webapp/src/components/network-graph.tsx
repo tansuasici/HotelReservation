@@ -377,8 +377,14 @@ export function NetworkGraph({
     const newEntries = activity.slice(lastActivityLen.current);
     lastActivityLen.current = activity.length;
 
-    const delay = Math.min(600, 4000 / Math.max(newEntries.length, 1));
-    newEntries.forEach((entry, i) => {
+    // Cap animations: if too many new entries, only animate the last few
+    const MAX_ANIMATE = 10;
+    const toAnimate = newEntries.length > MAX_ANIMATE
+      ? newEntries.slice(newEntries.length - MAX_ANIMATE)
+      : newEntries;
+
+    const delay = Math.min(600, 4000 / Math.max(toAnimate.length, 1));
+    toAnimate.forEach((entry, i) => {
       setTimeout(() => {
         animateEdge(entry.from, entry.to, entry.type);
       }, i * delay);

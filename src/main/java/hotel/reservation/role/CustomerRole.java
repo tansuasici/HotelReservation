@@ -134,6 +134,15 @@ public class CustomerRole extends Role {
     @State(description = "Current candidate index being negotiated")
     private int currentCandidateIndex = 0;
 
+    // ── Tick-driven protocol: handlers store data, tickCheck() processes one step per tick ──
+    private NegotiationOffer pendingCounterOffer = null;
+    private NegotiationOffer pendingNegAccept = null;
+    private String pendingNegReject = null;
+    private ReservationConfirmation pendingConfirm = null;
+    private String pendingReservationRefused = null;  // REFUSE received during RESERVING
+    private int reservingTickCount = 0;               // Timeout counter for RESERVING state
+    private static final int RESERVING_TIMEOUT_TICKS = 10; // Max ticks to wait for CONFIRM
+
     public enum CustomerState {
         IDLE,
         SEARCHING,
@@ -180,6 +189,12 @@ public class CustomerRole extends Role {
         proposalPriceSum = 0.0;
         lowestProposalPrice = Double.MAX_VALUE;
         highestProposalPrice = 0.0;
+        pendingCounterOffer = null;
+        pendingNegAccept = null;
+        pendingNegReject = null;
+        pendingConfirm = null;
+        pendingReservationRefused = null;
+        reservingTickCount = 0;
         searchStartTime = System.currentTimeMillis();
 
         getLogger().info("");
@@ -379,9 +394,7 @@ public class CustomerRole extends Role {
         params.set("proposalPrice", proposal.getPricePerNight());
         params.set("hotelName", proposal.getHotelName());
         afterHandleProposalMessage(params);
-
-        // Check if all responses received or deadline passed
-        checkProposalDeadline();
+        // Tick-driven: tickCheck() will handle deadline/evaluation in next tick
     }
 
     /**
@@ -392,23 +405,14 @@ public class CustomerRole extends Role {
         getLogger().info("[{}] Received refusal from {}: {}",
             getOwner().getName(), message.getSender(), message.getPayload());
 
-        pendingResponses.remove(message.getSender().getAgentName());
-        checkProposalDeadline();
-    }
-
-    /**
-     * Check if we should evaluate proposals (deadline or all responses received).
-     */
-    private void checkProposalDeadline() {
-        boolean allResponded = pendingResponses.isEmpty();
-        boolean deadlinePassed = System.currentTimeMillis() - searchStartTime > PROPOSAL_DEADLINE_MS;
-
-        if (allResponded || deadlinePassed) {
-            if (deadlinePassed) {
-                getLogger().info("[{}] Proposal deadline reached", getOwner().getName());
-            }
-            evaluateProposals();
+        if (state == CustomerState.RESERVING) {
+            // Hotel refused during reservation (room no longer available)
+            pendingReservationRefused = message.getPayload();
+            return;
         }
+
+        pendingResponses.remove(message.getSender().getAgentName());
+        // Tick-driven: tickCheck() will handle deadline/evaluation in next tick
     }
 
     /**
@@ -519,6 +523,7 @@ public class CustomerRole extends Role {
     @Action(type = ActionType.LOCAL, description = "Send acceptance to selected hotel")
     private void makeReservation() {
         state = CustomerState.RESERVING;
+        reservingTickCount = 0;
 
         ReservationRequest request = new ReservationRequest(
             getOwner().getName(),
@@ -692,81 +697,10 @@ public class CustomerRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Process hotel's counter-offer during negotiation")
     public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
+        // Tick-driven: just store, tickCheck() will process in next tick
         NegotiationOffer hotelOffer = message.getPayload();
         negotiationHistory.add(hotelOffer);
-
-        getLogger().info("[{}] Received counter-offer from {}: ${}/night (round {}/{})",
-            getOwner().getName(), hotelOffer.getHotelName(),
-            hotelOffer.getOfferedPrice(), hotelOffer.getRound(), hotelOffer.getMaxRounds());
-
-        if (hotelOffer.getOfferedPrice() <= desiredPrice) {
-            getLogger().info("[{}] Hotel offer ${} <= desired ${} - accepting!",
-                getOwner().getName(), hotelOffer.getOfferedPrice(), desiredPrice);
-            acceptNegotiation(hotelOffer.getOfferedPrice());
-            return;
-        }
-
-        negotiationRound = hotelOffer.getRound() + 1;
-
-        if (negotiationRound > maxNegotiationRounds) {
-            if (hotelOffer.getOfferedPrice() <= maxPrice) {
-                getLogger().info("[{}] Max rounds reached. Accepting last offer: ${}",
-                    getOwner().getName(), hotelOffer.getOfferedPrice());
-                acceptNegotiation(hotelOffer.getOfferedPrice());
-            } else {
-                getLogger().info("[{}] Max rounds reached, offer ${} > max ${}. Trying next candidate.",
-                    getOwner().getName(), hotelOffer.getOfferedPrice(), maxPrice);
-                // Reject this hotel and try next candidate
-                rejectAndTryNext("Price too high after maximum negotiation rounds");
-            }
-            return;
-        }
-
-        // Counter-offer strategy with leverage
-        double counterPrice = pricingStrategy.counterOffer(desiredPrice, maxPrice, negotiationRound, maxNegotiationRounds);
-
-        // Don't offer more than the hotel is asking
-        if (counterPrice >= hotelOffer.getOfferedPrice()) {
-            getLogger().info("[{}] Our counter ${} >= hotel offer ${} - accepting hotel offer",
-                getOwner().getName(), counterPrice, hotelOffer.getOfferedPrice());
-            acceptNegotiation(hotelOffer.getOfferedPrice());
-            return;
-        }
-
-        // Leverage message: mention competing offer
-        RoomProposal competing = getCompetingCandidate();
-        String leverageMsg = "";
-        if (competing != null && competing.getPricePerNight() < hotelOffer.getOfferedPrice()) {
-            leverageMsg = String.format(" We have a competing offer at $%.0f/night.", competing.getPricePerNight());
-        }
-
-        getLogger().info("[{}] Counter-offering ${} (round {}/{})",
-            getOwner().getName(), counterPrice, negotiationRound, maxNegotiationRounds);
-        String logDetail = String.format("Counter: $%.0f/night (round %d/%d)", counterPrice, negotiationRound, maxNegotiationRounds);
-        if (!leverageMsg.isEmpty()) {
-            logDetail += " — with leverage";
-        }
-        ActivityLog.log(getOwner().getName(), hotelOffer.getHotelName(), "COUNTER_OFFER", logDetail);
-
-        NegotiationOffer counter = new NegotiationOffer(
-            hotelOffer.getProposalId(),
-            hotelOffer.getHotelId(),
-            hotelOffer.getHotelName(),
-            counterPrice,
-            hotelOffer.getOriginalPrice(),
-            negotiationRound,
-            maxNegotiationRounds,
-            String.format("How about $%.2f per night?%s", counterPrice, leverageMsg)
-        );
-        negotiationHistory.add(counter);
-
-        HotelAgent hotelAgent = getAgent(HotelAgent.class, "Hotel-" + hotelOffer.getHotelId());
-        if (hotelAgent != null) {
-            HotelProviderRole hotelRole = hotelAgent.as(HotelProviderRole.class);
-            if (hotelRole != null) {
-                sendMessage(MessageTypes.MSG_COUNTER_OFFER, counter, hotelRole.getIdentifier());
-            }
-        }
+        pendingCounterOffer = hotelOffer;
     }
 
     /**
@@ -774,13 +708,10 @@ public class CustomerRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Process hotel's acceptance of negotiation offer")
     public void handleNegotiateAcceptMessage(Message<NegotiationOffer> message) {
+        // Tick-driven: just store, tickCheck() will process in next tick
         NegotiationOffer acceptance = message.getPayload();
         negotiationHistory.add(acceptance);
-
-        getLogger().info("[{}] Hotel {} accepted negotiation at ${}/night!",
-            getOwner().getName(), acceptance.getHotelName(), acceptance.getOfferedPrice());
-
-        acceptNegotiation(acceptance.getOfferedPrice());
+        pendingNegAccept = acceptance;
     }
 
     /**
@@ -789,20 +720,8 @@ public class CustomerRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Process hotel's rejection of negotiation")
     public void handleNegotiateRejectMessage(Message<String> message) {
-        getLogger().info("[{}] Hotel rejected negotiation: {}", getOwner().getName(), message.getPayload());
-
-        // Option 1: Accept at original listed price if within maxPrice
-        if (negotiatingWith != null && negotiatingWith.getPricePerNight() <= maxPrice) {
-            getLogger().info("[{}] Accepting original price ${}", getOwner().getName(), negotiatingWith.getPricePerNight());
-            state = CustomerState.EVALUATING;
-            negotiatingWith = null;
-            negotiationRound = 0;
-            makeReservation();
-            return;
-        }
-
-        // Option 2: Try next candidate
-        rejectAndTryNext("Negotiation rejected by hotel");
+        // Tick-driven: just store, tickCheck() will process in next tick
+        pendingNegReject = message.getPayload();
     }
 
     /**
@@ -866,6 +785,7 @@ public class CustomerRole extends Role {
 
         // Proceed to reservation
         state = CustomerState.RESERVING;
+        reservingTickCount = 0;
         makeNegotiatedReservation(agreedPrice);
     }
 
@@ -937,35 +857,206 @@ public class CustomerRole extends Role {
      */
     @Action(type = ActionType.LOCAL, description = "Process reservation confirmation from hotel")
     public void handleConfirmMessage(Message<ReservationConfirmation> message) {
-        confirmation = message.getPayload();
-        state = CustomerState.COMPLETED;
-
-        getLogger().info("========================================");
-        getLogger().info("[{}] RESERVATION CONFIRMED!", getOwner().getName());
-        getLogger().info("  Confirmation #: {}", confirmation.getConfirmationNumber());
-        getLogger().info("  Hotel: {}", confirmation.getHotelName());
-        getLogger().info("  Price: ${}/night", confirmation.getPricePerNight());
-        getLogger().info("  Total: ${}", confirmation.getTotalPrice());
-        getLogger().info("  Status: {}", confirmation.getStatus());
-        getLogger().info("========================================");
-
-        // After-hook: audit trail
-        ActionParams auditParams = new ActionParams(new HashMap<>(), "handleConfirmMessage");
-        auditParams.set("finalPrice", confirmation.getPricePerNight());
-        auditParams.set("originalPrice", confirmation.getOriginalPrice() > 0
-            ? confirmation.getOriginalPrice() : confirmation.getPricePerNight());
-        auditParams.set("hotelName", confirmation.getHotelName());
-        afterHandleConfirmMessage(auditParams);
+        // Tick-driven: just store, tickCheck() will process in next tick
+        pendingConfirm = message.getPayload();
     }
 
     /**
-     * Periodic tick check — called by CustomerAgent.makeStep() each tick.
-     * Ensures proposal deadline is enforced even if no messages arrive
-     * (e.g., when hotels silently ignore CFPs).
+     * Tick-driven state machine — called by CustomerAgent.makeStep() each tick.
+     * Advances ONE protocol step per tick so the simulation progresses visibly.
+     *
+     * SCOP's Mailbox.add() delivers messages synchronously (messageArrived() is
+     * called within the sender's sendMessage). Message handlers only STORE data;
+     * this method is the sole driver of state transitions.
      */
     public void tickCheck() {
-        if (state == CustomerState.WAITING_PROPOSALS) {
-            checkProposalDeadline();
+        switch (state) {
+            case WAITING_PROPOSALS: {
+                boolean allResponded = pendingResponses.isEmpty();
+                boolean deadlinePassed = System.currentTimeMillis() - searchStartTime > PROPOSAL_DEADLINE_MS;
+                if (allResponded || deadlinePassed) {
+                    if (deadlinePassed) {
+                        getLogger().info("[{}] Proposal deadline reached", getOwner().getName());
+                    }
+                    // Just transition — evaluation happens next tick
+                    state = CustomerState.EVALUATING;
+                }
+                break;
+            }
+            case EVALUATING:
+                evaluateProposals();
+                break;
+            case NEGOTIATING:
+                processNegotiationTick();
+                break;
+            case RESERVING:
+                processReservingTick();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Process one negotiation step per tick.
+     * Checks for pending hotel responses in priority order.
+     */
+    private void processNegotiationTick() {
+        if (pendingNegAccept != null) {
+            NegotiationOffer acceptance = pendingNegAccept;
+            pendingNegAccept = null;
+            getLogger().info("[{}] Hotel {} accepted negotiation at ${}/night!",
+                getOwner().getName(), acceptance.getHotelName(), acceptance.getOfferedPrice());
+            acceptNegotiation(acceptance.getOfferedPrice());
+            return;
+        }
+        if (pendingNegReject != null) {
+            String reason = pendingNegReject;
+            pendingNegReject = null;
+            getLogger().info("[{}] Hotel rejected negotiation: {}", getOwner().getName(), reason);
+            if (negotiatingWith != null && negotiatingWith.getPricePerNight() <= maxPrice) {
+                getLogger().info("[{}] Accepting original price ${}", getOwner().getName(), negotiatingWith.getPricePerNight());
+                negotiatingWith = null;
+                negotiationRound = 0;
+                makeReservation();
+            } else {
+                rejectAndTryNext("Negotiation rejected by hotel");
+            }
+            return;
+        }
+        if (pendingCounterOffer != null) {
+            NegotiationOffer hotelOffer = pendingCounterOffer;
+            pendingCounterOffer = null;
+            processCounterOffer(hotelOffer);
+        }
+    }
+
+    /**
+     * Process a counter-offer from the hotel.
+     * Decides: accept, counter-counter, or give up and try next candidate.
+     */
+    private void processCounterOffer(NegotiationOffer hotelOffer) {
+        getLogger().info("[{}] Processing counter-offer from {}: ${}/night (round {}/{})",
+            getOwner().getName(), hotelOffer.getHotelName(),
+            hotelOffer.getOfferedPrice(), hotelOffer.getRound(), hotelOffer.getMaxRounds());
+
+        if (hotelOffer.getOfferedPrice() <= desiredPrice) {
+            getLogger().info("[{}] Hotel offer ${} <= desired ${} - accepting!",
+                getOwner().getName(), hotelOffer.getOfferedPrice(), desiredPrice);
+            acceptNegotiation(hotelOffer.getOfferedPrice());
+            return;
+        }
+
+        negotiationRound = hotelOffer.getRound() + 1;
+
+        if (negotiationRound > maxNegotiationRounds) {
+            if (hotelOffer.getOfferedPrice() <= maxPrice) {
+                getLogger().info("[{}] Max rounds reached. Accepting last offer: ${}",
+                    getOwner().getName(), hotelOffer.getOfferedPrice());
+                acceptNegotiation(hotelOffer.getOfferedPrice());
+            } else {
+                getLogger().info("[{}] Max rounds reached, offer ${} > max ${}. Trying next candidate.",
+                    getOwner().getName(), hotelOffer.getOfferedPrice(), maxPrice);
+                rejectAndTryNext("Price too high after maximum negotiation rounds");
+            }
+            return;
+        }
+
+        double counterPrice = pricingStrategy.counterOffer(desiredPrice, maxPrice, negotiationRound, maxNegotiationRounds);
+
+        if (counterPrice >= hotelOffer.getOfferedPrice()) {
+            getLogger().info("[{}] Our counter ${} >= hotel offer ${} - accepting hotel offer",
+                getOwner().getName(), counterPrice, hotelOffer.getOfferedPrice());
+            acceptNegotiation(hotelOffer.getOfferedPrice());
+            return;
+        }
+
+        RoomProposal competing = getCompetingCandidate();
+        String leverageMsg = "";
+        if (competing != null && competing.getPricePerNight() < hotelOffer.getOfferedPrice()) {
+            leverageMsg = String.format(" We have a competing offer at $%.0f/night.", competing.getPricePerNight());
+        }
+
+        getLogger().info("[{}] Counter-offering ${} (round {}/{})",
+            getOwner().getName(), counterPrice, negotiationRound, maxNegotiationRounds);
+        String logDetail = String.format("Counter: $%.0f/night (round %d/%d)", counterPrice, negotiationRound, maxNegotiationRounds);
+        if (!leverageMsg.isEmpty()) {
+            logDetail += " — with leverage";
+        }
+        ActivityLog.log(getOwner().getName(), hotelOffer.getHotelName(), "COUNTER_OFFER", logDetail);
+
+        NegotiationOffer counter = new NegotiationOffer(
+            hotelOffer.getProposalId(),
+            hotelOffer.getHotelId(),
+            hotelOffer.getHotelName(),
+            counterPrice,
+            hotelOffer.getOriginalPrice(),
+            negotiationRound,
+            maxNegotiationRounds,
+            String.format("How about $%.2f per night?%s", counterPrice, leverageMsg)
+        );
+        negotiationHistory.add(counter);
+
+        HotelAgent hotelAgent = getAgent(HotelAgent.class, "Hotel-" + hotelOffer.getHotelId());
+        if (hotelAgent != null) {
+            HotelProviderRole hotelRole = hotelAgent.as(HotelProviderRole.class);
+            if (hotelRole != null) {
+                sendMessage(MessageTypes.MSG_COUNTER_OFFER, counter, hotelRole.getIdentifier());
+            }
+        }
+    }
+
+    /**
+     * Process pending confirmation in RESERVING state.
+     * Handles: confirm received, refuse received (room gone), or timeout.
+     */
+    private void processReservingTick() {
+        reservingTickCount++;
+
+        if (pendingConfirm != null) {
+            confirmation = pendingConfirm;
+            pendingConfirm = null;
+            state = CustomerState.COMPLETED;
+
+            getLogger().info("========================================");
+            getLogger().info("[{}] RESERVATION CONFIRMED!", getOwner().getName());
+            getLogger().info("  Confirmation #: {}", confirmation.getConfirmationNumber());
+            getLogger().info("  Hotel: {}", confirmation.getHotelName());
+            getLogger().info("  Price: ${}/night", confirmation.getPricePerNight());
+            getLogger().info("  Total: ${}", confirmation.getTotalPrice());
+            getLogger().info("  Status: {}", confirmation.getStatus());
+            getLogger().info("========================================");
+
+            // After-hook: audit trail
+            ActionParams auditParams = new ActionParams(new HashMap<>(), "handleConfirmMessage");
+            auditParams.set("finalPrice", confirmation.getPricePerNight());
+            auditParams.set("originalPrice", confirmation.getOriginalPrice() > 0
+                ? confirmation.getOriginalPrice() : confirmation.getPricePerNight());
+            auditParams.set("hotelName", confirmation.getHotelName());
+            afterHandleConfirmMessage(auditParams);
+            return;
+        }
+
+        if (pendingReservationRefused != null) {
+            String reason = pendingReservationRefused;
+            pendingReservationRefused = null;
+            String hotel = selectedProposal != null ? selectedProposal.getHotelName() : "unknown";
+
+            getLogger().warn("[{}] Reservation REFUSED by {}: {}", getOwner().getName(), hotel, reason);
+            ActivityLog.log(getOwner().getName(), hotel, "RESERVATION_REFUSED", reason);
+
+            state = CustomerState.FAILED;
+            return;
+        }
+
+        if (reservingTickCount >= RESERVING_TIMEOUT_TICKS) {
+            String hotel = selectedProposal != null ? selectedProposal.getHotelName() : "unknown";
+            getLogger().warn("[{}] Reservation TIMEOUT after {} ticks waiting for {} confirmation",
+                getOwner().getName(), reservingTickCount, hotel);
+            ActivityLog.log(getOwner().getName(), hotel, "RESERVATION_TIMEOUT",
+                String.format("No confirmation received after %d ticks", reservingTickCount));
+
+            state = CustomerState.FAILED;
         }
     }
 

@@ -1,8 +1,8 @@
 {
   "run": {
     "PLAYGROUND_NAME": "hotel.reservation.HotelReservationPlayground",
-    "TIMEOUT_TICK": "999999",
-    "STEP_DELAY": "50",
+    "TIMEOUT_TICK": "200",
+    "STEP_DELAY": "500",
     "NUMBER_OF_EPISODES": "1"
   },
   "cnp": {

@@ -17,8 +17,16 @@ public class ActivityController {
 
     @GetMapping("/activity")
     public List<Map<String, Object>> getActivity(
-            @RequestParam(defaultValue = "0") long since) {
-        return ActivityLog.getEntriesSince(since).stream()
+            @RequestParam(defaultValue = "0") long since,
+            @RequestParam(defaultValue = "0") int limit) {
+        var stream = ActivityLog.getEntriesSince(since).stream();
+        if (limit > 0) {
+            // Return only the LAST N entries (most recent)
+            var all = ActivityLog.getEntriesSince(since);
+            int skip = Math.max(0, all.size() - limit);
+            stream = all.stream().skip(skip);
+        }
+        return stream
                 .map(e -> {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("timestamp", e.timestamp());
