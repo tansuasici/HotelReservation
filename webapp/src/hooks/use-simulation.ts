@@ -74,6 +74,7 @@ export function useSimulation() {
   const [customers, setCustomers] = useState<CustomerStatus[]>([]);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [revealing, setRevealing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingActiveRef = useRef(false);
   const staticLoadedRef = useRef(false);
@@ -85,12 +86,15 @@ export function useSimulation() {
   const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const simEndedRef = useRef(false);
   const initPollCountRef = useRef(0);
+  const setupLoadingRef = useRef(false);
+  const userStoppedRef = useRef(false);
 
   function stopRevealTimer() {
     if (revealTimerRef.current) {
       clearInterval(revealTimerRef.current);
       revealTimerRef.current = null;
     }
+    setRevealing(false);
   }
 
   function resetRevealState() {
@@ -111,7 +115,6 @@ export function useSimulation() {
       // All caught up — if sim ended, stop the timer
       if (simEndedRef.current) {
         stopRevealTimer();
-        // Show real customer states
         setCustomers(fullCustomersRef.current);
       }
       return;
@@ -125,10 +128,12 @@ export function useSimulation() {
     );
   }, []);
 
-  /** Start reveal timer with given interval */
+  /** Start reveal timer with given interval (no-op if user explicitly stopped) */
   const startRevealTimer = useCallback(
     (intervalMs: number) => {
+      if (userStoppedRef.current) return;
       stopRevealTimer();
+      setRevealing(true);
       revealTimerRef.current = setInterval(() => {
         revealNext();
       }, intervalMs);
@@ -221,11 +226,14 @@ export function useSimulation() {
   }
 
   const pollState = useCallback(async () => {
-    if (!pollingActiveRef.current) return;
+    if (!pollingActiveRef.current || userStoppedRef.current) return;
     try {
       const res = await fetch("/api/sim");
-      if (!res.ok) return;
+      if (!res.ok || userStoppedRef.current) return;
       const data = await res.json();
+
+      // Re-check after async: user may have clicked Stop while fetch was in-flight
+      if (userStoppedRef.current) return;
 
       setStatus((prev) => ({
         ...prev,
@@ -240,6 +248,8 @@ export function useSimulation() {
         // Timeout after ~30s (20 polls × 1.5s) — Java failed to start
         if (initPollCountRef.current > 20) {
           stopPolling();
+          setupLoadingRef.current = false;
+          setLoading(false);
           setStatus((prev) => ({
             ...prev,
             message: "Java process failed to start. Check console for errors.",
@@ -248,6 +258,12 @@ export function useSimulation() {
         return;
       }
       initPollCountRef.current = 0;
+
+      // Setup finished — Java has started and reached a real state
+      if (setupLoadingRef.current) {
+        setupLoadingRef.current = false;
+        setLoading(false);
+      }
 
       // Stop polling on stable states: PAUSED, ENDED, or process dead
       if (!data.processAlive || data.state === "PAUSED" || data.state === "ENDED") {
@@ -293,10 +309,27 @@ export function useSimulation() {
 
   const doAction = useCallback(
     async (action: string) => {
+      // ── Stop: freeze everything in place, pause backend ──
+      if (action === "stop") {
+        userStoppedRef.current = true;
+        stopPolling();
+        stopRevealTimer();
+
+        // Always pause backend so user can resume with Run
+        fetch("/api/sim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "pause" }),
+        }).catch(() => {});
+        setStatus((prev) => ({ ...prev, state: "PAUSED", message: "Stopped" }));
+        return;
+      }
+
       setLoading(true);
 
       // Reset UI on setup
       if (action === "setup") {
+        userStoppedRef.current = false;
         setTopology(null);
         setHotels([]);
         setCustomers([]);
@@ -304,11 +337,14 @@ export function useSimulation() {
         staticLoadedRef.current = false;
         stopPolling();
         resetRevealState();
-        // Clear all chat histories on the backend
         fetch("/api/chat", { method: "DELETE" }).catch(() => {});
       }
 
       try {
+        if (action === "setup") {
+          setupLoadingRef.current = true;
+        }
+
         const res = await fetch("/api/sim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -323,28 +359,22 @@ export function useSimulation() {
             message: data.message || "",
           }));
 
-          // Start polling after setup (wait for PAUSED) or run (track progress)
           if (action === "setup" || action === "run") {
+            userStoppedRef.current = false;
+            simEndedRef.current = false;
             startPolling();
-          }
-
-          // Stop polling on stop, load final data
-          if (action === "stop") {
-            stopPolling();
-            simEndedRef.current = true;
-            if (revealTimerRef.current) {
-              startRevealTimer(100);
-            }
-            await loadData();
           }
         }
       } catch (e) {
+        setupLoadingRef.current = false;
         setStatus((prev) => ({
           ...prev,
           message: "Error: " + (e instanceof Error ? e.message : "Unknown"),
         }));
       } finally {
-        setLoading(false);
+        if (!setupLoadingRef.current) {
+          setLoading(false);
+        }
       }
     },
     [loadData, startPolling, startRevealTimer]
@@ -358,6 +388,7 @@ export function useSimulation() {
     customers,
     activity,
     loading,
+    revealing,
     doAction,
   };
 }

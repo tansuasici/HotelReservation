@@ -347,10 +347,11 @@ export function AgentChat({ agent: externalAgent, open, onOpenChange, topology }
               </button>
 
               {promptOpen && (
-                <div className="rounded-lg bg-slate-900 dark:bg-slate-950 border border-slate-700 p-3 animate-slide-in">
-                  <pre className="text-[10px] leading-relaxed text-slate-300 max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words font-mono">
-                    {systemPrompt}
-                  </pre>
+                <div className="rounded-lg bg-slate-900 dark:bg-slate-950 border border-slate-700 p-3 animate-slide-in max-h-64 overflow-y-auto custom-scrollbar">
+                  <MarkdownMessage
+                    content={systemPrompt}
+                    className="text-[11px] leading-relaxed text-slate-300 [&_h2]:text-slate-100 [&_h3]:text-slate-200 [&_strong]:text-slate-200 [&_code]:bg-white/10 [&_hr]:border-slate-700 [&_li]:text-slate-300 [&_table]:text-slate-300 [&_th]:bg-slate-800 [&_th]:border-slate-600 [&_td]:border-slate-700"
+                  />
                 </div>
               )}
             </>

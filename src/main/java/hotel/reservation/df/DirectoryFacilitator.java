@@ -29,7 +29,7 @@ public class DirectoryFacilitator extends Environment {
 
     @Override
     protected void setup() {
-        LOGGER.info("[DF] Directory Facilitator '{}' initialized", getName());
+        getLogger().info("[DF] Directory Facilitator '{}' initialized", getName());
     }
 
     /**
@@ -40,12 +40,12 @@ public class DirectoryFacilitator extends Environment {
      */
     public synchronized boolean register(DFEntry entry) {
         if (entry == null || entry.getAgentId() == null) {
-            LOGGER.warn("[DF] Invalid registration attempt - null entry or agentId");
+            getLogger().warn("[DF] Invalid registration attempt - null entry or agentId");
             return false;
         }
 
         registry.put(entry.getAgentId(), entry);
-        LOGGER.info("[DF] Registered: {} - {} ({} star, ${}/night) in {}",
+        getLogger().info("[DF] Registered: {} - {} ({} star, ${}/night) in {}",
             entry.getAgentId(),
             entry.getHotelName(),
             entry.getRank(),
@@ -63,8 +63,8 @@ public class DirectoryFacilitator extends Environment {
      */
     public synchronized boolean deregister(String agentId) {
         DFEntry removed = registry.remove(agentId);
-        if (removed != null) {
-            LOGGER.info("[DF] Deregistered: {} - {}", agentId, removed.getHotelName());
+        if (getLogger() != null) {
+            getLogger().info("[DF] Deregistered: {} - {}", agentId, removed.getHotelName());
             return true;
         }
         return false;
@@ -79,7 +79,7 @@ public class DirectoryFacilitator extends Environment {
      * @return List of matching DF entries
      */
     public List<DFEntry> search(String location, Integer minRank, Double maxPrice) {
-        LOGGER.info("[DF] Search request: location={}, minRank={}, maxPrice={}",
+        getLogger().info("[DF] Search request: location={}, minRank={}, maxPrice={}",
             location, minRank, maxPrice);
 
         List<DFEntry> results = registry.values().stream()
@@ -87,7 +87,7 @@ public class DirectoryFacilitator extends Environment {
             .sorted(Comparator.comparingDouble(DFEntry::getBasePrice))
             .collect(Collectors.toList());
 
-        LOGGER.info("[DF] Search found {} matching hotels", results.size());
+        getLogger().info("[DF] Search found {} matching hotels", results.size());
         return results;
     }
 
@@ -121,7 +121,7 @@ public class DirectoryFacilitator extends Environment {
         DFEntry entry = registry.get(agentId);
         if (entry != null) {
             entry.setAvailable(available);
-            LOGGER.info("[DF] Updated availability for {}: {}", agentId, available);
+            getLogger().info("[DF] Updated availability for {}: {}", agentId, available);
             return true;
         }
         return false;

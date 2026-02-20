@@ -42,6 +42,7 @@ export function Dashboard() {
           <SimControls
             simState={sim.simState}
             loading={sim.loading}
+            revealing={sim.revealing}
             onAction={sim.doAction}
           />
           {/* Scrollable content */}
