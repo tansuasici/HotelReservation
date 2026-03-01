@@ -175,8 +175,8 @@ public class HotelProviderRole extends Role {
     /**
      * Check if this hotel matches the query criteria.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Verify if hotel matches customer search criteria")
-    private boolean matchesQuery(RoomQuery query) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Verify if hotel matches customer search criteria", excludeFromLLM = true)
+    public boolean matchesQuery(RoomQuery query) {
         // Check location
         if (query.getLocation() != null &&
             !query.getLocation().equalsIgnoreCase(location)) {
@@ -263,8 +263,8 @@ public class HotelProviderRole extends Role {
      * Send a proposal to the customer.
      * Uses dynamic pricing based on occupancy via @BeforeAction hook.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer")
-    private void sendProposal(Identifier customer) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer", excludeFromLLM = true)
+    public void sendProposal(Identifier customer) {
         // Create ActionParams and invoke before-hook
         ActionParams params = new ActionParams(new HashMap<>(), "sendProposal");
         params.set("customerName", customer.getAgentName());
@@ -298,8 +298,8 @@ public class HotelProviderRole extends Role {
     /**
      * Send a refusal to the customer.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Send refusal message to customer")
-    private void sendRefusal(Identifier customer, String reason) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Send refusal message to customer", excludeFromLLM = true)
+    public void sendRefusal(Identifier customer, String reason) {
         getLogger().info("[{}] Sending refusal to {}: {}",
             getOwner().getName(), customer, reason);
         ActivityLog.log(hotelName, customer.getAgentName(), "REFUSE", reason);

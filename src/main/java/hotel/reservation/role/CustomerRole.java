@@ -210,8 +210,8 @@ public class CustomerRole extends Role {
     /**
      * Query the DF for matching hotel agents and send CFP to each.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Query Directory Facilitator for matching hotels")
-    private void queryDirectoryFacilitator() {
+    @ActionSpec(type = ActionType.LOCAL, description = "Query Directory Facilitator for matching hotels", excludeFromLLM = true)
+    public void queryDirectoryFacilitator() {
         DirectoryFacilitator df = getOwner().getPlayground()
             .getAgent(DirectoryFacilitator.class, "DF");
 
@@ -292,8 +292,8 @@ public class CustomerRole extends Role {
      * Broadcast CFP to all matching hotel agents.
      * Uses seasonally adjusted maxPrice via @BeforeAction hook.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Send Call For Proposals to all matching hotels")
-    private void broadcastCFP(List<DFEntry> hotels) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Send Call For Proposals to all matching hotels", excludeFromLLM = true)
+    public void broadcastCFP(List<DFEntry> hotels) {
         // Before-hook: seasonal price adjustment
         ActionParams params = new ActionParams(new HashMap<>(), "broadcastCFP");
         params = beforeBroadcastCFP(params);
@@ -520,8 +520,8 @@ public class CustomerRole extends Role {
     /**
      * Make reservation with selected hotel (direct accept, no negotiation needed).
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Send acceptance to selected hotel")
-    private void makeReservation() {
+    @ActionSpec(type = ActionType.LOCAL, description = "Send acceptance to selected hotel", excludeFromLLM = true)
+    public void makeReservation() {
         state = CustomerState.RESERVING;
         reservingTickCount = 0;
 
@@ -614,8 +614,8 @@ public class CustomerRole extends Role {
      * Start price negotiation with the candidate at given index.
      * Uses strategy from @BeforeAction hook for initial offer calculation.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel")
-    private void startNegotiationWithCandidate(int candidateIndex) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel", excludeFromLLM = true)
+    public void startNegotiationWithCandidate(int candidateIndex) {
         if (candidateIndex >= topCandidates.size()) {
             getLogger().warn("[{}] All {} candidate hotels exhausted — FAILED",
                 getOwner().getName(), topCandidates.size());

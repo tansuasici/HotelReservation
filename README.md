@@ -91,7 +91,7 @@ public void handleCFPMessage(Message<RoomQuery> msg) { ... }
 @ActionSpec(type = ActionType.WEB_SERVICE,
     description = "Fetch all hotels from Hotel Data API",
     webService = @WebService(
-        endpoint = "http://localhost:3001/api/hotels",
+        endpoint = "http://localhost:8000/api/hotels",
         method = HttpMethod.GET, timeout = 5000))
 public List<Hotel> fetchAllHotels() { ... }
 ```
@@ -212,7 +212,7 @@ All tunable parameters live in `.env` with sensible defaults:
 
 ```bash
 # Server
-SERVER_PORT=8080
+SERVER_PORT=8000
 
 # CNP Protocol
 CNP_PROPOSAL_DEADLINE_MS=30000        # How long to wait for proposals
@@ -220,7 +220,7 @@ CNP_MAX_CANDIDATES=3                  # Shortlist size for negotiation
 CNP_MAX_NEGOTIATION_ROUNDS=5          # Max rounds before forced decision
 
 # Playground Timing
-API_PORT=7070                         # Internal data-fetch port
+API_PORT=8000                         # Internal data-fetch port (same as SERVER_PORT)
 PLAYGROUND_TIMEOUT_TICK=100000        # Simulation timeout
 PLAYGROUND_STEP_DELAY=1500            # Delay between ticks (ms)
 
