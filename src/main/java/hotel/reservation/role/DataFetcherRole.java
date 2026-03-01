@@ -24,8 +24,7 @@ import java.util.StringJoiner;
  * Data Fetcher Role - Fetches hotel and customer data from the REST API.
  *
  * <p>SCOP Role that wraps HTTP calls to HotelDataServer endpoints.
- * Method bodies perform the actual HTTP calls (SCOPBridge does not
- * dispatch WEB_SERVICE actions automatically).
+ * WEB_SERVICE actions are routed through ActionExecutor pipeline via SCOPBridge.
  */
 @RoleSpec(
     description = "Fetches hotel and customer data from REST API",
@@ -68,7 +67,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch all hotels from Hotel Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels",
+            endpoint = "http://localhost:8000/api/hotels",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -106,7 +105,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single hotel by ID from Hotel Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels/{id}",
+            endpoint = "http://localhost:8000/api/hotels/{id}",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -142,7 +141,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Search hotels by city, minimum rank, and maximum price",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/hotels/search",
+            endpoint = "http://localhost:8000/api/hotels/search",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -201,7 +200,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch all customers from Customer Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers",
+            endpoint = "http://localhost:8000/api/customers",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -239,7 +238,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single customer by ID from Customer Data API",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers/{id}",
+            endpoint = "http://localhost:8000/api/customers/{id}",
             method = HttpMethod.GET,
             timeout = 5000
         )
@@ -275,7 +274,7 @@ public class DataFetcherRole extends Role {
         type = ActionType.WEB_SERVICE,
         description = "Search customers by city, minimum rank, and maximum price",
         webService = @WebService(
-            endpoint = "http://localhost:3001/api/customers/search",
+            endpoint = "http://localhost:8000/api/customers/search",
             method = HttpMethod.GET,
             timeout = 5000
         )

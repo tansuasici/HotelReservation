@@ -23,7 +23,7 @@ import hotel.reservation.role.DataFetcherRole;
  * Hotel Reservation Playground - Main simulation environment.
  * Sets up the Directory Facilitator, Hotel Agents, and Customer Agents.
  *
- * Hotel data is fetched from the Hotel Data API (Spring Boot on port 3001).
+ * Hotel data is fetched from the Hotel Data API (Spring Boot, default port 8000).
  */
 public class HotelReservationPlayground extends Playground {
 
