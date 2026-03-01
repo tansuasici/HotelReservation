@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
+const BACKEND = process.env.BACKEND_URL || "http://localhost:8000";
 const ACTIVITY_LIMIT = 500; // Max activity entries to fetch per request
 
 async function fetchJson(label: string, url: string) {

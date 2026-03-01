@@ -1,59 +1,151 @@
 # Hotel Reservation Multi-Agent System
 
-A multi-agent hotel reservation system built with the **SCOP Framework** and **TNSAI Integration**. Autonomous customer and hotel agents negotiate room prices using the **Contract Net Protocol (CNP)** with pluggable pricing strategies, a Directory Facilitator for agent discovery, and a graph-based network topology.
+A case study implementation of the **Hybrid Role-Based Reference Architecture for LLM-Enhanced Multi-Agent Systems**, as described in the accompanying EMAS 2026 paper. This project demonstrates how the **Contract Net Protocol (CNP)** combines with hybrid action types to create a robust, LLM-enhanced MAS using the **SCOP Framework** and **TnsAI** annotation-based meta-model.
+
+## Reference Architecture Overview
+
+The system implements the hybrid role-based reference architecture where roles are first-class runtime entities with four distinct action implementation types:
+
+| Action Type | Select when... | Example in this project |
+|-------------|---------------|------------------------|
+| **LOCAL CODE** | Deterministic, safety-critical, or performance-sensitive operations | `canFulfillRequest()`, inventory updates, budget validation |
+| **WEB SERVICE** | Well-defined HTTP API calls with stable contracts | `fetchAllHotels()`, weather forecast retrieval |
+| **LLM** | Natural language generation, subjective evaluation, dynamic tool selection | `decidePricingStrategy()`, `evaluateProposals()` |
+| **MCP TOOL** | External tool access through standardized protocol | Calendar synchronization |
+
+Each action is annotated with `@ActionSpec(type=...)`, making the execution strategy explicit and enabling the `ActionExecutor` to route invocations through the full pipeline: `@BeforeActionSpec` hook -> parameter validation -> typed execution -> `@AfterActionSpec` hook.
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     Next.js Frontend (webapp/)               │
-└──────────────────────┬───────────────────────────────────────┘
-                       │ REST API
-┌──────────────────────▼───────────────────────────────────────┐
-│                    Spring Boot API                            │
-│  SimulationController · TopologyController · AgentController  │
-│  ActivityController · CustomerStatusController                │
-├──────────────────────────────────────────────────────────────┤
-│                    SCOP Playground                            │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────────────────┐  │
-│  │    DF    │  │ HotelAgents  │  │   CustomerAgents       │  │
-│  │ (Yellow  │  │ HotelProvider│  │   CustomerRole         │  │
-│  │  Pages)  │  │    Role      │  │   + BuyerPricing       │  │
-│  └──────────┘  │ + SellerPric.│  │     Strategy           │  │
-│                └──────────────┘  └────────────────────────┘  │
-│                NetworkEnvironment (JGraphT)                   │
-└──────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                    Next.js Frontend (webapp/)                    |
++----------------------------+------------------------------------+
+                             | REST API
++----------------------------v------------------------------------+
+|                       Spring Boot API                           |
+|  SimulationController - TopologyController - AgentController    |
+|  ActivityController - CustomerStatusController                  |
++-----------------------------+-----------------------------------+
+|                       SCOP Playground                           |
+|                                                                 |
+|  DirectoryFacilitator    HotelAgents         CustomerAgents     |
+|  (Yellow Pages)          @AgentSpec           @AgentSpec         |
+|                          HotelProviderRole    CustomerRole       |
+|                          @RoleSpec            @RoleSpec          |
+|                          LOCAL+LLM+WEB        LOCAL+WEB+LLM     |
+|                                                                 |
+|  SCOPBridge (TnsAI integration)                                 |
+|  ActionExecutor -> typed executors                              |
+|  NetworkEnvironment (JGraphT)                                   |
++-----------------------------------------------------------------+
 ```
 
-**Key components:**
+## Annotation-Driven Design
 
-- **CustomerAgent** -- CNP initiator. Searches hotels via DF, collects proposals, shortlists top candidates, negotiates price sequentially, reserves.
-- **HotelAgent** -- CNP participant. Responds to CFPs with proposals, handles negotiation with demand-aware pricing (room scarcity raises minimum price).
-- **DirectoryFacilitator** -- Yellow pages environment. Hotels register on setup; customers query by location, rank, and price.
-- **NetworkEnvironment** -- JGraphT-based graph. Customers connect to all hotels; hotels connect to same-city peers.
-- **Pricing Strategies** -- `BuyerPricingStrategy` / `SellerPricingStrategy` interfaces (OCP). Default: `LinearPricingStrategy`.
+### Agent Declaration (`@AgentSpec`)
+
+Agents are declared with identity and optional LLM configuration:
+
+```java
+@AgentSpec(
+    description = "Hotel service provider agent that handles room reservations",
+    llm = @LLMSpec(
+        provider = Provider.OLLAMA,
+        model = "minimax-m2.1:cloud",
+        temperature = 0.5f))
+public class HotelAgent extends Agent { ... }
+```
+
+### Role Declaration (`@RoleSpec`)
+
+Roles group actions into named responsibilities with communication preferences:
+
+```java
+@RoleSpec(
+    description = "Hotel service provider that responds to reservation requests",
+    responsibilities = {
+        @Responsibility(
+            name = "Negotiation",
+            description = "Handle price negotiations",
+            actions = {"handleNegotiateStartMessage",
+                       "handleCounterOfferMessage", "handleNegotiateAcceptMessage"})
+    },
+    communication = @Communication(
+        style = @Communication.Style(
+            tone = Communication.Tone.PROFESSIONAL,
+            verbosity = Communication.Verbosity.CONCISE),
+        languages = {"tr", "en"}))
+public class HotelProviderRole extends Role { ... }
+```
+
+### Typed Actions (`@ActionSpec`)
+
+```java
+// LOCAL CODE: deterministic business logic
+@ActionSpec(type = ActionType.LOCAL,
+            description = "Process incoming CFP and decide whether to make a proposal")
+public void handleCFPMessage(Message<RoomQuery> msg) { ... }
+
+// WEB SERVICE: external HTTP calls
+@ActionSpec(type = ActionType.WEB_SERVICE,
+    description = "Fetch all hotels from Hotel Data API",
+    webService = @WebService(
+        endpoint = "http://localhost:3001/api/hotels",
+        method = HttpMethod.GET, timeout = 5000))
+public List<Hotel> fetchAllHotels() { ... }
+```
+
+### Lifecycle Hooks
+
+```java
+// Before: dynamic pricing based on occupancy
+@BeforeActionSpec("sendProposal")
+private ActionParams beforeSendProposal(ActionParams p) {
+    double occupancyRate = computeOccupancy();
+    p.set("dynamicPrice", basePrice * multiplier);
+    return p;
+}
+
+// After: market analytics accumulation
+@AfterActionSpec("handleProposalMessage")
+private void afterHandleProposal(ActionParams p) {
+    totalProposalCount++;
+    proposalPriceSum += p.getDouble("proposalPrice");
+}
+```
+
+### Security-by-Construction
+
+Sensitive data is injected via `@BeforeActionSpec` hooks, ensuring credentials never appear in LLM-visible contexts:
+
+```java
+@BeforeActionSpec("callExternalAPI")
+private ActionParams injectCredentials(ActionParams p) {
+    p.set("apiKey", System.getenv("API_SECRET_KEY"));
+    return p;
+}
+```
 
 ## Contract Net Protocol Flow
 
 ```
 Customer                              Hotel Agents
-   │                                       │
-   │──── CFP (RoomQuery) ────────────────►│  broadcast to all matching hotels
-   │                                       │
-   │◄─── Proposal (RoomProposal) ─────────│  or Refuse
-   │                                       │
-   │  [evaluate & shortlist top N]         │
-   │                                       │
-   │──── NegotiateStart ─────────────────►│  sequential: best candidate first
-   │◄─── CounterOffer ────────────────────│
-   │──── CounterOffer ────────────────────►│  ... rounds ...
-   │◄─── NegotiateAccept ─────────────────│
-   │                                       │
-   │──── Accept (ReservationRequest) ────►│
-   │◄─── Confirm (ReservationConfirm.) ──│
+   |                                       |
+   |---- CFP (RoomQuery) --------------->  |  broadcast to matching hotels
+   |                                       |
+   |<--- Proposal (RoomProposal) --------  |  or Refuse
+   |                                       |
+   |  [evaluate & shortlist top N]         |
+   |                                       |
+   |---- NegotiateStart ---------------->  |  sequential: best candidate first
+   |<--- CounterOffer -------------------  |
+   |---- CounterOffer ------------------>  |  ... rounds ...
+   |<--- NegotiateAccept ----------------  |
+   |                                       |
+   |---- Accept (ReservationRequest) --->  |
+   |<--- Confirm (ReservationConfirm.) --  |
 ```
-
-If negotiation fails with one candidate, the customer falls back to the next in the shortlist.
 
 ## Quick Start
 
@@ -89,7 +181,7 @@ pnpm dev
 
 ```
 POST /api/simulation?action=setup     Initialize playground & agents
-POST /api/simulation?action=run       Start simulation (triggers all searches)
+POST /api/simulation?action=run       Start simulation
 POST /api/simulation?action=pause     Pause
 POST /api/simulation?action=stop      Stop
 GET  /api/simulation/status           Current state, tick, agent count
@@ -136,91 +228,63 @@ PLAYGROUND_STEP_DELAY=1500            # Delay between ticks (ms)
 OPENWEATHER_API_KEY=your_key_here     # openweathermap.org/api
 ```
 
-See `.env.example` for the full list.
-
 ## Project Structure
 
 ```
 src/main/java/hotel/reservation/
-├── HotelReservationPlayground.java        Simulation entry point
-├── ActivityLog.java                       Global activity logger
-├── agent/
-│   ├── CustomerAgent.java                 CNP initiator
-│   ├── HotelAgent.java                   CNP participant
-│   └── DataFetcherAgent.java             API data fetcher
-├── role/
-│   ├── CustomerRole.java                  Search → negotiate → reserve
-│   ├── HotelProviderRole.java            Respond → counter-offer → confirm
-│   ├── DataFetcherRole.java              HTTP calls to data API
-│   └── pricing/
-│       ├── BuyerPricingStrategy.java      @FunctionalInterface
-│       ├── SellerPricingStrategy.java     @FunctionalInterface
-│       └── LinearPricingStrategy.java     Default linear impl
-├── df/
-│   ├── DirectoryFacilitator.java          Yellow pages environment
-│   └── DFEntry.java                       Registration entry
-├── message/
-│   ├── MessageTypes.java                  CFP, Proposal, Accept, etc.
-│   ├── RoomQuery.java                     CFP payload
-│   ├── RoomProposal.java                 Proposal payload
-│   ├── NegotiationOffer.java             Negotiation payload
-│   ├── ReservationRequest.java            Accept payload
-│   └── ReservationConfirmation.java       Confirm payload
-├── config/
-│   └── EnvConfig.java                     .env loader (dotenv-java)
-├── data/
-│   ├── model/                             Hotel, CustomerSpec, Location
-│   ├── repository/                        HotelRepository, CustomerRepository
-│   └── controller/HotelDataController.java
-└── api/
-    ├── HotelReservationApplication.java   Spring Boot main
-    ├── SimulationController.java          /api/simulation
-    ├── TopologyController.java            /api/network
-    ├── ActivityController.java            /api/activity
-    ├── AgentController.java               /api/agents
-    └── CustomerStatusController.java      /api/customer
++-- HotelReservationPlayground.java        Simulation entry point
++-- ActivityLog.java                       Global activity logger
++-- agent/
+|   +-- CustomerAgent.java                 @AgentSpec, CNP initiator
+|   +-- HotelAgent.java                    @AgentSpec, CNP participant
+|   +-- DataFetcherAgent.java              @AgentSpec, API data fetcher
++-- role/
+|   +-- CustomerRole.java                  @RoleSpec: LOCAL + WEB_SERVICE + LLM
+|   +-- HotelProviderRole.java             @RoleSpec: LOCAL + LLM + hooks
+|   +-- DataFetcherRole.java               @RoleSpec: WEB_SERVICE
+|   +-- pricing/
+|       +-- BuyerPricingStrategy.java      @FunctionalInterface
+|       +-- SellerPricingStrategy.java     @FunctionalInterface
+|       +-- LinearPricingStrategy.java     Default linear impl
++-- df/
+|   +-- DirectoryFacilitator.java          Yellow pages environment
+|   +-- DFEntry.java                       Registration entry
++-- message/
+|   +-- MessageTypes.java                  CFP, Proposal, Accept, etc.
+|   +-- RoomQuery.java                     CFP payload
+|   +-- RoomProposal.java                  Proposal payload
+|   +-- NegotiationOffer.java              Negotiation payload
+|   +-- ReservationRequest.java            Accept payload
+|   +-- ReservationConfirmation.java       Confirm payload
++-- config/
+|   +-- EnvConfig.java                     .env loader
++-- data/
+|   +-- model/                             Hotel, CustomerSpec, Location
+|   +-- repository/                        HotelRepository, CustomerRepository
+|   +-- controller/HotelDataController.java
++-- api/
+    +-- HotelReservationApplication.java   Spring Boot main
+    +-- SimulationController.java          /api/simulation
+    +-- TopologyController.java            /api/network
+    +-- ActivityController.java            /api/activity
+    +-- AgentController.java               /api/agents
+    +-- CustomerStatusController.java      /api/customer
 ```
-
-## Sample Data
-
-### Hotels (11 hotels across 6 cities)
-
-| ID | Hotel | City | Stars | $/night | Rooms |
-|----|-------|------|:-----:|--------:|:-----:|
-| h001 | Grand Istanbul Hotel | Istanbul | 5 | 450 | 2 |
-| h002 | Luxury Palace Istanbul | Istanbul | 5 | 400 | 2 |
-| h003 | Budget Inn Istanbul | Istanbul | 3 | 150 | 1 |
-| h004 | Sea View Resort | Izmir | 4 | 300 | 1 |
-| h005 | Ankara Business Hotel | Ankara | 4 | 250 | 2 |
-| h006 | Cappadocia Cave Hotel | Nevsehir | 5 | 350 | 1 |
-| h007 | Antalya Beach Resort | Antalya | 5 | 500 | 2 |
-| h008 | Bodrum Boutique Hotel | Mugla | 4 | 280 | 1 |
-| h009 | Istanbul Comfort Hotel | Istanbul | 4 | 280 | 2 |
-| h010 | Ankara Plaza Hotel | Ankara | 3 | 180 | 1 |
-| h011 | Antalya Garden Hotel | Antalya | 3 | 200 | 1 |
-
-### Customers (15 customers)
-
-Customers target Istanbul, Ankara, Antalya, Izmir, Nevsehir, and Mugla with varying star and budget requirements. Multiple customers competing for limited rooms creates demand pressure, raising hotel minimum prices during negotiation.
-
-## Design Principles
-
-- **OCP (Open/Closed)** -- Pricing strategies are pluggable via `BuyerPricingStrategy` / `SellerPricingStrategy` interfaces. Add `AggressivePricingStrategy`, `AuctionPricingStrategy`, etc. without touching existing code.
-- **ISP (Interface Segregation)** -- Buyer and seller strategies are separate `@FunctionalInterface`s. A class can implement one or both.
-- **Constructor Injection** -- Strategies are injected through Role constructors, consistent with SCOP's pattern (`DataFetcherRole(port)`, `CustomerRole(location, rank, ...)`).
-- **Environment Configuration** -- All runtime-tunable parameters in `.env` via `EnvConfig`, no hardcoded magic numbers.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Multi-Agent System | SCOP Framework 2026.02.17 |
-| Agent Annotations | TNSAI Integration |
+| Multi-Agent System | [SCOP Framework](https://scop-framework.netlify.app/) |
+| Annotation Meta-Model | [TnsAI](https://github.com/tansuasici/TnsAI) |
 | Backend API | Spring Boot 3.2.0 |
 | Graph Topology | JGraphT (via SCOP NetworkEnvironment) |
 | Frontend | Next.js + Tailwind CSS + shadcn/ui |
-| Configuration | dotenv-java |
 | Language | Java 21, TypeScript |
+
+## Related Publication
+
+> T.Z. Asici, O. Gurcan, G. Kardas, "A Hybrid Role-Based Reference Architecture for LLM-Enhanced Multi-Agent Systems," in *Proc. EMAS 2026*, LNCS, Springer, 2026.
 
 ## License
 

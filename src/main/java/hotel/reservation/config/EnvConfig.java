@@ -36,7 +36,24 @@ public final class EnvConfig {
 
     /** Internal data-fetch API port (same Spring Boot server). */
     public static int apiPort() {
-        return getInt("API_PORT", 3001);
+        return getInt("API_PORT", 8000);
+    }
+
+    // ── LLM Decision-Making ─────────────────────────────────
+
+    /** Whether LLM decision-making is enabled for CNP protocol. */
+    public static boolean llmEnabled() {
+        return Boolean.parseBoolean(get("LLM_ENABLED", "false"));
+    }
+
+    /** LLM call timeout in milliseconds. */
+    public static long llmTimeoutMs() {
+        return getLong("LLM_TIMEOUT_MS", 10_000);
+    }
+
+    /** Whether to fall back to LOCAL logic on LLM failure. */
+    public static boolean llmFallbackOnError() {
+        return Boolean.parseBoolean(get("LLM_FALLBACK_ON_ERROR", "true"));
     }
 
     // ── Helpers ─────────────────────────────────────────────

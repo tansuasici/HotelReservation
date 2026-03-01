@@ -275,12 +275,14 @@ export function useSimulation() {
       }
 
       // Decide reveal strategy based on backlog size
+      // Only start reveal if we're actively polling (running) or sim ended (flush remaining)
       const backlog = fullActivityRef.current.length - revealIndexRef.current;
-      if (backlog > SKIP_REVEAL_THRESHOLD && !revealTimerRef.current) {
-        // Too far behind — skip animation, show data directly
-        skipReveal();
-      } else if (!revealTimerRef.current && backlog > 0) {
-        startRevealTimer(simEndedRef.current ? 60 : 250);
+      if (backlog > 0 && (pollingActiveRef.current || simEndedRef.current)) {
+        if (backlog > SKIP_REVEAL_THRESHOLD && !revealTimerRef.current) {
+          skipReveal();
+        } else if (!revealTimerRef.current) {
+          startRevealTimer(simEndedRef.current ? 60 : 250);
+        }
       }
 
       if (fullActivityRef.current.length === 0) {
@@ -396,11 +398,33 @@ export function useSimulation() {
         stopPolling();
         stopRevealTimer();
 
-        fetch("/api/sim", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "pause" }),
-        }).catch(() => {});
+        try {
+          await fetch("/api/sim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "pause" }),
+          });
+        } catch { /* */ }
+
+        // Final data load to get latest state, then flush remaining reveal
+        await loadData();
+        const backlog = fullActivityRef.current.length - revealIndexRef.current;
+        if (backlog > SKIP_REVEAL_THRESHOLD) {
+          skipReveal();
+        } else if (backlog > 0) {
+          // One-shot: reveal remaining without restarting polling
+          setRevealing(true);
+          revealTimerRef.current = setInterval(() => {
+            const idx = revealIndexRef.current;
+            if (idx >= fullActivityRef.current.length) {
+              stopRevealTimer();
+              setCustomers(fullCustomersRef.current);
+              return;
+            }
+            revealNext();
+          }, 60);
+        }
+
         setStatus((prev) => ({ ...prev, state: "PAUSED", message: "Paused" }));
         return;
       }

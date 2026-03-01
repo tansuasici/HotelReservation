@@ -9,5 +9,10 @@
     "PROPOSAL_DEADLINE_TICKS": "30",
     "MAX_NEGOTIATION_ROUNDS": "5",
     "NEGOTIATION_ENABLED": "true"
+  },
+  "llm": {
+    "LLM_ENABLED": "true",
+    "LLM_TIMEOUT_MS": "10000",
+    "LLM_FALLBACK_ON_ERROR": "true"
   }
 }

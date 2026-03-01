@@ -19,6 +19,7 @@ META-INF/
 # Generated files
 full-classpath.txt
 .next/
+webapp/.env.local
 
 # IDE files
 .idea/
@@ -29,6 +30,14 @@ full-classpath.txt
 # Logs
 *.log
 logs/
+
+# Project docs (not for repo)
+AGENTS.md
+CLAUDE.md
+scenario.md
+todo.md
+docs/
+_llm_wip/
 
 # OS files
 .DS_Store

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BACKEND = process.env.BACKEND_URL || "http://localhost:3001";
+const BACKEND = process.env.BACKEND_URL || "http://localhost:8000";
 
 interface ChatMsg {
   role: "user" | "agent";
