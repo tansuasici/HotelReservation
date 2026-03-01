@@ -1,6 +1,6 @@
 # Hotel Reservation Multi-Agent System
 
-A case study implementation of the **Hybrid Role-Based Reference Architecture for LLM-Enhanced Multi-Agent Systems**, as described in the accompanying EMAS 2026 paper. This project demonstrates how the **Contract Net Protocol (CNP)** combines with hybrid action types to create a robust, LLM-enhanced MAS using the **SCOP Framework** and **TnsAI** annotation-based meta-model.
+A case study implementation of the **Hybrid Role-Based Reference Architecture for LLM-Enhanced Multi-Agent Systems**, as described in the accompanying EMAS 2026 paper. This project demonstrates how the **Contract Net Protocol (CNP)** combines with hybrid action types to create a robust, LLM-enhanced MAS using the **SCOP Framework**.
 
 ## Reference Architecture Overview
 
@@ -35,7 +35,7 @@ Each action is annotated with `@ActionSpec(type=...)`, making the execution stra
 |                          @RoleSpec            @RoleSpec          |
 |                          LOCAL+LLM+WEB        LOCAL+WEB+LLM     |
 |                                                                 |
-|  SCOPBridge (TnsAI integration)                                 |
+|  SCOPBridge                                                      |
 |  ActionExecutor -> typed executors                              |
 |  NetworkEnvironment (JGraphT)                                   |
 +-----------------------------------------------------------------+
