@@ -271,21 +271,3 @@ src/main/java/hotel/reservation/
     +-- CustomerStatusController.java      /api/customer
 ```
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Multi-Agent System | [SCOP Framework](https://scop-framework.netlify.app/) |
-| Annotation Meta-Model | [TnsAI](https://github.com/tansuasici/TnsAI) |
-| Backend API | Spring Boot 3.2.0 |
-| Graph Topology | JGraphT (via SCOP NetworkEnvironment) |
-| Frontend | Next.js + Tailwind CSS + shadcn/ui |
-| Language | Java 21, TypeScript |
-
-## Related Publication
-
-> T.Z. Asici, O. Gurcan, G. Kardas, "A Hybrid Role-Based Reference Architecture for LLM-Enhanced Multi-Agent Systems," in *Proc. EMAS 2026*, LNCS, Springer, 2026.
-
-## License
-
-MIT
