@@ -64,7 +64,7 @@ public class DataFetcherRole extends Role {
     /**
      * Fetch all hotels from the Hotel Data API.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Fetch all hotels from Hotel Data API",
         webService = @WebService(
@@ -102,7 +102,7 @@ public class DataFetcherRole extends Role {
     /**
      * Fetch a single hotel by ID.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single hotel by ID from Hotel Data API",
         webService = @WebService(
@@ -138,7 +138,7 @@ public class DataFetcherRole extends Role {
     /**
      * Search hotels by criteria via the Hotel Data API.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Search hotels by city, minimum rank, and maximum price",
         webService = @WebService(
@@ -197,7 +197,7 @@ public class DataFetcherRole extends Role {
     /**
      * Fetch all customers from the Customer Data API.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Fetch all customers from Customer Data API",
         webService = @WebService(
@@ -235,7 +235,7 @@ public class DataFetcherRole extends Role {
     /**
      * Fetch a single customer by ID.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Fetch a single customer by ID from Customer Data API",
         webService = @WebService(
@@ -271,7 +271,7 @@ public class DataFetcherRole extends Role {
     /**
      * Search customers by criteria via the Customer Data API.
      */
-    @Action(
+    @ActionSpec(
         type = ActionType.WEB_SERVICE,
         description = "Search customers by city, minimum rank, and maximum price",
         webService = @WebService(

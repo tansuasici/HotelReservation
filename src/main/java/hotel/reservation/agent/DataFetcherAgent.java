@@ -9,7 +9,7 @@ import hotel.reservation.role.DataFetcherRole;
  * Data Fetcher Agent - Fetches hotel and customer data from the REST API.
  *
  * <p>This agent adopts a {@link DataFetcherRole} that provides
- * {@code @Action(WEB_SERVICE)} methods for all data retrieval endpoints.
+ * {@code @ActionSpec(WEB_SERVICE)} methods for all data retrieval endpoints.
  */
 @AgentSpec(description = "Data fetcher agent for hotel and customer data")
 public class DataFetcherAgent extends Agent {

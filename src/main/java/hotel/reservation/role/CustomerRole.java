@@ -169,7 +169,7 @@ public class CustomerRole extends Role {
     /**
      * Start the hotel search process.
      */
-    @Action(type = ActionType.LOCAL, description = "Initiate hotel search based on criteria")
+    @ActionSpec(type = ActionType.LOCAL, description = "Initiate hotel search based on criteria")
     public void startSearch() {
         if (state != CustomerState.IDLE && state != CustomerState.FAILED) {
             getLogger().warn("[{}] Cannot start search - already in state: {}",
@@ -210,7 +210,7 @@ public class CustomerRole extends Role {
     /**
      * Query the DF for matching hotel agents and send CFP to each.
      */
-    @Action(type = ActionType.LOCAL, description = "Query Directory Facilitator for matching hotels")
+    @ActionSpec(type = ActionType.LOCAL, description = "Query Directory Facilitator for matching hotels")
     private void queryDirectoryFacilitator() {
         DirectoryFacilitator df = getOwner().getPlayground()
             .getAgent(DirectoryFacilitator.class, "DF");
@@ -252,7 +252,7 @@ public class CustomerRole extends Role {
      * Shoulder season (Apr-May, Sep-Oct): no change
      * Off-season (Jan-Mar, Nov): decrease maxPrice by 10%
      */
-    @BeforeAction("broadcastCFP")
+    @BeforeActionSpec("broadcastCFP")
     private ActionParams beforeBroadcastCFP(ActionParams params) {
         Month currentMonth = LocalDate.now().getMonth();
         double effectiveMaxPrice = maxPrice;
@@ -292,7 +292,7 @@ public class CustomerRole extends Role {
      * Broadcast CFP to all matching hotel agents.
      * Uses seasonally adjusted maxPrice via @BeforeAction hook.
      */
-    @Action(type = ActionType.LOCAL, description = "Send Call For Proposals to all matching hotels")
+    @ActionSpec(type = ActionType.LOCAL, description = "Send Call For Proposals to all matching hotels")
     private void broadcastCFP(List<DFEntry> hotels) {
         // Before-hook: seasonal price adjustment
         ActionParams params = new ActionParams(new HashMap<>(), "broadcastCFP");
@@ -339,7 +339,7 @@ public class CustomerRole extends Role {
      * After handling a proposal, update market analytics.
      * Tracks running average, min/max price, and detects price anomalies (>50% above average).
      */
-    @AfterAction("handleProposalMessage")
+    @AfterActionSpec("handleProposalMessage")
     private void afterHandleProposalMessage(ActionParams params) {
         double price = params.getDouble("proposalPrice");
         String hotelName = params.getString("hotelName");
@@ -372,7 +372,7 @@ public class CustomerRole extends Role {
     /**
      * Handle Proposal message from a hotel.
      */
-    @Action(type = ActionType.LOCAL, description = "Process incoming proposal from hotel")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process incoming proposal from hotel")
     public void handleProposalMessage(Message<RoomProposal> message) {
         if (state != CustomerState.WAITING_PROPOSALS) {
             getLogger().warn("[{}] Received proposal in unexpected state: {}",
@@ -400,7 +400,7 @@ public class CustomerRole extends Role {
     /**
      * Handle Refuse message from a hotel.
      */
-    @Action(type = ActionType.LOCAL, description = "Process refusal from hotel")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process refusal from hotel")
     public void handleRefuseMessage(Message<String> message) {
         getLogger().info("[{}] Received refusal from {}: {}",
             getOwner().getName(), message.getSender(), message.getPayload());
@@ -418,7 +418,7 @@ public class CustomerRole extends Role {
     /**
      * Evaluate collected proposals: shortlist top candidates for sequential negotiation.
      */
-    @Action(type = ActionType.LOCAL, description = "Evaluate all proposals and shortlist top candidates")
+    @ActionSpec(type = ActionType.LOCAL, description = "Evaluate all proposals and shortlist top candidates")
     public void evaluateProposals() {
         state = CustomerState.EVALUATING;
 
@@ -520,7 +520,7 @@ public class CustomerRole extends Role {
     /**
      * Make reservation with selected hotel (direct accept, no negotiation needed).
      */
-    @Action(type = ActionType.LOCAL, description = "Send acceptance to selected hotel")
+    @ActionSpec(type = ActionType.LOCAL, description = "Send acceptance to selected hotel")
     private void makeReservation() {
         state = CustomerState.RESERVING;
         reservingTickCount = 0;
@@ -559,7 +559,7 @@ public class CustomerRole extends Role {
      * More candidates or price above market → more aggressive.
      * Fewer candidates or price at/below market → more conservative.
      */
-    @BeforeAction("startNegotiationWithCandidate")
+    @BeforeActionSpec("startNegotiationWithCandidate")
     private ActionParams beforeStartNegotiation(ActionParams params) {
         double marketAvg = totalProposalCount > 0 ? proposalPriceSum / totalProposalCount : maxPrice;
         double candidatePrice = params.getDouble("candidatePrice");
@@ -614,7 +614,7 @@ public class CustomerRole extends Role {
      * Start price negotiation with the candidate at given index.
      * Uses strategy from @BeforeAction hook for initial offer calculation.
      */
-    @Action(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel")
+    @ActionSpec(type = ActionType.LOCAL, description = "Start price negotiation with candidate hotel")
     private void startNegotiationWithCandidate(int candidateIndex) {
         if (candidateIndex >= topCandidates.size()) {
             getLogger().warn("[{}] All {} candidate hotels exhausted — FAILED",
@@ -695,7 +695,7 @@ public class CustomerRole extends Role {
      * Handle CounterOffer from hotel during negotiation.
      * Uses leverage (competing candidate price) in counter-offers.
      */
-    @Action(type = ActionType.LOCAL, description = "Process hotel's counter-offer during negotiation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process hotel's counter-offer during negotiation")
     public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
         // Tick-driven: just store, tickCheck() will process in next tick
         NegotiationOffer hotelOffer = message.getPayload();
@@ -706,7 +706,7 @@ public class CustomerRole extends Role {
     /**
      * Handle NegotiateAccept from hotel - hotel accepted our offer.
      */
-    @Action(type = ActionType.LOCAL, description = "Process hotel's acceptance of negotiation offer")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process hotel's acceptance of negotiation offer")
     public void handleNegotiateAcceptMessage(Message<NegotiationOffer> message) {
         // Tick-driven: just store, tickCheck() will process in next tick
         NegotiationOffer acceptance = message.getPayload();
@@ -718,7 +718,7 @@ public class CustomerRole extends Role {
      * Handle NegotiateReject from hotel - hotel rejected negotiation entirely.
      * Tries to accept at listed price, or falls back to next candidate.
      */
-    @Action(type = ActionType.LOCAL, description = "Process hotel's rejection of negotiation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process hotel's rejection of negotiation")
     public void handleNegotiateRejectMessage(Message<String> message) {
         // Tick-driven: just store, tickCheck() will process in next tick
         pendingNegReject = message.getPayload();
@@ -824,7 +824,7 @@ public class CustomerRole extends Role {
      * After receiving confirmation, create an audit trail.
      * Calculates savings, market signal (BELOW/ABOVE/AT_MARKET).
      */
-    @AfterAction("handleConfirmMessage")
+    @AfterActionSpec("handleConfirmMessage")
     private void afterHandleConfirmMessage(ActionParams params) {
         double finalPrice = params.getDouble("finalPrice");
         double originalPrice = params.getDouble("originalPrice");
@@ -855,7 +855,7 @@ public class CustomerRole extends Role {
     /**
      * Handle Confirmation message from hotel.
      */
-    @Action(type = ActionType.LOCAL, description = "Process reservation confirmation from hotel")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process reservation confirmation from hotel")
     public void handleConfirmMessage(Message<ReservationConfirmation> message) {
         // Tick-driven: just store, tickCheck() will process in next tick
         pendingConfirm = message.getPayload();

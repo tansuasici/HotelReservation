@@ -137,7 +137,7 @@ public class HotelProviderRole extends Role {
      * Handle CFP (Call For Proposals) message.
      * Decides whether to respond with a proposal or refuse.
      */
-    @Action(type = ActionType.LOCAL, description = "Process incoming CFP and decide whether to make a proposal")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process incoming CFP and decide whether to make a proposal")
     public void handleCFPMessage(Message<RoomQuery> message) {
         RoomQuery query = message.getPayload();
         getLogger().info("[{}] Received CFP from {}: {}",
@@ -175,7 +175,7 @@ public class HotelProviderRole extends Role {
     /**
      * Check if this hotel matches the query criteria.
      */
-    @Action(type = ActionType.LOCAL, description = "Verify if hotel matches customer search criteria")
+    @ActionSpec(type = ActionType.LOCAL, description = "Verify if hotel matches customer search criteria")
     private boolean matchesQuery(RoomQuery query) {
         // Check location
         if (query.getLocation() != null &&
@@ -213,7 +213,7 @@ public class HotelProviderRole extends Role {
      * Normal demand (30-70%): base price or slight increase
      * High demand (>70%): premium 10-25%
      */
-    @BeforeAction("sendProposal")
+    @BeforeActionSpec("sendProposal")
     private ActionParams beforeSendProposal(ActionParams params) {
         HotelAgent ha = (HotelAgent) getOwner();
         int total = ha.getTotalRooms();
@@ -249,7 +249,7 @@ public class HotelProviderRole extends Role {
     /**
      * After sending a proposal, log the sent proposal details to ActivityLog.
      */
-    @AfterAction("sendProposal")
+    @AfterActionSpec("sendProposal")
     private void afterSendProposal(ActionParams params) {
         double dynamicPrice = params.getDouble("dynamicPrice");
         String demandLevel = params.getString("demandLevel");
@@ -263,7 +263,7 @@ public class HotelProviderRole extends Role {
      * Send a proposal to the customer.
      * Uses dynamic pricing based on occupancy via @BeforeAction hook.
      */
-    @Action(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer")
+    @ActionSpec(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer")
     private void sendProposal(Identifier customer) {
         // Create ActionParams and invoke before-hook
         ActionParams params = new ActionParams(new HashMap<>(), "sendProposal");
@@ -298,7 +298,7 @@ public class HotelProviderRole extends Role {
     /**
      * Send a refusal to the customer.
      */
-    @Action(type = ActionType.LOCAL, description = "Send refusal message to customer")
+    @ActionSpec(type = ActionType.LOCAL, description = "Send refusal message to customer")
     private void sendRefusal(Identifier customer, String reason) {
         getLogger().info("[{}] Sending refusal to {}: {}",
             getOwner().getName(), customer, reason);
@@ -310,7 +310,7 @@ public class HotelProviderRole extends Role {
     /**
      * Handle Accept message - Customer accepted our proposal.
      */
-    @Action(type = ActionType.LOCAL, description = "Process reservation acceptance and send confirmation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process reservation acceptance and send confirmation")
     public void handleAcceptMessage(Message<ReservationRequest> message) {
         ReservationRequest request = message.getPayload();
         getLogger().info("[{}] Received ACCEPT from {}: {}",
@@ -355,7 +355,7 @@ public class HotelProviderRole extends Role {
     /**
      * Handle Reject message - Customer rejected our proposal.
      */
-    @Action(type = ActionType.LOCAL, description = "Process proposal rejection from customer")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process proposal rejection from customer")
     public void handleRejectMessage(Message<String> message) {
         getLogger().info("[{}] Proposal REJECTED by {}: {}",
             getOwner().getName(), message.getSender(), message.getPayload());
@@ -369,7 +369,7 @@ public class HotelProviderRole extends Role {
     /**
      * Handle NegotiateStart message - Customer initiates price negotiation.
      */
-    @Action(type = ActionType.LOCAL, description = "Process customer's negotiation start request")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process customer's negotiation start request")
     public void handleNegotiateStartMessage(Message<NegotiationOffer> message) {
         NegotiationOffer offer = message.getPayload();
         getLogger().info("[{}] Received NegotiateStart from {}: offered ${} for {} (original ${})",
@@ -425,7 +425,7 @@ public class HotelProviderRole extends Role {
     /**
      * Handle CounterOffer message - Customer sends a counter-offer.
      */
-    @Action(type = ActionType.LOCAL, description = "Process customer's counter-offer during negotiation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process customer's counter-offer during negotiation")
     public void handleCounterOfferMessage(Message<NegotiationOffer> message) {
         NegotiationOffer offer = message.getPayload();
         int round = offer.getRound();
@@ -487,7 +487,7 @@ public class HotelProviderRole extends Role {
      * Handle NegotiateAccept message - Customer accepted a negotiated price.
      * Creates reservation confirmation with the negotiated price.
      */
-    @Action(type = ActionType.LOCAL, description = "Process negotiation acceptance and confirm reservation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Process negotiation acceptance and confirm reservation")
     public void handleNegotiateAcceptMessage(Message<ReservationRequest> message) {
         ReservationRequest request = message.getPayload();
         getLogger().info("[{}] Received NegotiateAccept from {}: {}",
@@ -562,7 +562,7 @@ public class HotelProviderRole extends Role {
      * Validate hotel data before registering with Directory Facilitator.
      * Checks: basePrice > 0, totalRooms > 0, location != null, rank 1-5.
      */
-    @BeforeAction("registerWithDF")
+    @BeforeActionSpec("registerWithDF")
     private ActionParams beforeRegisterWithDF(ActionParams params) {
         HotelAgent ha = (HotelAgent) getOwner();
         boolean valid = true;
@@ -602,7 +602,7 @@ public class HotelProviderRole extends Role {
     /**
      * Log the result of DF registration (success or failure).
      */
-    @AfterAction("registerWithDF")
+    @AfterActionSpec("registerWithDF")
     private void afterRegisterWithDF(ActionParams params) {
         boolean registered = params.getBoolean("registered");
         if (registered) {
@@ -620,7 +620,7 @@ public class HotelProviderRole extends Role {
      * Register this hotel with the Directory Facilitator.
      * Moved from HotelAgent to HotelProviderRole for proper hook support.
      */
-    @Action(type = ActionType.LOCAL, description = "Register hotel with Directory Facilitator after validation")
+    @ActionSpec(type = ActionType.LOCAL, description = "Register hotel with Directory Facilitator after validation")
     public void registerWithDF() {
         // Before-hook: validate data
         ActionParams params = new ActionParams(new HashMap<>(), "registerWithDF");
