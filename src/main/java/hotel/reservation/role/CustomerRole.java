@@ -15,11 +15,8 @@ import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.config.EnvConfig;
 import hotel.reservation.role.pricing.BuyerPricingStrategy;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import com.tnsai.integration.scop.SCOPBridge;
+import com.tnsai.llm.LLMClient;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
@@ -83,6 +80,7 @@ public class CustomerRole extends Role {
     private final double desiredPrice;
 
     private final BuyerPricingStrategy pricingStrategy;
+    private final LLMClient llmClient;
 
     // State management
     @State(description = "Current state in the reservation process")
@@ -169,6 +167,7 @@ public class CustomerRole extends Role {
         this.maxPrice = maxPrice;
         this.desiredPrice = desiredPrice;
         this.pricingStrategy = pricingStrategy;
+        this.llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
     }
 
     /**
@@ -437,11 +436,11 @@ public class CustomerRole extends Role {
             return;
         }
 
-        // LLM-enhanced evaluation: when enabled, use LLM to rank proposals
+        // LLM-enhanced evaluation: when LLM client is available, use LLM to rank proposals
         // considering price, quality, location preference, and value-for-money.
         // Fallback: deterministic price-based sorting.
         List<RoomProposal> ranked;
-        if (EnvConfig.llmEnabled()) {
+        if (llmClient != null) {
             ranked = llmRankProposals();
         } else {
             ranked = proposals.values().stream()
@@ -521,7 +520,7 @@ public class CustomerRole extends Role {
             prompt.append("\nRank these proposals from best to worst considering value-for-money, ");
             prompt.append("star rating, and price. Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3).");
 
-            String response = callOllama(prompt.toString());
+            String response = llmClient.chat(prompt.toString()).getContent();
             getLogger().info("[{}] LLM proposal ranking: {}", getOwner().getName(), response);
 
             // Parse LLM response: extract comma-separated indices
@@ -1137,47 +1136,6 @@ public class CustomerRole extends Role {
 
     // ==========================================
     // LLM Helper: Ollama REST API
-    // ==========================================
-
-    /**
-     * Call Ollama REST API for LLM inference.
-     * Uses the model configured in @RoleSpec/@AgentSpec @LLMSpec annotation.
-     */
-    private String callOllama(String prompt) {
-        HttpClient client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
-        String model = "glm-4.7:cloud"; // from @RoleSpec @LLMSpec
-        String json = String.format(
-            "{\"model\":\"%s\",\"prompt\":\"%s\",\"stream\":false}",
-            model, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:11434/api/generate"))
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofMillis(EnvConfig.llmTimeoutMs()))
-            .POST(HttpRequest.BodyPublishers.ofString(json))
-            .build();
-
-        try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                // Extract "response" field from Ollama JSON
-                String body = response.body();
-                int idx = body.indexOf("\"response\":\"");
-                if (idx >= 0) {
-                    int start = idx + 12;
-                    int end = body.indexOf("\"", start);
-                    return body.substring(start, end).replace("\\n", "\n");
-                }
-            }
-            throw new RuntimeException("Ollama returned status " + response.statusCode());
-        } catch (Exception e) {
-            throw new RuntimeException("Ollama call failed: " + e.getMessage(), e);
-        }
-    }
-
     // Getters for state inspection
     public CustomerState getCustomerState() { return state; }
     public Map<String, RoomProposal> getProposals() { return new HashMap<>(proposals); }

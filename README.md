@@ -94,6 +94,11 @@ public void handleCFPMessage(Message<RoomQuery> msg) { ... }
         endpoint = "http://localhost:8000/api/hotels",
         method = HttpMethod.GET, timeout = 5000))
 public List<Hotel> fetchAllHotels() { ... }
+
+// LLM: subjective evaluation using language model
+@ActionSpec(type = ActionType.LLM,
+    description = "Decide pricing strategy based on market conditions and customer profile")
+public double decidePricingStrategy(RoomQuery query) { ... }
 ```
 
 ### Lifecycle Hooks
@@ -120,10 +125,12 @@ private void afterHandleProposal(ActionParams p) {
 Sensitive data is injected via `@BeforeActionSpec` hooks, ensuring credentials never appear in LLM-visible contexts:
 
 ```java
-@BeforeActionSpec("callExternalAPI")
-private ActionParams injectCredentials(ActionParams p) {
-    p.set("apiKey", System.getenv("API_SECRET_KEY"));
-    return p;
+@BeforeActionSpec("sendProposal")
+private ActionParams beforeSendProposal(ActionParams params) {
+    HotelAgent ha = (HotelAgent) getOwner();
+    double occupancyRate = 1.0 - ((double) ha.getAvailableRooms() / ha.getTotalRooms());
+    params.set("dynamicPrice", basePrice * computeMultiplier(occupancyRate));
+    return params;
 }
 ```
 
@@ -224,6 +231,11 @@ API_PORT=8000                         # Internal data-fetch port (same as SERVER
 PLAYGROUND_TIMEOUT_TICK=100000        # Simulation timeout
 PLAYGROUND_STEP_DELAY=1500            # Delay between ticks (ms)
 
+# LLM (optional, enables AI-driven pricing & evaluation)
+OLLAMA_BASE_URL=http://localhost:11434 # Ollama server URL
+LLM_TIMEOUT_MS=10000                  # Request timeout
+LLM_FALLBACK_ON_ERROR=true            # Use deterministic fallback on LLM failure
+
 # External Services
 OPENWEATHER_API_KEY=your_key_here     # openweathermap.org/api
 ```
@@ -270,4 +282,3 @@ src/main/java/hotel/reservation/
     +-- AgentController.java               /api/agents
     +-- CustomerStatusController.java      /api/customer
 ```
-

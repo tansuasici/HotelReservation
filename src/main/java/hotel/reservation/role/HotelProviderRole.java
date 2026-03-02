@@ -12,14 +12,10 @@ import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
-import hotel.reservation.config.EnvConfig;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import com.tnsai.integration.scop.SCOPBridge;
+import com.tnsai.llm.LLMClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +97,7 @@ public class HotelProviderRole extends Role {
     private double negotiationFlexibility;
 
     private final SellerPricingStrategy pricingStrategy;
+    private final LLMClient llmClient;
 
     private final Map<String, Integer> currentNegotiations = new ConcurrentHashMap<>();
 
@@ -117,6 +114,7 @@ public class HotelProviderRole extends Role {
         this.baseMinPrice = basePrice * 0.85;
         this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
         this.pricingStrategy = pricingStrategy;
+        this.llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
     }
 
     /**
@@ -228,7 +226,7 @@ public class HotelProviderRole extends Role {
         int avail = ha.getAvailableRooms();
         double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
 
-        if (EnvConfig.llmEnabled()) {
+        if (llmClient != null) {
             try {
                 String prompt = String.format(
                     "You are a hotel pricing strategist for %s (%d-star, base $%.0f/night in %s).\n" +
@@ -242,7 +240,7 @@ public class HotelProviderRole extends Role {
                     query.getLocation(), query.getMinRank(), query.getMaxPrice()
                 );
 
-                String response = callOllama(prompt);
+                String response = llmClient.chat(prompt).getContent();
                 double multiplier = Double.parseDouble(response.replaceAll("[^0-9.]", ""));
                 // Clamp to safe range
                 multiplier = Math.max(0.85, Math.min(1.30, multiplier));
@@ -715,48 +713,6 @@ public class HotelProviderRole extends Role {
         // After-hook: log result
         params.set("registered", registered);
         afterRegisterWithDF(params);
-    }
-
-    // ==========================================
-    // LLM Helper: Ollama REST API
-    // ==========================================
-
-    /**
-     * Call Ollama REST API for LLM inference.
-     * Uses the model configured in @RoleSpec @LLMSpec annotation.
-     */
-    private String callOllama(String prompt) {
-        HttpClient client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
-        String model = "minimax-m2.1:cloud"; // from @RoleSpec @LLMSpec
-        String json = String.format(
-            "{\"model\":\"%s\",\"prompt\":\"%s\",\"stream\":false}",
-            model, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:11434/api/generate"))
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofMillis(EnvConfig.llmTimeoutMs()))
-            .POST(HttpRequest.BodyPublishers.ofString(json))
-            .build();
-
-        try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                String body = response.body();
-                int idx = body.indexOf("\"response\":\"");
-                if (idx >= 0) {
-                    int start = idx + 12;
-                    int end = body.indexOf("\"", start);
-                    return body.substring(start, end).replace("\\n", "\n");
-                }
-            }
-            throw new RuntimeException("Ollama returned status " + response.statusCode());
-        } catch (Exception e) {
-            throw new RuntimeException("Ollama call failed: " + e.getMessage(), e);
-        }
     }
 
     // Getters
