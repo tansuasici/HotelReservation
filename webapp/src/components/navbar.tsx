@@ -54,10 +54,10 @@ export function Navbar({ simState, status, isDark, onToggleTheme }: Props) {
         </div>
         <div className="flex flex-col">
           <h1 className="text-[13px] font-semibold tracking-tight leading-tight">
-            SCOP Mission Control
+            Hotel Reservation MAS
           </h1>
           <span className="text-[10px] text-muted-foreground font-mono tracking-wide">
-            Post-Simulation Analysis
+            Contract Net Protocol Dashboard
           </span>
         </div>
       </div>

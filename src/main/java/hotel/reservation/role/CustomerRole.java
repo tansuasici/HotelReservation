@@ -80,7 +80,8 @@ public class CustomerRole extends Role {
     private final double desiredPrice;
 
     private final BuyerPricingStrategy pricingStrategy;
-    private final LLMClient llmClient;
+    private LLMClient llmClient;
+    private boolean llmClientResolved = false;
 
     // State management
     @State(description = "Current state in the reservation process")
@@ -167,7 +168,14 @@ public class CustomerRole extends Role {
         this.maxPrice = maxPrice;
         this.desiredPrice = desiredPrice;
         this.pricingStrategy = pricingStrategy;
-        this.llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
+    }
+
+    private LLMClient getLLMClient() {
+        if (!llmClientResolved) {
+            llmClientResolved = true;
+            llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
+        }
+        return llmClient;
     }
 
     /**
@@ -440,7 +448,7 @@ public class CustomerRole extends Role {
         // considering price, quality, location preference, and value-for-money.
         // Fallback: deterministic price-based sorting.
         List<RoomProposal> ranked;
-        if (llmClient != null) {
+        if (getLLMClient() != null) {
             ranked = llmRankProposals();
         } else {
             ranked = proposals.values().stream()
@@ -520,7 +528,7 @@ public class CustomerRole extends Role {
             prompt.append("\nRank these proposals from best to worst considering value-for-money, ");
             prompt.append("star rating, and price. Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3).");
 
-            String response = llmClient.chat(prompt.toString()).getContent();
+            String response = getLLMClient().chat(prompt.toString()).getContent();
             getLogger().info("[{}] LLM proposal ranking: {}", getOwner().getName(), response);
 
             // Parse LLM response: extract comma-separated indices

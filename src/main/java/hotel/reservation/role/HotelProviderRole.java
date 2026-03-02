@@ -97,7 +97,8 @@ public class HotelProviderRole extends Role {
     private double negotiationFlexibility;
 
     private final SellerPricingStrategy pricingStrategy;
-    private final LLMClient llmClient;
+    private LLMClient llmClient;
+    private boolean llmClientResolved = false;
 
     private final Map<String, Integer> currentNegotiations = new ConcurrentHashMap<>();
 
@@ -114,7 +115,14 @@ public class HotelProviderRole extends Role {
         this.baseMinPrice = basePrice * 0.85;
         this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
         this.pricingStrategy = pricingStrategy;
-        this.llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
+    }
+
+    private LLMClient getLLMClient() {
+        if (!llmClientResolved) {
+            llmClientResolved = true;
+            llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
+        }
+        return llmClient;
     }
 
     /**
@@ -226,7 +234,7 @@ public class HotelProviderRole extends Role {
         int avail = ha.getAvailableRooms();
         double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
 
-        if (llmClient != null) {
+        if (getLLMClient() != null) {
             try {
                 String prompt = String.format(
                     "You are a hotel pricing strategist for %s (%d-star, base $%.0f/night in %s).\n" +
@@ -240,7 +248,7 @@ public class HotelProviderRole extends Role {
                     query.getLocation(), query.getMinRank(), query.getMaxPrice()
                 );
 
-                String response = llmClient.chat(prompt).getContent();
+                String response = getLLMClient().chat(prompt).getContent();
                 double multiplier = Double.parseDouble(response.replaceAll("[^0-9.]", ""));
                 // Clamp to safe range
                 multiplier = Math.max(0.85, Math.min(1.30, multiplier));
