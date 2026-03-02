@@ -25,6 +25,11 @@ import java.util.StringJoiner;
  *
  * <p>SCOP Role that wraps HTTP calls to HotelDataServer endpoints.
  * WEB_SERVICE actions are routed through ActionExecutor pipeline via SCOPBridge.
+ *
+ * <p>Note: {@code @WebService} endpoint values are compile-time constants (Java annotation
+ * limitation) and default to port 8000. The actual runtime port is determined by
+ * {@link hotel.reservation.config.EnvConfig#apiPort()} and injected via the constructor.
+ * Method bodies use the dynamic {@code baseUrl} field, not the annotation endpoint.
  */
 @RoleSpec(
     description = "Fetches hotel and customer data from REST API",

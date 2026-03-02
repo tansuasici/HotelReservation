@@ -15,6 +15,11 @@ import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.config.EnvConfig;
 import hotel.reservation.role.pricing.BuyerPricingStrategy;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
@@ -418,7 +423,7 @@ public class CustomerRole extends Role {
     /**
      * Evaluate collected proposals: shortlist top candidates for sequential negotiation.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Evaluate all proposals and shortlist top candidates")
+    @ActionSpec(type = ActionType.LLM, description = "Evaluate all proposals and shortlist top candidates using LLM reasoning")
     public void evaluateProposals() {
         state = CustomerState.EVALUATING;
 
@@ -432,11 +437,21 @@ public class CustomerRole extends Role {
             return;
         }
 
-        // Shortlist top N candidates sorted by price
-        topCandidates = proposals.values().stream()
-            .sorted(Comparator
-                .comparingDouble(RoomProposal::getPricePerNight)
-                .thenComparingLong(RoomProposal::getTimestamp))
+        // LLM-enhanced evaluation: when enabled, use LLM to rank proposals
+        // considering price, quality, location preference, and value-for-money.
+        // Fallback: deterministic price-based sorting.
+        List<RoomProposal> ranked;
+        if (EnvConfig.llmEnabled()) {
+            ranked = llmRankProposals();
+        } else {
+            ranked = proposals.values().stream()
+                .sorted(Comparator
+                    .comparingDouble(RoomProposal::getPricePerNight)
+                    .thenComparingLong(RoomProposal::getTimestamp))
+                .collect(Collectors.toList());
+        }
+
+        topCandidates = ranked.stream()
             .limit(MAX_CANDIDATES)
             .collect(Collectors.toList());
         currentCandidateIndex = 0;
@@ -480,6 +495,66 @@ public class CustomerRole extends Role {
         } else {
             // Start negotiation with first candidate
             startNegotiationWithCandidate(0);
+        }
+    }
+
+    /**
+     * Use LLM to rank proposals based on subjective evaluation criteria:
+     * price/quality ratio, location desirability, star rating, and overall value.
+     * Falls back to price-based sorting on LLM failure.
+     */
+    private List<RoomProposal> llmRankProposals() {
+        try {
+            StringBuilder prompt = new StringBuilder();
+            prompt.append("You are evaluating hotel proposals for a customer.\n");
+            prompt.append(String.format("Customer criteria: %s, %d+ stars, max $%.0f/night, desired $%.0f/night.\n\n",
+                desiredLocation, desiredRank, maxPrice, desiredPrice));
+            prompt.append("Proposals:\n");
+
+            List<RoomProposal> proposalList = new ArrayList<>(proposals.values());
+            for (int i = 0; i < proposalList.size(); i++) {
+                RoomProposal p = proposalList.get(i);
+                prompt.append(String.format("%d. %s - %d stars - $%.0f/night\n",
+                    i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight()));
+            }
+
+            prompt.append("\nRank these proposals from best to worst considering value-for-money, ");
+            prompt.append("star rating, and price. Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3).");
+
+            String response = callOllama(prompt.toString());
+            getLogger().info("[{}] LLM proposal ranking: {}", getOwner().getName(), response);
+
+            // Parse LLM response: extract comma-separated indices
+            List<RoomProposal> ranked = new ArrayList<>();
+            String[] parts = response.replaceAll("[^0-9,]", "").split(",");
+            Set<Integer> seen = new HashSet<>();
+            for (String part : parts) {
+                try {
+                    int idx = Integer.parseInt(part.trim()) - 1;
+                    if (idx >= 0 && idx < proposalList.size() && seen.add(idx)) {
+                        ranked.add(proposalList.get(idx));
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+
+            // Add any proposals not mentioned by LLM
+            for (RoomProposal p : proposalList) {
+                if (!ranked.contains(p)) {
+                    ranked.add(p);
+                }
+            }
+
+            ActivityLog.log(getOwner().getName(), "System", "LLM_EVALUATE",
+                "Used LLM to rank " + proposalList.size() + " proposals");
+            return ranked;
+        } catch (Exception e) {
+            getLogger().warn("[{}] LLM evaluation failed, falling back to price sort: {}",
+                getOwner().getName(), e.getMessage());
+            return proposals.values().stream()
+                .sorted(Comparator
+                    .comparingDouble(RoomProposal::getPricePerNight)
+                    .thenComparingLong(RoomProposal::getTimestamp))
+                .collect(Collectors.toList());
         }
     }
 
@@ -1057,6 +1132,49 @@ public class CustomerRole extends Role {
                 String.format("No confirmation received after %d ticks", reservingTickCount));
 
             state = CustomerState.FAILED;
+        }
+    }
+
+    // ==========================================
+    // LLM Helper: Ollama REST API
+    // ==========================================
+
+    /**
+     * Call Ollama REST API for LLM inference.
+     * Uses the model configured in @RoleSpec/@AgentSpec @LLMSpec annotation.
+     */
+    private String callOllama(String prompt) {
+        HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+        String model = "glm-4.7:cloud"; // from @RoleSpec @LLMSpec
+        String json = String.format(
+            "{\"model\":\"%s\",\"prompt\":\"%s\",\"stream\":false}",
+            model, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:11434/api/generate"))
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofMillis(EnvConfig.llmTimeoutMs()))
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                // Extract "response" field from Ollama JSON
+                String body = response.body();
+                int idx = body.indexOf("\"response\":\"");
+                if (idx >= 0) {
+                    int start = idx + 12;
+                    int end = body.indexOf("\"", start);
+                    return body.substring(start, end).replace("\\n", "\n");
+                }
+            }
+            throw new RuntimeException("Ollama returned status " + response.statusCode());
+        } catch (Exception e) {
+            throw new RuntimeException("Ollama call failed: " + e.getMessage(), e);
         }
     }
 

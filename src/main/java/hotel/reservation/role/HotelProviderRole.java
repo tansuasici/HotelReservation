@@ -12,8 +12,14 @@ import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.HotelAgent;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
+import hotel.reservation.config.EnvConfig;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,6 +207,61 @@ public class HotelProviderRole extends Role {
      */
     private boolean shouldRespond() {
         return random.nextDouble() < responseRate;
+    }
+
+    // ==========================================
+    // LLM: Pricing Strategy Decision
+    // ==========================================
+
+    /**
+     * Use LLM to decide the pricing strategy for a customer query.
+     * Considers occupancy, demand level, customer criteria, and competitive positioning.
+     * Fallback: returns the deterministic multiplier from occupancy-based calculation.
+     *
+     * @param query the customer's room query
+     * @return price multiplier to apply to base price (e.g., 0.95 for discount, 1.15 for premium)
+     */
+    @ActionSpec(type = ActionType.LLM, description = "Decide pricing strategy based on market conditions and customer profile")
+    public double decidePricingStrategy(RoomQuery query) {
+        HotelAgent ha = (HotelAgent) getOwner();
+        int total = ha.getTotalRooms();
+        int avail = ha.getAvailableRooms();
+        double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
+
+        if (EnvConfig.llmEnabled()) {
+            try {
+                String prompt = String.format(
+                    "You are a hotel pricing strategist for %s (%d-star, base $%.0f/night in %s).\n" +
+                    "Current occupancy: %.0f%% (%d/%d rooms occupied).\n" +
+                    "Customer wants: %s, %d+ stars, max $%.0f/night.\n\n" +
+                    "Decide a price multiplier (0.85 to 1.30) to apply to the base price.\n" +
+                    "Consider: demand level, customer's budget, competitive positioning.\n" +
+                    "Return ONLY a decimal number (e.g., 1.05).",
+                    hotelName, rank, basePrice, location,
+                    occupancyRate * 100, total - avail, total,
+                    query.getLocation(), query.getMinRank(), query.getMaxPrice()
+                );
+
+                String response = callOllama(prompt);
+                double multiplier = Double.parseDouble(response.replaceAll("[^0-9.]", ""));
+                // Clamp to safe range
+                multiplier = Math.max(0.85, Math.min(1.30, multiplier));
+
+                getLogger().info("[{}] LLM pricing strategy: multiplier={} for query from {}",
+                    getOwner().getName(), String.format("%.2f", multiplier), query.getLocation());
+                ActivityLog.log(hotelName, "System", "LLM_PRICING",
+                    String.format("LLM decided multiplier %.2f (occupancy %.0f%%)", multiplier, occupancyRate * 100));
+                return multiplier;
+            } catch (Exception e) {
+                getLogger().warn("[{}] LLM pricing failed, using deterministic fallback: {}",
+                    getOwner().getName(), e.getMessage());
+            }
+        }
+
+        // Deterministic fallback
+        if (occupancyRate < 0.3) return 0.95;
+        if (occupancyRate < 0.7) return 1.0 + (occupancyRate - 0.3) * 0.25;
+        return 1.10 + (occupancyRate - 0.7) * 0.50;
     }
 
     // ==========================================
@@ -654,6 +715,48 @@ public class HotelProviderRole extends Role {
         // After-hook: log result
         params.set("registered", registered);
         afterRegisterWithDF(params);
+    }
+
+    // ==========================================
+    // LLM Helper: Ollama REST API
+    // ==========================================
+
+    /**
+     * Call Ollama REST API for LLM inference.
+     * Uses the model configured in @RoleSpec @LLMSpec annotation.
+     */
+    private String callOllama(String prompt) {
+        HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+        String model = "minimax-m2.1:cloud"; // from @RoleSpec @LLMSpec
+        String json = String.format(
+            "{\"model\":\"%s\",\"prompt\":\"%s\",\"stream\":false}",
+            model, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:11434/api/generate"))
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofMillis(EnvConfig.llmTimeoutMs()))
+            .POST(HttpRequest.BodyPublishers.ofString(json))
+            .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                String body = response.body();
+                int idx = body.indexOf("\"response\":\"");
+                if (idx >= 0) {
+                    int start = idx + 12;
+                    int end = body.indexOf("\"", start);
+                    return body.substring(start, end).replace("\\n", "\n");
+                }
+            }
+            throw new RuntimeException("Ollama returned status " + response.statusCode());
+        } catch (Exception e) {
+            throw new RuntimeException("Ollama call failed: " + e.getMessage(), e);
+        }
     }
 
     // Getters
