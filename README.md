@@ -18,27 +18,27 @@ Each action is annotated with `@ActionSpec(type=...)`, making the execution stra
 ## Architecture
 
 ```
-+-----------------------------------------------------------------+
-|                    Next.js Frontend (webapp/)                    |
-+----------------------------+------------------------------------+
-                             | REST API
-+----------------------------v------------------------------------+
-|                       Spring Boot API                           |
-|  SimulationController - TopologyController - AgentController    |
-|  ActivityController - CustomerStatusController                  |
-+-----------------------------+-----------------------------------+
-|                       SCOP Playground                           |
-|                                                                 |
-|  DirectoryFacilitator    HotelAgents         CustomerAgents     |
-|  (Yellow Pages)          @AgentSpec           @AgentSpec         |
-|                          HotelProviderRole    CustomerRole       |
-|                          @RoleSpec            @RoleSpec          |
-|                          LOCAL+LLM+WEB        LOCAL+WEB+LLM     |
-|                                                                 |
-|  SCOPBridge                                                      |
-|  ActionExecutor -> typed executors                              |
-|  NetworkEnvironment (JGraphT)                                   |
-+-----------------------------------------------------------------+
++----------------------------------------------------------------+
+|                   Next.js Frontend (webapp/)                   |
++---------------------------+------------------------------------+
+                            | REST API
++---------------------------v------------------------------------+
+|                      Spring Boot API                           |
+|  SimulationController - TopologyController - AgentController   |
+|  ActivityController - CustomerStatusController                 |
++----------------------------+-----------------------------------+
+|                      SCOP Playground                           |
+|                                                                |
+|  DirectoryFacilitator   HotelAgents        CustomerAgents      |
+|  (Yellow Pages)         @AgentSpec         @AgentSpec          |
+|                         HotelProviderRole  CustomerRole        |
+|                         @RoleSpec          @RoleSpec           |
+|                         LOCAL+LLM+WEB     LOCAL+WEB+LLM        |
+|                                                                |
+|  SCOPBridge                                                    |
+|  ActionExecutor -> typed executors                             |
+|  NetworkEnvironment (JGraphT)                                  |
++----------------------------------------------------------------+
 ```
 
 ## Annotation-Driven Design
