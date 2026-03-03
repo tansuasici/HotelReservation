@@ -5,6 +5,7 @@ import ai.scop.core.Identifier;
 import ai.scop.core.Role;
 import ai.scop.core.messaging.Message;
 import com.tnsai.actions.ActionParams;
+import com.tnsai.actions.ActionResult;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
@@ -428,10 +429,39 @@ public class CustomerRole extends Role {
     }
 
     /**
-     * Evaluate collected proposals: shortlist top candidates for sequential negotiation.
+     * Before evaluateProposals: prepare proposal summary as LLM parameters.
+     * The framework's LLMRoleExecutor uses these parameters to build the prompt.
      */
-    @ActionSpec(type = ActionType.LLM, description = "Evaluate all proposals and shortlist top candidates using LLM reasoning")
-    public void evaluateProposals() {
+    @BeforeActionSpec("evaluateProposals")
+    private ActionParams beforeEvaluateProposals(ActionParams params) {
+        StringBuilder proposalSummary = new StringBuilder();
+        List<RoomProposal> proposalList = new ArrayList<>(proposals.values());
+        for (int i = 0; i < proposalList.size(); i++) {
+            RoomProposal p = proposalList.get(i);
+            proposalSummary.append(String.format("%d. %s - %d stars - $%.0f/night\n",
+                i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight()));
+        }
+        params.set("customerCriteria", String.format("%s, %d+ stars, max $%.0f/night, desired $%.0f/night",
+            desiredLocation, desiredRank, maxPrice, desiredPrice));
+        params.set("proposals", proposalSummary.toString());
+        return params;
+    }
+
+    /**
+     * Evaluate collected proposals: shortlist top candidates for sequential negotiation.
+     * Framework-orchestrated: LLMRoleExecutor calls LLM and passes ranking via ActionResult.
+     * Fallback paths: (1) direct LLM ranking, (2) deterministic price-based sorting.
+     *
+     * @param llmResult the LLM response from framework (null when called directly from tick machine)
+     */
+    @ActionSpec(type = ActionType.LLM,
+        description = "Evaluate and rank hotel proposals",
+        llmTool = @LLMTool(
+            systemPrompt = "You are evaluating hotel proposals for a customer. " +
+                "Rank proposals from best to worst considering value-for-money, star rating, and price. " +
+                "Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3)."
+        ))
+    public void evaluateProposals(ActionResult llmResult) {
         state = CustomerState.EVALUATING;
 
         getLogger().info("[{}] Evaluating {} proposals", getOwner().getName(), proposals.size());
@@ -444,13 +474,16 @@ public class CustomerRole extends Role {
             return;
         }
 
-        // LLM-enhanced evaluation: when LLM client is available, use LLM to rank proposals
-        // considering price, quality, location preference, and value-for-money.
-        // Fallback: deterministic price-based sorting.
+        // Rank proposals using available path
         List<RoomProposal> ranked;
-        if (getLLMClient() != null) {
+        if (llmResult != null && !llmResult.isEmpty()) {
+            // Path 1: Framework-orchestrated (ActionResult from LLMRoleExecutor)
+            ranked = parseLLMRanking(llmResult.asString());
+        } else if (getLLMClient() != null) {
+            // Path 2: Direct call path (e.g., from tick machine)
             ranked = llmRankProposals();
         } else {
+            // Path 3: Deterministic fallback (no LLM available)
             ranked = proposals.values().stream()
                 .sorted(Comparator
                     .comparingDouble(RoomProposal::getPricePerNight)
@@ -502,6 +535,46 @@ public class CustomerRole extends Role {
         } else {
             // Start negotiation with first candidate
             startNegotiationWithCandidate(0);
+        }
+    }
+
+    /**
+     * Parse LLM ranking response into ordered proposal list.
+     * Expects comma-separated indices (e.g., "2,1,3").
+     * Falls back to deterministic sort on parse failure.
+     */
+    private List<RoomProposal> parseLLMRanking(String response) {
+        try {
+            List<RoomProposal> proposalList = new ArrayList<>(proposals.values());
+            List<RoomProposal> ranked = new ArrayList<>();
+            String[] parts = response.replaceAll("[^0-9,]", "").split(",");
+            Set<Integer> seen = new HashSet<>();
+            for (String part : parts) {
+                try {
+                    int idx = Integer.parseInt(part.trim()) - 1;
+                    if (idx >= 0 && idx < proposalList.size() && seen.add(idx)) {
+                        ranked.add(proposalList.get(idx));
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            // Add any proposals not mentioned by LLM
+            for (RoomProposal p : proposalList) {
+                if (!ranked.contains(p)) {
+                    ranked.add(p);
+                }
+            }
+            getLogger().info("[{}] LLM proposal ranking (framework): {}", getOwner().getName(), response);
+            ActivityLog.log(getOwner().getName(), "System", "LLM_EVALUATE",
+                "Used LLM (framework) to rank " + proposalList.size() + " proposals");
+            return ranked;
+        } catch (Exception e) {
+            getLogger().warn("[{}] LLM ranking parse failed, falling back to price sort: {}",
+                getOwner().getName(), e.getMessage());
+            return proposals.values().stream()
+                .sorted(Comparator
+                    .comparingDouble(RoomProposal::getPricePerNight)
+                    .thenComparingLong(RoomProposal::getTimestamp))
+                .collect(Collectors.toList());
         }
     }
 
@@ -966,7 +1039,7 @@ public class CustomerRole extends Role {
                 break;
             }
             case EVALUATING:
-                evaluateProposals();
+                evaluateProposals(null);
                 break;
             case NEGOTIATING:
                 processNegotiationTick();

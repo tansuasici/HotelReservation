@@ -5,6 +5,7 @@ import ai.scop.core.Identifier;
 import ai.scop.core.Role;
 import ai.scop.core.messaging.Message;
 import com.tnsai.actions.ActionParams;
+import com.tnsai.actions.ActionResult;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
@@ -181,7 +182,7 @@ public class HotelProviderRole extends Role {
         }
 
         // Create and send proposal
-        sendProposal(message.getSender());
+        sendProposal(message.getSender(), query);
     }
 
     /**
@@ -220,20 +221,69 @@ public class HotelProviderRole extends Role {
     // ==========================================
 
     /**
+     * Before decidePricingStrategy: prepare runtime state as LLM parameters.
+     * The framework's LLMRoleExecutor uses these parameters to build the prompt.
+     */
+    @BeforeActionSpec("decidePricingStrategy")
+    private ActionParams beforeDecidePricing(ActionParams params) {
+        HotelAgent ha = (HotelAgent) getOwner();
+        int total = ha.getTotalRooms();
+        int avail = ha.getAvailableRooms();
+        double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
+        RoomQuery query = params.get("query", RoomQuery.class);
+
+        params.set("hotelInfo", String.format("%s (%d-star, $%.0f/night in %s)", hotelName, rank, basePrice, location));
+        params.set("occupancy", String.format("%.0f%% (%d/%d rooms occupied)", occupancyRate * 100, total - avail, total));
+        if (query != null) {
+            params.set("customerRequest", String.format("%s, %d+ stars, max $%.0f/night",
+                query.getLocation(), query.getMinRank(), query.getMaxPrice()));
+        }
+        return params;
+    }
+
+    /**
      * Use LLM to decide the pricing strategy for a customer query.
-     * Considers occupancy, demand level, customer criteria, and competitive positioning.
-     * Fallback: returns the deterministic multiplier from occupancy-based calculation.
+     * Framework-orchestrated: LLMRoleExecutor calls LLM and passes result via ActionResult.
+     * Fallback paths: (1) direct LLM call if ActionResult null but client available,
+     * (2) deterministic multiplier from occupancy-based calculation.
      *
      * @param query the customer's room query
+     * @param llmResult the LLM response from framework (null when called directly)
      * @return price multiplier to apply to base price (e.g., 0.95 for discount, 1.15 for premium)
      */
-    @ActionSpec(type = ActionType.LLM, description = "Decide pricing strategy based on market conditions and customer profile")
-    public double decidePricingStrategy(RoomQuery query) {
+    @ActionSpec(type = ActionType.LLM,
+        description = "Decide pricing strategy based on market conditions and customer profile",
+        llmTool = @LLMTool(
+            systemPrompt = "You are a hotel pricing strategist. Given hotel details, occupancy, and customer request, " +
+                "decide a price multiplier (0.85 to 1.30) to apply to the base price. " +
+                "Consider demand level, customer budget, and competitive positioning. " +
+                "Return ONLY a decimal number (e.g., 1.05)."
+        ))
+    public double decidePricingStrategy(RoomQuery query, ActionResult llmResult) {
         HotelAgent ha = (HotelAgent) getOwner();
         int total = ha.getTotalRooms();
         int avail = ha.getAvailableRooms();
         double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
 
+        // Path 1: Framework-orchestrated (ActionResult from LLMRoleExecutor)
+        if (llmResult != null && !llmResult.isEmpty()) {
+            try {
+                String response = llmResult.asString();
+                double multiplier = Double.parseDouble(response.replaceAll("[^0-9.]", ""));
+                multiplier = Math.max(0.85, Math.min(1.30, multiplier));
+
+                getLogger().info("[{}] LLM pricing strategy (framework): multiplier={} for query from {}",
+                    getOwner().getName(), String.format("%.2f", multiplier),
+                    query != null ? query.getLocation() : "unknown");
+                ActivityLog.log(hotelName, "System", "LLM_PRICING",
+                    String.format("LLM decided multiplier %.2f (occupancy %.0f%%)", multiplier, occupancyRate * 100));
+                return multiplier;
+            } catch (Exception e) {
+                getLogger().warn("[{}] LLM pricing parse failed, fallback: {}", getOwner().getName(), e.getMessage());
+            }
+        }
+
+        // Path 2: Direct call path (e.g., from beforeSendProposal hook)
         if (getLLMClient() != null) {
             try {
                 String prompt = String.format(
@@ -245,16 +295,18 @@ public class HotelProviderRole extends Role {
                     "Return ONLY a decimal number (e.g., 1.05).",
                     hotelName, rank, basePrice, location,
                     occupancyRate * 100, total - avail, total,
-                    query.getLocation(), query.getMinRank(), query.getMaxPrice()
+                    query != null ? query.getLocation() : "unknown",
+                    query != null ? query.getMinRank() : 0,
+                    query != null ? query.getMaxPrice() : 0
                 );
 
                 String response = getLLMClient().chat(prompt).getContent();
                 double multiplier = Double.parseDouble(response.replaceAll("[^0-9.]", ""));
-                // Clamp to safe range
                 multiplier = Math.max(0.85, Math.min(1.30, multiplier));
 
-                getLogger().info("[{}] LLM pricing strategy: multiplier={} for query from {}",
-                    getOwner().getName(), String.format("%.2f", multiplier), query.getLocation());
+                getLogger().info("[{}] LLM pricing strategy (direct): multiplier={} for query from {}",
+                    getOwner().getName(), String.format("%.2f", multiplier),
+                    query != null ? query.getLocation() : "unknown");
                 ActivityLog.log(hotelName, "System", "LLM_PRICING",
                     String.format("LLM decided multiplier %.2f (occupancy %.0f%%)", multiplier, occupancyRate * 100));
                 return multiplier;
@@ -264,7 +316,7 @@ public class HotelProviderRole extends Role {
             }
         }
 
-        // Deterministic fallback
+        // Path 3: Deterministic fallback (no LLM available)
         if (occupancyRate < 0.3) return 0.95;
         if (occupancyRate < 0.7) return 1.0 + (occupancyRate - 0.3) * 0.25;
         return 1.10 + (occupancyRate - 0.7) * 0.50;
@@ -287,16 +339,16 @@ public class HotelProviderRole extends Role {
         int avail = ha.getAvailableRooms();
         double occupancyRate = total > 0 ? 1.0 - ((double) avail / total) : 0.0;
 
-        double multiplier;
+        // Use LLM-enhanced pricing strategy (with deterministic fallback)
+        RoomQuery query = params.get("query", RoomQuery.class);
+        double multiplier = decidePricingStrategy(query, null);
+
         String demandLevel;
-        if (occupancyRate < 0.3) {
-            multiplier = 0.95; // Low demand discount
+        if (multiplier < 1.0) {
             demandLevel = "LOW";
-        } else if (occupancyRate < 0.7) {
-            multiplier = 1.0 + (occupancyRate - 0.3) * 0.25; // 1.0 to 1.10
+        } else if (multiplier < 1.10) {
             demandLevel = "NORMAL";
         } else {
-            multiplier = 1.10 + (occupancyRate - 0.7) * 0.50; // 1.10 to 1.25
             demandLevel = "HIGH";
         }
 
@@ -331,10 +383,11 @@ public class HotelProviderRole extends Role {
      * Uses dynamic pricing based on occupancy via @BeforeAction hook.
      */
     @ActionSpec(type = ActionType.LOCAL, description = "Generate and send a room proposal to customer", excludeFromLLM = true)
-    public void sendProposal(Identifier customer) {
+    public void sendProposal(Identifier customer, RoomQuery query) {
         // Create ActionParams and invoke before-hook
         ActionParams params = new ActionParams(new HashMap<>(), "sendProposal");
         params.set("customerName", customer.getAgentName());
+        params.set("query", query);
         params = beforeSendProposal(params);
 
         double dynamicPrice = params.getDouble("dynamicPrice");
