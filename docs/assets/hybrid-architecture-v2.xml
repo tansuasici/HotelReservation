@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="draw.io" version="29.5.1">
+  <diagram name="Improved Hybrid Architecture" id="improved-hybrid-v2">
+    <mxGraphModel dx="1845" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- BACKGROUND: Full canvas               -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="bg" parent="1" vertex="1" value=""
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;">
+          <mxGeometry x="-450" y="1020" width="1080" height="600" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- GREEN ZONE: Your Computer              -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="greenzone" parent="1" vertex="1" value=""
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;dashed=1;">
+          <mxGeometry x="25" y="1026" width="600" height="590" as="geometry" />
+        </mxCell>
+
+        <!-- Zone labels -->
+        <mxCell id="lbl_internet" parent="1" vertex="1"
+          style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=3;fontSize=13;"
+          value="Internet">
+          <mxGeometry x="-445" y="1022" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_computer" parent="1" vertex="1"
+          style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=3;fontSize=13;"
+          value="Your computer">
+          <mxGeometry x="530" y="1022" width="90" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- (1) ANNOTATION BOX (expanded)          -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="annot" parent="1" vertex="1"
+          style="text;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;labelBackgroundColor=none;fontSize=12;align=center;verticalAlign=middle;"
+          value="&lt;div&gt;(1) &lt;b&gt;Explicit&lt;/b&gt; action implementation descriptions&lt;/div&gt;&lt;div&gt;(i.e. tool descriptions) are added to the agent,&lt;/div&gt;&lt;div&gt;&lt;b&gt;along with&lt;/b&gt; state annotations, communication style,&lt;/div&gt;&lt;div&gt;responsibilities, and before/after action hooks.&lt;/div&gt;">
+          <mxGeometry x="-185" y="1028" width="310" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- AGENT                                  -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="agent" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#000000;strokeColor=#666666;fontSize=12;"
+          value="Agent">
+          <mxGeometry x="215" y="1110" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Agent → Role (Chooses) -->
+        <mxCell id="e_agent_role" parent="1" edge="1" source="agent" target="role"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_agent_role_lbl" parent="e_agent_role" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Chooses">
+          <mxGeometry relative="1" x="-0.3" as="geometry"><mxPoint x="30" y="-30" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- REMOTE MCP SERVER                      -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="remote_mcp" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;"
+          value="Remote&lt;br&gt;MCP Server">
+          <mxGeometry x="-90" y="1170" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- LOCAL MCP SERVER                       -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="local_mcp" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;"
+          value="Local&lt;br&gt;MCP Server">
+          <mxGeometry x="350" y="1170" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- WEB SERVICE                            -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="web_svc" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;"
+          value="Web&lt;br&gt;Service">
+          <mxGeometry x="-340" y="1170" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- WEB SERVICE DIRECTORY SERVICE          -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="ws_dir" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;"
+          value="Web Service&lt;br&gt;Directory Service">
+          <mxGeometry x="-380" y="1330" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- ROLE (center)                          -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="role" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#000000;strokeColor=#666666;fontSize=12;"
+          value="Role">
+          <mxGeometry x="155" y="1290" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- LOCAL CODE                             -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="local_code" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#000000;strokeColor=#666666;fontSize=12;"
+          value="Local Code">
+          <mxGeometry x="480" y="1290" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- LLM (bottom)                           -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="llm" parent="1" vertex="1"
+          style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;"
+          value="LLM">
+          <mxGeometry x="175" y="1560" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: HOOK SYSTEM (green, dashed)       -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="hooks" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;Hook System&lt;/b&gt;&lt;br&gt;&lt;i&gt;Before/After Action&lt;br&gt;+ ActionParams&lt;/i&gt;">
+          <mxGeometry x="35" y="1385" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: INTER-AGENT MESSAGING (green)     -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="messaging" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;Inter-Agent&lt;br&gt;Messaging&lt;/b&gt;&lt;br&gt;&lt;i&gt;CNP Protocol&lt;/i&gt;">
+          <mxGeometry x="175" y="1385" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: NETWORK TOPOLOGY (green)          -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="topology" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;Network&lt;br&gt;Topology&lt;/b&gt;&lt;br&gt;&lt;i&gt;Agent graph&lt;/i&gt;">
+          <mxGeometry x="305" y="1385" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: STRATEGY / ALGORITHM (green)      -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="strategy" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;Strategy /&lt;br&gt;Algorithm&lt;/b&gt;&lt;br&gt;&lt;i&gt;Pluggable&lt;/i&gt;">
+          <mxGeometry x="465" y="1385" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: LLM INTEGRATION BRIDGE (green)    -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="llm_bridge" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;LLM Integration Bridge&lt;/b&gt;&lt;br&gt;&lt;i&gt;Prompt builder + Tool converter&lt;br&gt;+ Tool executor&lt;/i&gt;">
+          <mxGeometry x="135" y="1475" width="170" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW: CONVERSATION (green)              -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="conversation" parent="1" vertex="1"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#2e7d32;fontSize=11;dashed=1;strokeWidth=2;"
+          value="&lt;b&gt;Conversation&lt;/b&gt;&lt;br&gt;&lt;i&gt;NL chat per agent&lt;/i&gt;">
+          <mxGeometry x="380" y="1480" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- NEW indicator label                    -->
+        <!-- ══════════════════════════════════════ -->
+        <mxCell id="new_legend" parent="1" vertex="1"
+          style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#2e7d32;"
+          value="&lt;span style='border:2px dashed #2e7d32;background:#e6ffe6;padding:2px 6px;border-radius:4px;'&gt;NEW&lt;/span&gt; = Added in this work">
+          <mxGeometry x="420" y="1030" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- EDGES: Original connections            -->
+        <!-- ══════════════════════════════════════ -->
+
+        <!-- Role → Local Code (Execute) -->
+        <mxCell id="e_role_local" parent="1" edge="1" source="role" target="local_code"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_local_lbl" parent="e_role_local" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Execute">
+          <mxGeometry relative="1" x="-0.15" as="geometry"><mxPoint x="10" y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Local Code → Role (Result) -->
+        <mxCell id="e_local_role" parent="1" edge="1" source="local_code" target="role"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_local_role_lbl" parent="e_local_role" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Result">
+          <mxGeometry relative="1" x="0.1" as="geometry"><mxPoint y="12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Role → WS Dir Service (Query) -->
+        <mxCell id="e_role_wsdir" parent="1" edge="1" source="role" target="ws_dir"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_wsdir_lbl" parent="e_role_wsdir" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Query">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- WS Dir Service → Role (Selected Service) -->
+        <mxCell id="e_wsdir_role" parent="1" edge="1" source="ws_dir" target="role"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wsdir_role_lbl" parent="e_wsdir_role" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Selected Service">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Web Service ↔ Remote MCP Server -->
+        <mxCell id="e_ws_rmcp_req" parent="1" edge="1" source="remote_mcp" target="web_svc"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ws_rmcp_req_lbl" parent="e_ws_rmcp_req" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Request">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e_ws_rmcp_res" parent="1" edge="1" source="web_svc" target="remote_mcp"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ws_rmcp_res_lbl" parent="e_ws_rmcp_res" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Response">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Remote MCP → Role (Request/Response) -->
+        <mxCell id="e_rmcp_role" parent="1" edge="1" source="remote_mcp" target="role"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rmcp_role_lbl1" parent="e_rmcp_role" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Response">
+          <mxGeometry relative="1" x="0.3" as="geometry"><mxPoint x="-35" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Role → Remote MCP (Request) -->
+        <mxCell id="e_role_rmcp" parent="1" edge="1" source="role" target="remote_mcp"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.1;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_rmcp_lbl" parent="e_role_rmcp" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Request">
+          <mxGeometry relative="1" x="0.3" as="geometry"><mxPoint x="30" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Local MCP → Role / Local Code -->
+        <mxCell id="e_role_lmcp" parent="1" edge="1" source="role" target="local_mcp"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;exitX=0.75;exitY=0;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="230" y="1210" /><mxPoint x="350" y="1210" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_role_lmcp_lbl1" parent="e_role_lmcp" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Request">
+          <mxGeometry relative="1" x="-0.3" as="geometry"><mxPoint x="30" y="20" as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e_role_lmcp_lbl2" parent="e_role_lmcp" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Response">
+          <mxGeometry relative="1" x="0.3" as="geometry"><mxPoint x="75" y="-38" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Local MCP → Local Code (Execute/Result) -->
+        <mxCell id="e_lmcp_lcode" parent="1" edge="1" source="local_mcp" target="local_code"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lmcp_lcode_lbl1" parent="e_lmcp_lcode" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Execute">
+          <mxGeometry relative="1" x="-0.2" as="geometry"><mxPoint x="15" y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="e_lmcp_lcode_lbl2" parent="e_lmcp_lcode" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Result">
+          <mxGeometry relative="1" x="0.2" as="geometry"><mxPoint x="-30" y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Web Service → WS Dir Service (Register) -->
+        <mxCell id="e_ws_wsdir" parent="1" edge="1" source="web_svc" target="ws_dir"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ws_wsdir_lbl" parent="e_ws_wsdir" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Register with explicit&lt;br&gt;service description">
+          <mxGeometry relative="1" x="-0.1" as="geometry"><mxPoint x="-55" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- EDGES: Role ↔ LLM (via Bridge)         -->
+        <!-- ══════════════════════════════════════ -->
+
+        <!-- Role → LLM Bridge -->
+        <mxCell id="e_role_bridge" parent="1" edge="1" source="role" target="llm_bridge"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;exitX=0.3;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_bridge_lbl" parent="e_role_bridge" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Prompt with tool descriptions&lt;br&gt;+ state + communication style&lt;/b&gt;">
+          <mxGeometry relative="1" x="0.2" as="geometry"><mxPoint x="-100" y="1" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- LLM Bridge → LLM -->
+        <mxCell id="e_bridge_llm" parent="1" edge="1" source="llm_bridge" target="llm"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bridge_llm_lbl" parent="e_bridge_llm" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Prompt with&lt;br&gt;action request">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="-75" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- LLM → LLM Bridge (tool selection) -->
+        <mxCell id="e_llm_bridge" parent="1" edge="1" source="llm" target="llm_bridge"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=12;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_llm_bridge_lbl" parent="e_llm_bridge" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;labelBackgroundColor=none;"
+          value="Selected tool's&lt;br&gt;identifier and parameters">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="80" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- LLM Bridge → Local Code (Execute tool call) -->
+        <mxCell id="e_bridge_lcode" parent="1" edge="1" source="llm_bridge" target="local_code"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=11;fontColor=#2e7d32;strokeColor=#2e7d32;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bridge_lcode_lbl" parent="e_bridge_lcode" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Execute tool call&lt;/b&gt;">
+          <mxGeometry relative="1" x="-0.1" as="geometry"><mxPoint x="20" y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ══════════════════════════════════════ -->
+        <!-- EDGES: NEW connections (green)          -->
+        <!-- ══════════════════════════════════════ -->
+
+        <!-- Role → Hooks -->
+        <mxCell id="e_role_hooks" parent="1" edge="1" source="role" target="hooks"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;exitX=0;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_hooks_lbl" parent="e_role_hooks" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Hook chain&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="-40" y="-2" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Role → Messaging -->
+        <mxCell id="e_role_msg" parent="1" edge="1" source="role" target="messaging"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_msg_lbl" parent="e_role_msg" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Send/Receive&lt;br&gt;messages&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="55" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Role → Topology -->
+        <mxCell id="e_role_topo" parent="1" edge="1" source="role" target="topology"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;exitX=1;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_topo_lbl" parent="e_role_topo" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Topology&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="30" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Local Code → Strategy -->
+        <mxCell id="e_lcode_strat" parent="1" edge="1" source="local_code" target="strategy"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lcode_strat_lbl" parent="e_lcode_strat" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Delegate&lt;br&gt;decision&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="35" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Agent → Conversation -->
+        <mxCell id="e_agent_conv" parent="1" edge="1" source="agent" target="conversation"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;exitX=1;exitY=0.75;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_agent_conv_lbl" parent="e_agent_conv" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;adopt&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="25" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Conversation → LLM Bridge -->
+        <mxCell id="e_conv_bridge" parent="1" edge="1" source="conversation" target="llm_bridge"
+          style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_conv_bridge_lbl" parent="e_conv_bridge" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;chat()&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="12" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Hooks → Local Code (modified execution) -->
+        <mxCell id="e_hooks_lcode" parent="1" edge="1" source="hooks" target="local_code"
+          style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeColor=#2e7d32;strokeWidth=2;dashed=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_hooks_lcode_lbl" parent="e_hooks_lcode" vertex="1" connectable="0"
+          style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;labelBackgroundColor=none;fontColor=#2e7d32;"
+          value="&lt;b&gt;Wrap execution&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry"><mxPoint y="-12" as="offset" /></mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

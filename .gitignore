@@ -1,25 +1,13 @@
-# Environment files (contains secrets)
-.env
-.env.local
-.env.*.local
+# Backend build outputs
+api/target/
+api/.env
+api/.env.local
+api/.env.*.local
 
-# Build outputs
-target/
-*.jar
-*.war
-*.class
-
-# Runtime outputs
-output-data/
-
-# Extracted framework artifacts
-ai/
-META-INF/
-
-# Generated files
-full-classpath.txt
+# Frontend
 .next/
 webapp/.env.local
+webapp/node_modules/
 
 # IDE files
 .idea/
@@ -27,18 +15,18 @@ webapp/.env.local
 .vscode/
 *.swp
 
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.jar
+*.war
+*.class
+
 # Logs
 *.log
 logs/
 
-# Project docs (not for repo)
-AGENTS.md
+# Claude docs (not for repo)
 CLAUDE.md
-scenario.md
-todo.md
-docs/
-_llm_wip/
-
-# OS files
-.DS_Store
-Thumbs.db

@@ -165,6 +165,8 @@ Customer                              Hotel Agents
 ### Backend
 
 ```bash
+cd api
+
 # 1. Setup environment
 cp .env.example .env
 # Edit .env if needed (defaults work out of the box)
@@ -215,7 +217,7 @@ POST /api/agents/{id}/chat            Chat with an agent
 
 ## Configuration
 
-All tunable parameters live in `.env` with sensible defaults:
+All tunable parameters live in `api/.env` with sensible defaults:
 
 ```bash
 # Server
@@ -243,7 +245,7 @@ OPENWEATHER_API_KEY=your_key_here     # openweathermap.org/api
 ## Project Structure
 
 ```
-src/main/java/hotel/reservation/
+api/src/main/java/hotel/reservation/
 +-- HotelReservationPlayground.java        Simulation entry point
 +-- ActivityLog.java                       Global activity logger
 +-- agent/

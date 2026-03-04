@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px', 'fontFamily': 'arial', 'primaryColor': '#FFB800', 'primaryTextColor': '#000', 'primaryBorderColor': '#CC9400', 'lineColor': '#333', 'secondaryColor': '#FFF3CC', 'tertiaryColor': '#FFF9E6'}, 'flowchart': {'curve': 'basis', 'nodeSpacing': 40, 'rankSpacing': 45, 'padding': 20}}}%%
+
+graph TD
+    ENV["<b>Environment</b><br/>SCOP Playground"]
+
+    ENV -- "percepts<br/>(messages)" --> SENSORS
+
+    subgraph AGENT["Deliberative Agent"]
+
+        TITLE@{ shape: text, label: "<b><i>Role-based LLM-Enhanced Deliberation</i></b>"}
+
+        SENSORS["<b>Sensors</b><br/>Message Handlers"]
+        OBSERVE["<b>Observe</b><br/>parseMessage()"]
+
+        TITLE ~~~ SENSORS
+        SENSORS --> OBSERVE
+        OBSERVE --> STATE
+        OBSERVE --> RULES
+
+        STATE[("<b>State</b><br/><i>from Roles</i><br/>occupancy, prices,<br/>proposals, budget")]
+        RULES[("<b>Rules</b><br/><i>from Annotations</i><br/>@LLMSpec, @RoleSpec,<br/>@Action")]
+
+        STATE --> SELECT
+        RULES --> SELECT
+
+        SELECT["<b>Select Action</b><br/>LLM Tool-Calling"]
+        SELECT --> ACTION["<b>Action Mechanisms</b><br/>execute()"]
+    end
+
+    ACTION -- "actions<br/>(sendMessage)" --> ENV
