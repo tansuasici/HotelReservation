@@ -93,7 +93,8 @@ public class HotelReservationPlayground extends Playground {
                 hotel.getCity(),
                 hotel.getRank(),
                 hotel.getPricePerNight(),
-                hotel.getTotalRooms()
+                hotel.getTotalRooms(),
+                hotel.getAmenities()
             ));
             hotelEnv.add(agent);
             hotelAgents.add(agent);
@@ -120,7 +121,8 @@ public class HotelReservationPlayground extends Playground {
         for (CustomerSpec spec : specs) {
             CustomerAgent customer = create(new CustomerAgent(
                 spec.getName(), spec.getDesiredLocation(),
-                spec.getDesiredRank(), spec.getMaxPrice()
+                spec.getDesiredRank(), spec.getMaxPrice(),
+                spec.getNumberOfRooms(), spec.getAmenities()
             ));
             hotelEnv.add(customer);
             customerAgents.add(customer);

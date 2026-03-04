@@ -8,6 +8,8 @@ import com.tnsai.annotations.LLMSpec.Provider;
 import hotel.reservation.role.HotelProviderRole;
 import hotel.reservation.role.pricing.LinearPricingStrategy;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -32,6 +34,7 @@ public class HotelAgent extends Agent {
     private String location;
     private int rank;
     private double basePrice;
+    private List<String> amenities;
     private boolean dataLoaded = false;
 
     // Room capacity (1-3 rooms per hotel)
@@ -51,8 +54,12 @@ public class HotelAgent extends Agent {
         this(hotelId, hotelName, location, rank, basePrice, 0);
     }
 
+    public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice, int totalRooms) {
+        this(hotelId, hotelName, location, rank, basePrice, totalRooms, Collections.emptyList());
+    }
+
     /**
-     * Create a hotel agent with pre-loaded data and explicit room count.
+     * Create a hotel agent with pre-loaded data, room count, and amenities.
      *
      * @param hotelId    Unique hotel identifier (e.g., "h001")
      * @param hotelName  Display name of the hotel
@@ -60,14 +67,17 @@ public class HotelAgent extends Agent {
      * @param rank       Star rating (1-5)
      * @param basePrice  Base price per night
      * @param totalRooms Total room capacity (0 = random 1-3)
+     * @param amenities  Available amenities (e.g., "wifi", "pool", "spa")
      */
-    public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice, int totalRooms) {
+    public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice,
+                      int totalRooms, List<String> amenities) {
         super("Hotel-" + hotelId);
         this.hotelId = hotelId;
         this.hotelName = hotelName;
         this.location = location;
         this.rank = rank;
         this.basePrice = basePrice;
+        this.amenities = amenities != null ? amenities : Collections.emptyList();
         this.dataLoaded = true;
         this.totalRooms = totalRooms > 0 ? totalRooms : new Random().nextInt(3) + 1;
         this.availableRooms = this.totalRooms;
@@ -82,7 +92,7 @@ public class HotelAgent extends Agent {
 
         // Adopt the hotel provider role
         HotelProviderRole providerRole = new HotelProviderRole(this, "HotelEnv",
-            hotelId, hotelName, location, rank, basePrice, new LinearPricingStrategy());
+            hotelId, hotelName, location, rank, basePrice, amenities, new LinearPricingStrategy());
         adopt(providerRole);
 
         // Conversation role - for chat (like LifeAgent)
@@ -115,6 +125,7 @@ public class HotelAgent extends Agent {
     public String getLocation() { return location; }
     public int getRank() { return rank; }
     public double getBasePrice() { return basePrice; }
+    public List<String> getAmenities() { return amenities; }
     public boolean isDataLoaded() { return dataLoaded; }
 
     @Override

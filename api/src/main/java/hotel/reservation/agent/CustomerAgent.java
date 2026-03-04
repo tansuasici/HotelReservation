@@ -8,6 +8,9 @@ import com.tnsai.annotations.LLMSpec.Provider;
 import hotel.reservation.role.CustomerRole;
 import hotel.reservation.role.pricing.LinearPricingStrategy;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Customer Agent - Represents a customer looking for hotel rooms.
  * Implements the CNP initiator role.
@@ -26,33 +29,28 @@ public class CustomerAgent extends Agent {
     private final int desiredRank;
     private final double maxPrice;
     private final double desiredPrice;  // For negotiation
+    private final int numberOfRooms;
+    private final List<String> amenities;
 
     /**
      * Create a customer agent.
-     *
-     * @param name           Customer identifier
-     * @param desiredLocation Desired city
-     * @param desiredRank    Minimum star rating required
-     * @param maxPrice       Maximum budget per night
      */
     public CustomerAgent(String name, String desiredLocation, int desiredRank, double maxPrice) {
-        super(name);
-        this.desiredLocation = desiredLocation;
-        this.desiredRank = desiredRank;
-        this.maxPrice = maxPrice;
-        this.desiredPrice = maxPrice * 0.8;  // Try to get 20% off
+        this(name, desiredLocation, desiredRank, maxPrice, 1, Collections.emptyList());
     }
 
     /**
-     * Create a customer agent with explicit desired price.
+     * Create a customer agent with room count and amenities.
      */
     public CustomerAgent(String name, String desiredLocation, int desiredRank,
-                         double maxPrice, double desiredPrice) {
+                         double maxPrice, int numberOfRooms, List<String> amenities) {
         super(name);
         this.desiredLocation = desiredLocation;
         this.desiredRank = desiredRank;
         this.maxPrice = maxPrice;
-        this.desiredPrice = desiredPrice;
+        this.desiredPrice = maxPrice * 0.8;
+        this.numberOfRooms = numberOfRooms;
+        this.amenities = amenities != null ? amenities : Collections.emptyList();
     }
 
     @Override
@@ -62,7 +60,7 @@ public class CustomerAgent extends Agent {
 
         // Adopt the customer role
         adopt(new CustomerRole(this, "HotelEnv", desiredLocation, desiredRank, maxPrice, desiredPrice,
-            new LinearPricingStrategy()));
+            numberOfRooms, amenities, new LinearPricingStrategy()));
 
         // Conversation role - for chat (like LifeAgent)
         adopt(new Conversation(this, getPlayground()));
@@ -99,6 +97,8 @@ public class CustomerAgent extends Agent {
     public int getDesiredRank() { return desiredRank; }
     public double getMaxPrice() { return maxPrice; }
     public double getDesiredPrice() { return desiredPrice; }
+    public int getNumberOfRooms() { return numberOfRooms; }
+    public List<String> getAmenities() { return amenities; }
 
     /**
      * Start the hotel search process.

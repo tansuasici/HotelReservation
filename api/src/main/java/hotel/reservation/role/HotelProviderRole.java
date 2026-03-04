@@ -468,7 +468,7 @@ public class HotelProviderRole extends Role {
             dynamicPrice,
             "standard"  // Default room type
         );
-        proposal.setAmenities(List.of("wifi", "breakfast"));
+        proposal.setAmenities(amenities);
         proposal.setRating(4.5);
 
         getLogger().info("[{}] Sending proposal to {}: {} - ${}/night",
@@ -540,8 +540,10 @@ public class HotelProviderRole extends Role {
         // Send confirmation using Role's sendMessage
         sendMessage(MessageTypes.MSG_CONFIRM, confirmation, message.getSender());
 
-        // Mark as temporarily unavailable (optional)
-        // this.available = false;
+        // Synchronize with external calendar (MCP_TOOL)
+        syncCalendar(confirmation.getConfirmationNumber(),
+            confirmation.getCheckInDate(), confirmation.getCheckOutDate(),
+            request.getCustomerName());
     }
 
     /**
@@ -722,6 +724,11 @@ public class HotelProviderRole extends Role {
 
         sendMessage(MessageTypes.MSG_CONFIRM, confirmation, message.getSender());
         currentNegotiations.remove(request.getProposalId());
+
+        // Synchronize with external calendar (MCP_TOOL)
+        syncCalendar(confirmation.getConfirmationNumber(),
+            confirmation.getCheckInDate(), confirmation.getCheckOutDate(),
+            request.getCustomerName());
     }
 
     /**

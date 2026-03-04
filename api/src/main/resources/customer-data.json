@@ -5,105 +5,135 @@
       "name": "Customer-1",
       "desiredLocation": "Istanbul",
       "desiredRank": 4,
-      "maxPrice": 460.0
+      "maxPrice": 460.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "pool", "spa"]
     },
     {
       "id": "c002",
       "name": "Customer-2",
       "desiredLocation": "Istanbul",
       "desiredRank": 4,
-      "maxPrice": 450.0
+      "maxPrice": 450.0,
+      "numberOfRooms": 2,
+      "amenities": ["wifi", "restaurant"]
     },
     {
       "id": "c003",
       "name": "Customer-3",
       "desiredLocation": "Istanbul",
       "desiredRank": 3,
-      "maxPrice": 170.0
+      "maxPrice": 170.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi"]
     },
     {
       "id": "c004",
       "name": "Customer-4",
       "desiredLocation": "Istanbul",
       "desiredRank": 3,
-      "maxPrice": 160.0
+      "maxPrice": 160.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "breakfast"]
     },
     {
       "id": "c005",
       "name": "Customer-5",
       "desiredLocation": "Istanbul",
       "desiredRank": 5,
-      "maxPrice": 380.0
+      "maxPrice": 380.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "pool", "spa", "restaurant"]
     },
     {
       "id": "c006",
       "name": "Customer-6",
       "desiredLocation": "Ankara",
       "desiredRank": 3,
-      "maxPrice": 280.0
+      "maxPrice": 280.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "gym"]
     },
     {
       "id": "c007",
       "name": "Customer-7",
       "desiredLocation": "Ankara",
       "desiredRank": 3,
-      "maxPrice": 260.0
+      "maxPrice": 260.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi"]
     },
     {
       "id": "c008",
       "name": "Customer-8",
       "desiredLocation": "Ankara",
       "desiredRank": 4,
-      "maxPrice": 270.0
+      "maxPrice": 270.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "conference"]
     },
     {
       "id": "c009",
       "name": "Customer-9",
       "desiredLocation": "Antalya",
       "desiredRank": 3,
-      "maxPrice": 530.0
+      "maxPrice": 530.0,
+      "numberOfRooms": 2,
+      "amenities": ["wifi", "pool", "beach"]
     },
     {
       "id": "c010",
       "name": "Customer-10",
       "desiredLocation": "Antalya",
       "desiredRank": 5,
-      "maxPrice": 520.0
+      "maxPrice": 520.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "pool", "spa", "all_inclusive"]
     },
     {
       "id": "c011",
       "name": "Customer-11",
       "desiredLocation": "Izmir",
       "desiredRank": 3,
-      "maxPrice": 340.0
+      "maxPrice": 340.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "pool"]
     },
     {
       "id": "c012",
       "name": "Customer-12",
       "desiredLocation": "Izmir",
       "desiredRank": 3,
-      "maxPrice": 320.0
+      "maxPrice": 320.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "beach"]
     },
     {
       "id": "c013",
       "name": "Customer-13",
       "desiredLocation": "Nevsehir",
       "desiredRank": 4,
-      "maxPrice": 380.0
+      "maxPrice": 380.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "spa", "restaurant"]
     },
     {
       "id": "c014",
       "name": "Customer-14",
       "desiredLocation": "Mugla",
       "desiredRank": 3,
-      "maxPrice": 300.0
+      "maxPrice": 300.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi", "pool"]
     },
     {
       "id": "c015",
       "name": "Customer-15",
       "desiredLocation": "Mugla",
       "desiredRank": 3,
-      "maxPrice": 290.0
+      "maxPrice": 290.0,
+      "numberOfRooms": 1,
+      "amenities": ["wifi"]
     }
   ]
 }

@@ -8,10 +8,10 @@ The system implements the hybrid role-based reference architecture where roles a
 
 | Action Type | Select when... | Example in this project |
 |-------------|---------------|------------------------|
-| **LOCAL CODE** | Deterministic, safety-critical, or performance-sensitive operations | `canFulfillRequest()`, inventory updates, budget validation |
+| **LOCAL CODE** | Deterministic, safety-critical, or performance-sensitive operations | `canFulfillRequest()`, inventory updates, amenity matching |
 | **WEB SERVICE** | Well-defined HTTP API calls with stable contracts | `fetchAllHotels()`, `fetchWeather()` |
-| **LLM** | Natural language generation, subjective evaluation, dynamic tool selection | `decidePricingStrategy()`, `evaluateProposals()` |
-| **MCP TOOL** | External tool access through standardized protocol | Calendar synchronization |
+| **LLM** | Natural language generation, subjective evaluation, dynamic tool selection | `decidePricingStrategy()`, `evaluateProposals()`, `selectSearchStrategy()` |
+| **MCP TOOL** | External tool access through standardized protocol | `syncCalendar()` — reservation calendar sync |
 
 Each action is annotated with `@ActionSpec(type=...)`, making the execution strategy explicit and enabling the `ActionExecutor` to route invocations through the full pipeline: `@BeforeActionSpec` hook -> parameter validation -> typed execution -> `@AfterActionSpec` hook.
 
@@ -125,11 +125,12 @@ private void afterHandleProposal(ActionParams p) {
 Sensitive data is injected via `@BeforeActionSpec` hooks, ensuring credentials never appear in LLM-visible contexts:
 
 ```java
-@BeforeActionSpec("sendProposal")
-private ActionParams beforeSendProposal(ActionParams params) {
-    HotelAgent ha = (HotelAgent) getOwner();
-    double occupancyRate = 1.0 - ((double) ha.getAvailableRooms() / ha.getTotalRooms());
-    params.set("dynamicPrice", basePrice * computeMultiplier(occupancyRate));
+@BeforeActionSpec("fetchWeather")
+private ActionParams beforeFetchWeather(ActionParams params) {
+    String apiKey = EnvConfig.openWeatherApiKey();
+    String weatherBase = EnvConfig.weatherApiBase();
+    params.set("apiKey", apiKey);
+    params.set("weatherBase", weatherBase);
     return params;
 }
 ```
@@ -139,19 +140,21 @@ private ActionParams beforeSendProposal(ActionParams params) {
 ```
 Customer                              Hotel Agents
    |                                       |
-   |---- CFP (RoomQuery) --------------->  |  broadcast to matching hotels
+   |  [selectSearchStrategy — LLM]        |
    |                                       |
-   |<--- Proposal (RoomProposal) --------  |  or Refuse
+   |---- CFP (RoomQuery) --------------->  |  broadcast (rooms, amenities, price)
    |                                       |
-   |  [evaluate & shortlist top N]         |
+   |<--- Proposal (RoomProposal) --------  |  or Refuse (amenity/rank mismatch)
+   |                                       |
+   |  [evaluateProposals — LLM]           |
    |                                       |
    |---- NegotiateStart ---------------->  |  sequential: best candidate first
    |<--- CounterOffer -------------------  |
    |---- CounterOffer ------------------>  |  ... rounds ...
    |<--- NegotiateAccept ----------------  |
    |                                       |
-   |---- Accept (ReservationRequest) --->  |
-   |<--- Confirm (ReservationConfirm.) --  |
+   |---- AWARD (ReservationRequest) ---->  |
+   |<--- Confirm (ReservationConfirm.) --  |  [syncCalendar — MCP]
 ```
 
 ## Quick Start

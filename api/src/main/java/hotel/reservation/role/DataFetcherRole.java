@@ -4,6 +4,7 @@ import ai.scop.core.Agent;
 import ai.scop.core.Role;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tnsai.actions.ActionParams;
 import com.tnsai.annotations.*;
 import com.tnsai.enums.ActionType;
 import com.tnsai.enums.HttpMethod;
@@ -342,9 +343,24 @@ public class DataFetcherRole extends Role {
     // ==========================================
 
     /**
+     * Security hook: inject API credentials before weather fetch.
+     * Credentials are resolved from environment and injected into ActionParams,
+     * ensuring they never appear in LLM-visible contexts.
+     */
+    @BeforeActionSpec("fetchWeather")
+    private ActionParams beforeFetchWeather(ActionParams params) {
+        String apiKey = EnvConfig.openWeatherApiKey();
+        String weatherBase = EnvConfig.weatherApiBase();
+        params.set("apiKey", apiKey);
+        params.set("weatherBase", weatherBase);
+        return params;
+    }
+
+    /**
      * Fetch current weather for a city from OpenWeather API.
      * Results are cached per city to avoid redundant API calls within a simulation run.
      * Returns null if API key is not configured or the API call fails (graceful skip).
+     * Credentials are injected via {@code @BeforeActionSpec} hook (security-by-construction).
      */
     @ActionSpec(
         type = ActionType.WEB_SERVICE,
@@ -367,15 +383,18 @@ public class DataFetcherRole extends Role {
             return cached;
         }
 
-        // Check API key
-        String apiKey = EnvConfig.openWeatherApiKey();
-        if (apiKey.isEmpty() || "your_openweather_api_key_here".equals(apiKey)) {
+        // Invoke credential injection hook
+        ActionParams params = new ActionParams(new java.util.HashMap<>(), "fetchWeather");
+        params = beforeFetchWeather(params);
+        String apiKey = params.getString("apiKey");
+        String weatherBase = params.getString("weatherBase");
+
+        if (apiKey == null || apiKey.isEmpty() || "your_openweather_api_key_here".equals(apiKey)) {
             getLogger().debug("OpenWeather API key not configured — skipping weather fetch");
             return null;
         }
 
         try {
-            String weatherBase = EnvConfig.weatherApiBase();
             String url = String.format("%s?q=%s&appid=%s&units=metric",
                 weatherBase,
                 URLEncoder.encode(city, StandardCharsets.UTF_8),

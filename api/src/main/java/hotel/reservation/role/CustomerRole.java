@@ -55,6 +55,11 @@ import java.util.stream.Collectors;
             actions = {"startNegotiation", "handleCounterOfferMessage", "handleNegotiateAcceptMessage", "handleNegotiateRejectMessage"}
         ),
         @Responsibility(
+            name = "SearchStrategy",
+            description = "Use LLM to select optimal search strategy based on context",
+            actions = {"selectSearchStrategy"}
+        ),
+        @Responsibility(
             name = "WeatherForecast",
             description = "Retrieve weather forecasts to inform booking decisions",
             actions = {"fetchWeatherForecast"}
@@ -86,7 +91,13 @@ public class CustomerRole extends Role {
     private final double maxPrice;
 
     @State(description = "Desired price for negotiation")
-    private final double desiredPrice;
+    private double desiredPrice;
+
+    @State(description = "Number of rooms requested")
+    private final int numberOfRooms;
+
+    @State(description = "Required amenities")
+    private final List<String> amenities;
 
     private final BuyerPricingStrategy pricingStrategy;
     private LLMClient llmClient;
@@ -170,12 +181,15 @@ public class CustomerRole extends Role {
     public CustomerRole(Agent owner, String envName,
                         String desiredLocation, int desiredRank,
                         double maxPrice, double desiredPrice,
+                        int numberOfRooms, List<String> amenities,
                         BuyerPricingStrategy pricingStrategy) {
         super(owner, envName);
         this.desiredLocation = desiredLocation;
         this.desiredRank = desiredRank;
         this.maxPrice = maxPrice;
         this.desiredPrice = desiredPrice;
+        this.numberOfRooms = numberOfRooms;
+        this.amenities = amenities != null ? amenities : Collections.emptyList();
         this.pricingStrategy = pricingStrategy;
     }
 
@@ -213,6 +227,105 @@ public class CustomerRole extends Role {
         return null;
     }
 
+    // ==========================================
+    // LLM: Search Strategy Selection
+    // ==========================================
+
+    /**
+     * Before selecting search strategy: prepare context for LLM decision.
+     */
+    @BeforeActionSpec("selectSearchStrategy")
+    private ActionParams beforeSelectSearchStrategy(ActionParams params) {
+        params.set("customerCriteria", String.format(
+            "Location: %s, Min rank: %d stars, Max price: $%.0f, Rooms: %d, Required amenities: %s",
+            desiredLocation, desiredRank, maxPrice, numberOfRooms, amenities));
+
+        // Add weather context if available
+        DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+        if (dfa != null) {
+            WeatherInfo weather = dfa.as(DataFetcherRole.class).fetchWeather(desiredLocation);
+            if (weather != null) {
+                params.set("weatherContext", String.format("%s, %.0f°C", weather.getCondition(), weather.getTemperature()));
+            }
+        }
+        return params;
+    }
+
+    /**
+     * Use LLM to select the optimal search strategy: adjust price flexibility and
+     * amenity requirements based on market context, weather, and customer profile.
+     * Framework-orchestrated: LLMRoleExecutor calls LLM and passes result via ActionResult.
+     * Falls back to deterministic defaults when no LLM is available.
+     *
+     * @param llmResult the LLM response from framework (null when called directly)
+     */
+    @ActionSpec(type = ActionType.LLM,
+        description = "Select search strategy based on customer context and market conditions",
+        llmTool = @LLMTool(
+            systemPrompt = "You are a hotel search strategist. Given customer criteria and weather, " +
+                "decide the search approach. Return a JSON object with: " +
+                "priceFlexibility (0.0-0.3, how much above maxPrice to consider), " +
+                "strictAmenities (true/false, whether all amenities are mandatory or just preferred). " +
+                "Example: {\"priceFlexibility\": 0.1, \"strictAmenities\": false}"
+        ))
+    public void selectSearchStrategy(ActionResult llmResult) {
+        double priceFlexibility = 0.0;
+        boolean strictAmenities = true;
+
+        if (llmResult != null && !llmResult.isEmpty()) {
+            try {
+                String response = llmResult.asString();
+                // Parse simple JSON values
+                if (response.contains("priceFlexibility")) {
+                    String num = response.replaceAll(".*\"priceFlexibility\"\\s*:\\s*([0-9.]+).*", "$1");
+                    priceFlexibility = Math.min(0.3, Double.parseDouble(num));
+                }
+                if (response.contains("\"strictAmenities\"") && response.contains("false")) {
+                    strictAmenities = false;
+                }
+                getLogger().info("[{}] LLM search strategy: priceFlexibility={}, strictAmenities={}",
+                    getOwner().getName(), priceFlexibility, strictAmenities);
+                ActivityLog.log(getOwner().getName(), "System", "LLM_STRATEGY",
+                    String.format("LLM strategy: flex=%.0f%%, strict=%s", priceFlexibility * 100, strictAmenities));
+            } catch (Exception e) {
+                getLogger().warn("[{}] LLM strategy parse failed: {}", getOwner().getName(), e.getMessage());
+            }
+        } else if (getLLMClient() != null) {
+            // Direct LLM call path
+            try {
+                ActionParams params = new ActionParams(new HashMap<>(), "selectSearchStrategy");
+                params = beforeSelectSearchStrategy(params);
+                String prompt = String.format(
+                    "Customer criteria: %s\nWeather: %s\n\n" +
+                    "Decide search strategy. Return JSON: {\"priceFlexibility\": 0.0-0.3, \"strictAmenities\": true/false}",
+                    params.getString("customerCriteria"),
+                    params.has("weatherContext") ? params.getString("weatherContext") : "unknown");
+                String response = getLLMClient().chat(prompt).getContent();
+                if (response.contains("priceFlexibility")) {
+                    String num = response.replaceAll(".*\"priceFlexibility\"\\s*:\\s*([0-9.]+).*", "$1");
+                    priceFlexibility = Math.min(0.3, Double.parseDouble(num));
+                }
+                if (response.contains("\"strictAmenities\"") && response.contains("false")) {
+                    strictAmenities = false;
+                }
+                getLogger().info("[{}] LLM search strategy (direct): priceFlexibility={}, strictAmenities={}",
+                    getOwner().getName(), priceFlexibility, strictAmenities);
+                ActivityLog.log(getOwner().getName(), "System", "LLM_STRATEGY",
+                    String.format("LLM strategy: flex=%.0f%%, strict=%s", priceFlexibility * 100, strictAmenities));
+            } catch (Exception e) {
+                getLogger().warn("[{}] LLM strategy failed: {}", getOwner().getName(), e.getMessage());
+            }
+        }
+        // Deterministic fallback: defaults are priceFlexibility=0.0, strictAmenities=true
+
+        // Apply strategy: adjust desiredPrice based on flexibility
+        if (priceFlexibility > 0) {
+            this.desiredPrice = this.desiredPrice * (1.0 + priceFlexibility);
+            getLogger().info("[{}] Strategy adjusted desiredPrice to ${}", getOwner().getName(),
+                String.format("%.0f", desiredPrice));
+        }
+    }
+
     /**
      * Start the hotel search process.
      */
@@ -247,8 +360,11 @@ public class CustomerRole extends Role {
         getLogger().info("");
         getLogger().info("┌─ CNP: SEARCH ─────────────────────────────────────────┐");
         getLogger().info("│  Customer: {}                                         │", getOwner().getName());
-        getLogger().info("│  Looking for: {}★ hotel in {} (max ${})              │", desiredRank, desiredLocation, maxPrice);
+        getLogger().info("│  Looking for: {}★ hotel in {} (max ${}, {} rooms)    │", desiredRank, desiredLocation, maxPrice, numberOfRooms);
         getLogger().info("└──────────────────────────────────────────────────────┘");
+
+        // LLM-driven search strategy selection (adjusts parameters before CFP)
+        selectSearchStrategy(null);
 
         // Query Directory Facilitator for hotel agents
         queryDirectoryFacilitator();
@@ -352,6 +468,8 @@ public class CustomerRole extends Role {
             desiredRank,
             effectiveMaxPrice
         );
+        query.setNumberOfRooms(numberOfRooms);
+        query.setAmenities(amenities);
 
         // Register ALL pending responses FIRST to prevent race condition
         // (a fast REFUSE could trigger evaluation before all CFPs are sent)
@@ -755,15 +873,15 @@ public class CustomerRole extends Role {
         request.setNumberOfNights(1);
         request.setProposedPrice(selectedProposal.getPricePerNight());
 
-        getLogger().info("[{}] Sending ACCEPT to {}", getOwner().getName(), selectedProposal.getHotelName());
-        ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "ACCEPT",
-            String.format("Accepting proposal $%.0f/night", selectedProposal.getPricePerNight()));
+        getLogger().info("[{}] Sending AWARD to {}", getOwner().getName(), selectedProposal.getHotelName());
+        ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "AWARD",
+            String.format("Awarding contract $%.0f/night", selectedProposal.getPricePerNight()));
 
         HotelAgent selectedHotel = getAgent(HotelAgent.class, "Hotel-" + selectedProposal.getHotelId());
         if (selectedHotel != null) {
             HotelProviderRole hotelRole = selectedHotel.as(HotelProviderRole.class);
             if (hotelRole != null) {
-                sendMessage(MessageTypes.MSG_ACCEPT, request, hotelRole.getIdentifier());
+                sendMessage(MessageTypes.MSG_AWARD, request, hotelRole.getIdentifier());
             }
         }
     }

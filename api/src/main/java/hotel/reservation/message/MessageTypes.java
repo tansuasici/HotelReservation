@@ -11,7 +11,8 @@ public final class MessageTypes {
     public static final String MSG_CFP = "CFP";                 // Call For Proposals
     public static final String MSG_PROPOSAL = "Proposal";       // Hotel's proposal
     public static final String MSG_REFUSE = "Refuse";           // Hotel refuses to bid
-    public static final String MSG_ACCEPT = "Accept";           // Customer accepts proposal
+    public static final String MSG_AWARD = "Award";              // Customer awards contract (CNP term)
+    public static final String MSG_ACCEPT = MSG_AWARD;          // Alias for backward compatibility
     public static final String MSG_REJECT = "Reject";           // Customer rejects proposal
     public static final String MSG_CONFIRM = "Confirm";         // Hotel confirms reservation
 
