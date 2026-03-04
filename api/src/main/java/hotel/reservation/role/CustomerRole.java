@@ -99,6 +99,9 @@ public class CustomerRole extends Role {
     @State(description = "Required amenities")
     private final List<String> amenities;
 
+    @State(description = "Whether amenities are strict requirements or preferred")
+    private boolean strictAmenities = true;
+
     private final BuyerPricingStrategy pricingStrategy;
     private LLMClient llmClient;
     private boolean llmClientResolved = false;
@@ -318,11 +321,16 @@ public class CustomerRole extends Role {
         }
         // Deterministic fallback: defaults are priceFlexibility=0.0, strictAmenities=true
 
-        // Apply strategy: adjust desiredPrice based on flexibility
+        // Apply strategy to instance state
+        this.strictAmenities = strictAmenities;
+
         if (priceFlexibility > 0) {
             this.desiredPrice = this.desiredPrice * (1.0 + priceFlexibility);
             getLogger().info("[{}] Strategy adjusted desiredPrice to ${}", getOwner().getName(),
                 String.format("%.0f", desiredPrice));
+        }
+        if (!strictAmenities) {
+            getLogger().info("[{}] Strategy: amenities treated as preferred (not mandatory)", getOwner().getName());
         }
     }
 
@@ -469,7 +477,9 @@ public class CustomerRole extends Role {
             effectiveMaxPrice
         );
         query.setNumberOfRooms(numberOfRooms);
-        query.setAmenities(amenities);
+        // strictAmenities=true → send amenities in CFP (hard filter at hotel side)
+        // strictAmenities=false → omit from CFP, evaluate as preference during ranking
+        query.setAmenities(strictAmenities ? amenities : Collections.emptyList());
 
         // Register ALL pending responses FIRST to prevent race condition
         // (a fast REFUSE could trigger evaluation before all CFPs are sent)
@@ -590,11 +600,16 @@ public class CustomerRole extends Role {
         List<RoomProposal> proposalList = new ArrayList<>(proposals.values());
         for (int i = 0; i < proposalList.size(); i++) {
             RoomProposal p = proposalList.get(i);
-            proposalSummary.append(String.format("%d. %s - %d stars - $%.0f/night\n",
-                i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight()));
+            List<String> pAmenities = p.getAmenities();
+            String amenityStr = (pAmenities != null && !pAmenities.isEmpty())
+                ? String.join(", ", pAmenities) : "none listed";
+            proposalSummary.append(String.format("%d. %s - %d stars - $%.0f/night - amenities: %s\n",
+                i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight(), amenityStr));
         }
-        params.set("customerCriteria", String.format("%s, %d+ stars, max $%.0f/night, desired $%.0f/night",
-            desiredLocation, desiredRank, maxPrice, desiredPrice));
+        String requiredAmenitiesStr = amenities.isEmpty() ? "none" : String.join(", ", amenities);
+        params.set("customerCriteria", String.format(
+            "%s, %d+ stars, max $%.0f/night, desired $%.0f/night, required amenities: %s",
+            desiredLocation, desiredRank, maxPrice, desiredPrice, requiredAmenitiesStr));
         params.set("proposals", proposalSummary.toString());
 
         // Inject weather context for LLM evaluation
@@ -623,7 +638,8 @@ public class CustomerRole extends Role {
         description = "Evaluate and rank hotel proposals",
         llmTool = @LLMTool(
             systemPrompt = "You are evaluating hotel proposals for a customer. " +
-                "Rank proposals from best to worst considering value-for-money, star rating, and price. " +
+                "Rank proposals from best to worst considering: value-for-money, star rating, price, " +
+                "and amenity match (hotels offering more of the customer's required amenities rank higher). " +
                 "Consider the current weather at the destination. Good weather adds value to the stay, " +
                 "poor weather may reduce willingness to pay premium prices. " +
                 "Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3)."
@@ -665,9 +681,13 @@ public class CustomerRole extends Role {
                             weather.getCondition(), desiredLocation));
                 }
             }
+            // Amenity-aware deterministic ranking:
+            // Score = amenityMatchRatio (0.0-1.0) — higher is better, ties broken by price
+            final List<String> required = amenities;
             ranked = proposals.values().stream()
                 .sorted(Comparator
-                    .comparingDouble(RoomProposal::getPricePerNight)
+                    .comparingDouble((RoomProposal p) -> -amenityMatchRatio(p, required))
+                    .thenComparingDouble(RoomProposal::getPricePerNight)
                     .thenComparingLong(RoomProposal::getTimestamp))
                 .collect(Collectors.toList());
         }
@@ -763,27 +783,45 @@ public class CustomerRole extends Role {
     }
 
     /**
+     * Calculate what fraction of the customer's required amenities are offered by a proposal.
+     * Returns 1.0 if all required amenities are present, 0.0 if none.
+     */
+    private static double amenityMatchRatio(RoomProposal proposal, List<String> required) {
+        if (required == null || required.isEmpty()) return 1.0;
+        List<String> offered = proposal.getAmenities();
+        if (offered == null || offered.isEmpty()) return 0.0;
+        long matched = required.stream()
+            .filter(req -> offered.stream().anyMatch(o -> o.equalsIgnoreCase(req)))
+            .count();
+        return (double) matched / required.size();
+    }
+
+    /**
      * Use LLM to rank proposals based on subjective evaluation criteria:
      * price/quality ratio, location desirability, star rating, and overall value.
      * Falls back to price-based sorting on LLM failure.
      */
     private List<RoomProposal> llmRankProposals() {
         try {
+            String requiredAmenitiesStr = amenities.isEmpty() ? "none" : String.join(", ", amenities);
             StringBuilder prompt = new StringBuilder();
             prompt.append("You are evaluating hotel proposals for a customer.\n");
-            prompt.append(String.format("Customer criteria: %s, %d+ stars, max $%.0f/night, desired $%.0f/night.\n\n",
-                desiredLocation, desiredRank, maxPrice, desiredPrice));
+            prompt.append(String.format("Customer criteria: %s, %d+ stars, max $%.0f/night, desired $%.0f/night, required amenities: %s.\n\n",
+                desiredLocation, desiredRank, maxPrice, desiredPrice, requiredAmenitiesStr));
             prompt.append("Proposals:\n");
 
             List<RoomProposal> proposalList = new ArrayList<>(proposals.values());
             for (int i = 0; i < proposalList.size(); i++) {
                 RoomProposal p = proposalList.get(i);
-                prompt.append(String.format("%d. %s - %d stars - $%.0f/night\n",
-                    i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight()));
+                List<String> pAmenities = p.getAmenities();
+                String amenityStr = (pAmenities != null && !pAmenities.isEmpty())
+                    ? String.join(", ", pAmenities) : "none listed";
+                prompt.append(String.format("%d. %s - %d stars - $%.0f/night - amenities: %s\n",
+                    i + 1, p.getHotelName(), p.getRank(), p.getPricePerNight(), amenityStr));
             }
 
             prompt.append("\nRank these proposals from best to worst considering value-for-money, ");
-            prompt.append("star rating, and price. Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3).");
+            prompt.append("star rating, price, and amenity match. Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3).");
 
             String response = getLLMClient().chat(prompt.toString()).getContent();
             getLogger().info("[{}] LLM proposal ranking: {}", getOwner().getName(), response);
