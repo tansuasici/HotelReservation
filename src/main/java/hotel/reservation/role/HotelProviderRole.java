@@ -445,13 +445,17 @@ public class HotelProviderRole extends Role {
             return;
         }
 
-        // Process the reservation
+        // Use the proposed price from the accepted proposal (dynamic pricing),
+        // fall back to basePrice if not set
+        double confirmedPrice = request.getProposedPrice() > 0
+            ? request.getProposedPrice() : basePrice;
+
         ReservationConfirmation confirmation = new ReservationConfirmation(
             request.getRequestId(),
             request.getCustomerId(),
             hotelId,
             hotelName,
-            basePrice,
+            confirmedPrice,
             request.getNumberOfNights()
         );
         confirmation.setRoomType("standard");

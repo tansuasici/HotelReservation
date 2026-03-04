@@ -20,6 +20,7 @@ public class ReservationRequest implements Serializable {
     private int numberOfNights;
     private int numberOfGuests;
     private String specialRequests;
+    private double proposedPrice;    // Price from the accepted proposal (dynamic pricing)
     private double negotiatedPrice;  // Negotiated price (0 if not negotiated)
     private long timestamp;
 
@@ -67,6 +68,9 @@ public class ReservationRequest implements Serializable {
 
     public String getSpecialRequests() { return specialRequests; }
     public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
+
+    public double getProposedPrice() { return proposedPrice; }
+    public void setProposedPrice(double proposedPrice) { this.proposedPrice = proposedPrice; }
 
     public double getNegotiatedPrice() { return negotiatedPrice; }
     public void setNegotiatedPrice(double negotiatedPrice) { this.negotiatedPrice = negotiatedPrice; }

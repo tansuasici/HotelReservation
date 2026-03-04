@@ -687,6 +687,7 @@ public class CustomerRole extends Role {
         );
         request.setCustomerName(getOwner().getName());
         request.setNumberOfNights(1);
+        request.setProposedPrice(selectedProposal.getPricePerNight());
 
         getLogger().info("[{}] Sending ACCEPT to {}", getOwner().getName(), selectedProposal.getHotelName());
         ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "ACCEPT",
