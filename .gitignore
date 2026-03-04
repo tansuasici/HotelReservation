@@ -28,5 +28,6 @@ Thumbs.db
 *.log
 logs/
 
-# Claude docs (not for repo)
+# Project docs (not for repo)
 CLAUDE.md
+docs/

@@ -1,8 +1,8 @@
 # Contract Net Protocol Dashboard
 
-Real-time monitoring and interaction dashboard for the Hotel Reservation Multi-Agent System. Built with **Next.js 16**, **React 19**, **Tailwind CSS 4**, and **shadcn/ui**.
+Real-time monitoring and interaction dashboard for the Hotel Reservation Multi-Agent System.
 
-![Dashboard Overview](public/screenshots/dashboard.png)
+![Dashboard Overview](assets/dashboard.png)
 
 ## Features
 
@@ -27,7 +27,7 @@ Real-time monitoring and interaction dashboard for the Hotel Reservation Multi-A
 
 ### Agent Chat & Inspection
 
-![Agent Detail](public/screenshots/agent-detail.png)
+![Agent Detail](assets/agent-detail.png)
 
 - Slide-over panel for any agent: system prompt, role, responsibilities
 - Full activity log filtered to the selected agent
@@ -36,19 +36,6 @@ Real-time monitoring and interaction dashboard for the Hotel Reservation Multi-A
 ### Dark / Light Theme
 - System-aware theme toggle in the navbar
 - Glass-panel aesthetic with smooth transitions
-
-## Tech Stack
-
-| Library | Role |
-|---------|------|
-| [Next.js 16](https://nextjs.org) | App Router, API routes |
-| [React 19](https://react.dev) | UI runtime |
-| [Tailwind CSS 4](https://tailwindcss.com) | Utility-first styling |
-| [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://www.radix-ui.com) | Accessible component primitives |
-| [vis-network](https://visjs.github.io/vis-network/) | Network topology graph |
-| [Framer Motion](https://www.framer.com/motion/) | Animations and transitions |
-| [Lucide React](https://lucide.dev) | Icon system |
-| [react-markdown](https://github.com/remarkjs/react-markdown) | Agent chat markdown rendering |
 
 ## Getting Started
 
