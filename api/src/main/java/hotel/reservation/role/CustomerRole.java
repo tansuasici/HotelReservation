@@ -10,7 +10,9 @@ import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
 import hotel.reservation.ActivityLog;
+import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
+import hotel.reservation.data.model.WeatherInfo;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
@@ -444,6 +446,19 @@ public class CustomerRole extends Role {
         params.set("customerCriteria", String.format("%s, %d+ stars, max $%.0f/night, desired $%.0f/night",
             desiredLocation, desiredRank, maxPrice, desiredPrice));
         params.set("proposals", proposalSummary.toString());
+
+        // Inject weather context for LLM evaluation
+        DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+        if (dfa != null) {
+            WeatherInfo weather = dfa.as(DataFetcherRole.class).fetchWeather(desiredLocation);
+            if (weather != null) {
+                params.set("weatherContext", String.format(
+                    "Current weather in %s: %s (%s), %.0f°C, humidity %d%%, wind %.1f m/s",
+                    desiredLocation, weather.getCondition(), weather.getDescription(),
+                    weather.getTemperature(), weather.getHumidity(), weather.getWindSpeed()));
+            }
+        }
+
         return params;
     }
 
@@ -459,6 +474,8 @@ public class CustomerRole extends Role {
         llmTool = @LLMTool(
             systemPrompt = "You are evaluating hotel proposals for a customer. " +
                 "Rank proposals from best to worst considering value-for-money, star rating, and price. " +
+                "Consider the current weather at the destination. Good weather adds value to the stay, " +
+                "poor weather may reduce willingness to pay premium prices. " +
                 "Return ONLY the ranking as comma-separated numbers (e.g., 2,1,3)."
         ))
     public void evaluateProposals(ActionResult llmResult) {
@@ -476,6 +493,7 @@ public class CustomerRole extends Role {
 
         // Rank proposals using available path
         List<RoomProposal> ranked;
+        boolean weatherUnfavorable = false;
         if (llmResult != null && !llmResult.isEmpty()) {
             // Path 1: Framework-orchestrated (ActionResult from LLMRoleExecutor)
             ranked = parseLLMRanking(llmResult.asString());
@@ -484,6 +502,19 @@ public class CustomerRole extends Role {
             ranked = llmRankProposals();
         } else {
             // Path 3: Deterministic fallback (no LLM available)
+            // Check weather for price sensitivity adjustment
+            DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+            if (dfa != null) {
+                WeatherInfo weather = dfa.as(DataFetcherRole.class).fetchWeather(desiredLocation);
+                if (weather != null && !weather.isFavorable()) {
+                    weatherUnfavorable = true;
+                    getLogger().info("[{}] Bad weather ({}) — reducing willingness to pay by 5%",
+                        getOwner().getName(), weather.getCondition());
+                    ActivityLog.log(getOwner().getName(), "System", "WEATHER_EVAL",
+                        String.format("Bad weather (%s) in %s — reducing price tolerance by 5%%",
+                            weather.getCondition(), desiredLocation));
+                }
+            }
             ranked = proposals.values().stream()
                 .sorted(Comparator
                     .comparingDouble(RoomProposal::getPricePerNight)
@@ -523,13 +554,16 @@ public class CustomerRole extends Role {
             }
         }
 
+        // Weather-adjusted desired price: bad weather reduces willingness to pay
+        double effectiveDesiredPrice = weatherUnfavorable ? desiredPrice * 0.95 : desiredPrice;
+
         // Best candidate price acceptable? → accept directly
-        if (selectedProposal.getPricePerNight() <= desiredPrice) {
+        if (selectedProposal.getPricePerNight() <= effectiveDesiredPrice) {
             getLogger().info("[{}] Best offer ${} <= desired ${} - accepting directly",
-                getOwner().getName(), selectedProposal.getPricePerNight(), desiredPrice);
+                getOwner().getName(), selectedProposal.getPricePerNight(), effectiveDesiredPrice);
             ActivityLog.log(getOwner().getName(), selectedProposal.getHotelName(), "EVALUATE",
                 String.format("Best price $%.0f ≤ desired $%.0f — accepting directly",
-                    selectedProposal.getPricePerNight(), desiredPrice));
+                    selectedProposal.getPricePerNight(), effectiveDesiredPrice));
             rejectRemainingCandidates(0);
             makeReservation();
         } else {

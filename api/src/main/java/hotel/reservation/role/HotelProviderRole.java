@@ -10,7 +10,9 @@ import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
 import hotel.reservation.ActivityLog;
+import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
+import hotel.reservation.data.model.WeatherInfo;
 import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
@@ -238,6 +240,17 @@ public class HotelProviderRole extends Role {
             params.set("customerRequest", String.format("%s, %d+ stars, max $%.0f/night",
                 query.getLocation(), query.getMinRank(), query.getMaxPrice()));
         }
+
+        // Inject weather context for LLM prompt
+        DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+        if (dfa != null) {
+            WeatherInfo weather = dfa.as(DataFetcherRole.class).fetchWeather(location);
+            if (weather != null) {
+                params.set("weather", String.format("Current weather in %s: %s (%s), %.0f°C",
+                    location, weather.getCondition(), weather.getDescription(), weather.getTemperature()));
+            }
+        }
+
         return params;
     }
 
@@ -257,6 +270,8 @@ public class HotelProviderRole extends Role {
             systemPrompt = "You are a hotel pricing strategist. Given hotel details, occupancy, and customer request, " +
                 "decide a price multiplier (0.85 to 1.30) to apply to the base price. " +
                 "Consider demand level, customer budget, and competitive positioning. " +
+                "Also consider current weather — good weather increases tourist demand and justifies higher prices, " +
+                "bad weather decreases demand. " +
                 "Return ONLY a decimal number (e.g., 1.05)."
         ))
     public double decidePricingStrategy(RoomQuery query, ActionResult llmResult) {
@@ -341,26 +356,47 @@ public class HotelProviderRole extends Role {
 
         // Use LLM-enhanced pricing strategy (with deterministic fallback)
         RoomQuery query = params.get("query", RoomQuery.class);
-        double multiplier = decidePricingStrategy(query, null);
+        double occupancyMultiplier = decidePricingStrategy(query, null);
+
+        // Weather-based multiplier
+        double weatherMultiplier = 1.0;
+        String weatherLog = "";
+        DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+        if (dfa != null) {
+            WeatherInfo weather = dfa.as(DataFetcherRole.class).fetchWeather(location);
+            if (weather != null) {
+                weatherMultiplier = weather.isFavorable() ? 1.05 : 0.93;
+                weatherLog = String.format("Weather: %s (%.0f°C) → %s",
+                    weather.getCondition(), weather.getTemperature(),
+                    weather.isFavorable() ? "+5% premium" : "-7% discount");
+                ActivityLog.log(hotelName, "System", "WEATHER_PRICING", weatherLog);
+            }
+        }
+
+        // Combined multiplier, clamped to [0.85, 1.30]
+        double finalMultiplier = Math.max(0.85, Math.min(1.30, occupancyMultiplier * weatherMultiplier));
 
         String demandLevel;
-        if (multiplier < 1.0) {
+        if (finalMultiplier < 1.0) {
             demandLevel = "LOW";
-        } else if (multiplier < 1.10) {
+        } else if (finalMultiplier < 1.10) {
             demandLevel = "NORMAL";
         } else {
             demandLevel = "HIGH";
         }
 
-        double dynamicPrice = Math.round(basePrice * multiplier * 100.0) / 100.0;
+        double dynamicPrice = Math.round(basePrice * finalMultiplier * 100.0) / 100.0;
         params.set("dynamicPrice", dynamicPrice);
         params.set("demandLevel", demandLevel);
         params.set("occupancyRate", occupancyRate);
 
-        getLogger().info("[{}] Dynamic pricing: occupancy={}%, demand={}, multiplier={}, base=${} → dynamic=${}",
+        getLogger().info("[{}] Dynamic pricing: occupancy={}%, demand={}, multiplier={} (occupancy={} × weather={}), base=${} → dynamic=${}",
             getOwner().getName(),
             String.format("%.0f", occupancyRate * 100), demandLevel,
-            String.format("%.2f", multiplier), basePrice, dynamicPrice);
+            String.format("%.2f", finalMultiplier),
+            String.format("%.2f", occupancyMultiplier),
+            String.format("%.2f", weatherMultiplier),
+            basePrice, dynamicPrice);
 
         return params;
     }

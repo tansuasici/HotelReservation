@@ -56,6 +56,18 @@ public final class EnvConfig {
         return Boolean.parseBoolean(get("LLM_FALLBACK_ON_ERROR", "true"));
     }
 
+    // ── Weather API ──────────────────────────────────────────
+
+    /** OpenWeather API key. Empty string disables weather features. */
+    public static String openWeatherApiKey() {
+        return get("OPENWEATHER_API_KEY", "");
+    }
+
+    /** OpenWeather API base URL. */
+    public static String weatherApiBase() {
+        return get("WEATHER_API_BASE", "https://api.openweathermap.org/data/2.5/weather");
+    }
+
     // ── Helpers ─────────────────────────────────────────────
 
     private static String get(String key, String defaultValue) {

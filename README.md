@@ -9,7 +9,7 @@ The system implements the hybrid role-based reference architecture where roles a
 | Action Type | Select when... | Example in this project |
 |-------------|---------------|------------------------|
 | **LOCAL CODE** | Deterministic, safety-critical, or performance-sensitive operations | `canFulfillRequest()`, inventory updates, budget validation |
-| **WEB SERVICE** | Well-defined HTTP API calls with stable contracts | `fetchAllHotels()`, weather forecast retrieval |
+| **WEB SERVICE** | Well-defined HTTP API calls with stable contracts | `fetchAllHotels()`, `fetchWeather()` |
 | **LLM** | Natural language generation, subjective evaluation, dynamic tool selection | `decidePricingStrategy()`, `evaluateProposals()` |
 | **MCP TOOL** | External tool access through standardized protocol | Calendar synchronization |
 
@@ -184,36 +184,16 @@ pnpm install
 pnpm dev
 ```
 
-## REST API
+## Weather Integration
 
-### Simulation Control
+Weather data influences both pricing and evaluation:
 
-```
-POST /api/simulation?action=setup     Initialize playground & agents
-POST /api/simulation?action=run       Start simulation
-POST /api/simulation?action=pause     Pause
-POST /api/simulation?action=stop      Stop
-GET  /api/simulation/status           Current state, tick, agent count
-```
+- **Hotel side**: Good weather → +5% price premium (higher demand), bad weather → -7% discount (lower demand)
+- **Customer side**: Weather context is included in LLM evaluation prompt, affecting value-for-money perception
+- **Graceful degradation**: No API key or API error → weather effect silently skipped
+- **Caching**: Weather is fetched once per city per simulation run
 
-### Data
-
-```
-GET  /api/data/hotels                 All hotels
-GET  /api/data/hotels/{id}            Hotel by ID
-GET  /api/data/hotels/search?city=Istanbul&minRank=4&maxPrice=500
-GET  /api/data/hotels/cities          Available cities
-GET  /api/customers/status            All customer states
-GET  /api/customer/{id}/status        Single customer detail
-```
-
-### Network & Activity
-
-```
-GET  /api/network/topology            JGraphT graph (nodes + edges)
-GET  /api/activity?since=0            Activity log entries
-POST /api/agents/{id}/chat            Chat with an agent
-```
+Set `OPENWEATHER_API_KEY` in `api/.env` to enable.
 
 ## Configuration
 
@@ -242,45 +222,3 @@ LLM_FALLBACK_ON_ERROR=true            # Use deterministic fallback on LLM failur
 OPENWEATHER_API_KEY=your_key_here     # openweathermap.org/api
 ```
 
-## Project Structure
-
-```
-api/src/main/java/hotel/reservation/
-+-- HotelReservationPlayground.java        Simulation entry point
-+-- ActivityLog.java                       Global activity logger
-+-- agent/
-|   +-- CustomerAgent.java                 @AgentSpec, CNP initiator
-|   +-- HotelAgent.java                    @AgentSpec, CNP participant
-|   +-- DataFetcherAgent.java              @AgentSpec, API data fetcher
-+-- role/
-|   +-- CustomerRole.java                  @RoleSpec: LOCAL + WEB_SERVICE + LLM
-|   +-- HotelProviderRole.java             @RoleSpec: LOCAL + LLM + hooks
-|   +-- DataFetcherRole.java               @RoleSpec: WEB_SERVICE
-|   +-- pricing/
-|       +-- BuyerPricingStrategy.java      @FunctionalInterface
-|       +-- SellerPricingStrategy.java     @FunctionalInterface
-|       +-- LinearPricingStrategy.java     Default linear impl
-+-- df/
-|   +-- DirectoryFacilitator.java          Yellow pages environment
-|   +-- DFEntry.java                       Registration entry
-+-- message/
-|   +-- MessageTypes.java                  CFP, Proposal, Accept, etc.
-|   +-- RoomQuery.java                     CFP payload
-|   +-- RoomProposal.java                  Proposal payload
-|   +-- NegotiationOffer.java              Negotiation payload
-|   +-- ReservationRequest.java            Accept payload
-|   +-- ReservationConfirmation.java       Confirm payload
-+-- config/
-|   +-- EnvConfig.java                     .env loader
-+-- data/
-|   +-- model/                             Hotel, CustomerSpec, Location
-|   +-- repository/                        HotelRepository, CustomerRepository
-|   +-- controller/HotelDataController.java
-+-- api/
-    +-- HotelReservationApplication.java   Spring Boot main
-    +-- SimulationController.java          /api/simulation
-    +-- TopologyController.java            /api/network
-    +-- ActivityController.java            /api/activity
-    +-- AgentController.java               /api/agents
-    +-- CustomerStatusController.java      /api/customer
-```
