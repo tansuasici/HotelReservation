@@ -9,6 +9,7 @@ import com.tnsai.actions.ActionResult;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
+import java.util.List;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
@@ -17,6 +18,8 @@ import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
+import java.util.ArrayList;
+import java.util.Collections;
 import com.tnsai.integration.scop.SCOPBridge;
 import com.tnsai.llm.LLMClient;
 import java.util.HashMap;
@@ -35,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
         @Responsibility(
             name = "ProposalGeneration",
             description = "Evaluate customer requests and generate competitive proposals",
-            actions = {"handleCFPMessage", "sendProposal"}
+            actions = {"handleCFPMessage", "canFulfillRequest", "sendProposal"}
         ),
         @Responsibility(
             name = "ReservationManagement",
@@ -46,6 +49,11 @@ import java.util.concurrent.ConcurrentHashMap;
             name = "Negotiation",
             description = "Handle price negotiations with customers",
             actions = {"handleNegotiateStartMessage", "handleCounterOfferMessage", "handleNegotiateAcceptMessage"}
+        ),
+        @Responsibility(
+            name = "CalendarSync",
+            description = "Synchronize reservations with external calendar platforms",
+            actions = {"syncCalendar"}
         ),
         @Responsibility(
             name = "Registration",
@@ -83,6 +91,9 @@ public class HotelProviderRole extends Role {
     @State(description = "Base price per night in USD")
     private final double basePrice;
 
+    @State(description = "Available amenities offered by the hotel")
+    private final List<String> amenities;
+
     // Simulated behavior parameters
     private final Random random = new Random();
 
@@ -109,12 +120,20 @@ public class HotelProviderRole extends Role {
                              String hotelId, String hotelName, String location,
                              int rank, double basePrice,
                              SellerPricingStrategy pricingStrategy) {
+        this(owner, envName, hotelId, hotelName, location, rank, basePrice, Collections.emptyList(), pricingStrategy);
+    }
+
+    public HotelProviderRole(Agent owner, String envName,
+                             String hotelId, String hotelName, String location,
+                             int rank, double basePrice, List<String> amenities,
+                             SellerPricingStrategy pricingStrategy) {
         super(owner, envName);
         this.hotelId = hotelId;
         this.hotelName = hotelName;
         this.location = location;
         this.rank = rank;
         this.basePrice = basePrice;
+        this.amenities = amenities != null ? amenities : Collections.emptyList();
         this.baseMinPrice = basePrice * 0.85;
         this.negotiationFlexibility = 0.3 + random.nextDouble() * 0.5; // 0.3 - 0.8
         this.pricingStrategy = pricingStrategy;
@@ -158,8 +177,8 @@ public class HotelProviderRole extends Role {
         getLogger().info("[{}] Received CFP from {}: {}",
             getOwner().getName(), message.getSender(), query);
 
-        // Check if hotel matches the query criteria
-        if (!matchesQuery(query)) {
+        // Check if hotel can fulfill the request
+        if (!canFulfillRequest(query)) {
             getLogger().info("[{}] Query does not match hotel criteria - sending refusal",
                 getOwner().getName());
             sendRefusal(message.getSender(), "Does not match criteria");
@@ -188,10 +207,12 @@ public class HotelProviderRole extends Role {
     }
 
     /**
-     * Check if this hotel matches the query criteria.
+     * Check if this hotel can fulfill the customer's request.
+     * Checks hard constraints: location match, star rating, price, room availability,
+     * and required amenities.
      */
-    @ActionSpec(type = ActionType.LOCAL, description = "Verify if hotel matches customer search criteria", excludeFromLLM = true)
-    public boolean matchesQuery(RoomQuery query) {
+    @ActionSpec(type = ActionType.LOCAL, description = "Check hard constraints: location, rank, price, availability, amenities", excludeFromLLM = true)
+    public boolean canFulfillRequest(RoomQuery query) {
         // Check location
         if (query.getLocation() != null &&
             !query.getLocation().equalsIgnoreCase(location)) {
@@ -206,6 +227,17 @@ public class HotelProviderRole extends Role {
         // Check price
         if (basePrice > query.getMaxPrice()) {
             return false;
+        }
+
+        // Check required amenities
+        List<String> required = query.getAmenities();
+        if (required != null && !required.isEmpty()) {
+            for (String amenity : required) {
+                if (amenities == null || amenities.stream()
+                        .noneMatch(a -> a.equalsIgnoreCase(amenity))) {
+                    return false;
+                }
+            }
         }
 
         return available;
@@ -816,10 +848,45 @@ public class HotelProviderRole extends Role {
         afterRegisterWithDF(params);
     }
 
+    // ==========================================
+    // MCP TOOL: Calendar Synchronization
+    // ==========================================
+
+    /**
+     * Synchronize a confirmed reservation with an external calendar platform.
+     * Uses the MCP (Model Context Protocol) to push booking events to
+     * calendar services (e.g., Google Calendar, Outlook).
+     *
+     * <p>This action is invoked after a reservation is confirmed to keep
+     * external calendars in sync with hotel availability.
+     *
+     * @param confirmationNumber the reservation confirmation number
+     * @param checkInDate  check-in date (ISO format)
+     * @param checkOutDate check-out date (ISO format)
+     * @param guestName    name of the guest
+     * @return true if the calendar was updated successfully
+     */
+    @ActionSpec(type = ActionType.MCP_TOOL,
+        description = "Synchronize confirmed reservation with external calendar platform",
+        mcpTool = @MCPTool(
+            serverUrl = "stdio:///calendar-mcp-server",
+            toolName = "create_event",
+            timeout = 10000
+        ))
+    public boolean syncCalendar(String confirmationNumber, String checkInDate,
+                                String checkOutDate, String guestName) {
+        // MCP executor handles the actual protocol exchange.
+        // Method body serves as fallback if MCP server is unavailable.
+        getLogger().warn("[{}] Calendar MCP server not available — sync skipped for #{}",
+            getOwner().getName(), confirmationNumber);
+        return false;
+    }
+
     // Getters
     public String getHotelId() { return hotelId; }
     public String getHotelName() { return hotelName; }
     public String getLocation() { return location; }
     public int getRank() { return rank; }
     public double getBasePrice() { return basePrice; }
+    public List<String> getAmenities() { return amenities; }
 }

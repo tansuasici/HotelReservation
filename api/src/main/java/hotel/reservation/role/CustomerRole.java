@@ -9,6 +9,7 @@ import com.tnsai.actions.ActionResult;
 import com.tnsai.annotations.*;
 import com.tnsai.annotations.LLMSpec.Provider;
 import com.tnsai.enums.ActionType;
+import com.tnsai.enums.HttpMethod;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
@@ -52,6 +53,11 @@ import java.util.stream.Collectors;
             name = "Negotiation",
             description = "Negotiate price with hotels when above desired price",
             actions = {"startNegotiation", "handleCounterOfferMessage", "handleNegotiateAcceptMessage", "handleNegotiateRejectMessage"}
+        ),
+        @Responsibility(
+            name = "WeatherForecast",
+            description = "Retrieve weather forecasts to inform booking decisions",
+            actions = {"fetchWeatherForecast"}
         )
     },
     llm = @LLMSpec(
@@ -179,6 +185,32 @@ public class CustomerRole extends Role {
             llmClient = SCOPBridge.getInstance().resolveLLMClient(this).orElse(null);
         }
         return llmClient;
+    }
+
+    // ==========================================
+    // WEB SERVICE: Weather Forecast
+    // ==========================================
+
+    /**
+     * Retrieve current weather forecast for the desired destination.
+     * Delegates to DataFetcherRole's cached weather API call.
+     * Returns null if weather data is unavailable (graceful degradation).
+     */
+    @ActionSpec(
+        type = ActionType.WEB_SERVICE,
+        description = "Retrieve weather forecast for destination city",
+        webService = @WebService(
+            endpoint = "https://api.openweathermap.org/data/2.5/weather",
+            method = HttpMethod.GET,
+            timeout = 5000
+        )
+    )
+    public WeatherInfo fetchWeatherForecast() {
+        DataFetcherAgent dfa = getAgent(DataFetcherAgent.class, "DataFetcher");
+        if (dfa != null) {
+            return dfa.as(DataFetcherRole.class).fetchWeather(desiredLocation);
+        }
+        return null;
     }
 
     /**
