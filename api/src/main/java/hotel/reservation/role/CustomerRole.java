@@ -76,7 +76,7 @@ import java.util.stream.Collectors;
     },
     llm = @LLMSpec(
         provider = Provider.OLLAMA,
-        model = "glm-4.7:cloud",
+        model = "deepseek-v3.2:cloud",
         temperature = 0.7f
     ),
     communication = @Communication(

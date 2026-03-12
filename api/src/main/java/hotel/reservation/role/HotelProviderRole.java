@@ -72,7 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
     },
     llm = @LLMSpec(
         provider = Provider.OLLAMA,
-        model = "minimax-m2.1:cloud",
+        model = "kimi-k2.5:cloud",
         temperature = 0.5f
     ),
     communication = @Communication(

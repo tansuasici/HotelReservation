@@ -21,7 +21,7 @@ import java.util.Random;
     description = "Hotel service provider agent that handles room reservations",
     llm = @LLMSpec(
         provider = Provider.OLLAMA,
-        model = "minimax-m2.1:cloud",
+        model = "minimax-m2.5:cloud",
         temperature = 0.5f
     )
 )

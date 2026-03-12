@@ -19,7 +19,7 @@ import java.util.List;
     description = "Hotel reservation customer agent that searches and books hotels",
     llm = @LLMSpec(
         provider = Provider.OLLAMA,
-        model = "glm-4.7:cloud",
+        model = "glm-5:cloud",
         temperature = 0.7f
     )
 )
