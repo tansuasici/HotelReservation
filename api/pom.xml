@@ -24,8 +24,8 @@
         <maven.compiler.release>21</maven.compiler.release>
 
         <!-- SCOP Framework -->
-        <scop-core.version>2026.02.17</scop-core.version>
-        <scop-ui.version>2026.02.17</scop-ui.version>
+        <scop-core.version>2026.03.11</scop-core.version>
+        <scop-ui.version>2026.03.11</scop-ui.version>
 
         <!-- Logging -->
         <slf4j.version>2.1.0-alpha1</slf4j.version>
