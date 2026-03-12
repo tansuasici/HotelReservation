@@ -1,15 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Save, RefreshCw, Clock, Timer, Repeat, Handshake, ToggleLeft, Hash } from "lucide-react";
+import { Loader2, RefreshCw, Clock, Timer, Repeat, Handshake, ToggleLeft, Hash, Settings2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
+  SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import type { SimState, ScopConfig } from "@/lib/types";
 
 interface Props {
@@ -26,15 +36,15 @@ interface FieldDef {
 }
 
 const RUN_FIELDS: FieldDef[] = [
-  { key: "STEP_DELAY", label: "Step Delay", icon: <Clock className="h-3 w-3" />, hint: "ms" },
-  { key: "TIMEOUT_TICK", label: "Timeout", icon: <Timer className="h-3 w-3" />, hint: "ticks" },
-  { key: "NUMBER_OF_EPISODES", label: "Episodes", icon: <Repeat className="h-3 w-3" /> },
+  { key: "STEP_DELAY", label: "Step Delay", icon: <Clock className="h-4 w-4" />, hint: "ms" },
+  { key: "TIMEOUT_TICK", label: "Timeout", icon: <Timer className="h-4 w-4" />, hint: "ticks" },
+  { key: "NUMBER_OF_EPISODES", label: "Episodes", icon: <Repeat className="h-4 w-4" /> },
 ];
 
 const CNP_FIELDS: FieldDef[] = [
-  { key: "PROPOSAL_DEADLINE_TICKS", label: "Deadline", icon: <Timer className="h-3 w-3" />, hint: "ticks" },
-  { key: "MAX_NEGOTIATION_ROUNDS", label: "Max Rounds", icon: <Hash className="h-3 w-3" /> },
-  { key: "NEGOTIATION_ENABLED", label: "Negotiation", icon: <ToggleLeft className="h-3 w-3" />, hint: "1/0" },
+  { key: "PROPOSAL_DEADLINE_TICKS", label: "Deadline", icon: <Timer className="h-4 w-4" />, hint: "ticks" },
+  { key: "MAX_NEGOTIATION_ROUNDS", label: "Max Rounds", icon: <Hash className="h-4 w-4" /> },
+  { key: "NEGOTIATION_ENABLED", label: "Negotiation", icon: <ToggleLeft className="h-4 w-4" />, hint: "1/0" },
 ];
 
 function ConfigField({
@@ -49,19 +59,23 @@ function ConfigField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md bg-secondary/30 px-2.5 py-1.5">
-      <span className="text-muted-foreground shrink-0">{field.icon}</span>
-      <span className="text-[11px] text-muted-foreground shrink-0 min-w-[70px]">{field.label}</span>
-      <Input
-        type="number"
-        className="h-6 flex-1 text-xs text-right bg-background/60 border-border/50 px-2"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {field.hint && (
-        <span className="text-[9px] text-muted-foreground/60 shrink-0 w-6">{field.hint}</span>
-      )}
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2 text-sm font-medium">
+        <span className="text-muted-foreground">{field.icon}</span>
+        {field.label}
+      </Label>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          className="h-9 text-sm font-mono"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {field.hint && (
+          <span className="text-xs text-muted-foreground shrink-0">{field.hint}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -133,90 +147,104 @@ export function ConfigPanel({ open, onOpenChange, simState }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[340px] sm:w-[380px]">
+      <SheetContent side="right" className="w-[400px] sm:w-[440px] flex flex-col">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-sm">
+          <SheetTitle className="flex items-center gap-2">
+            <Settings2 className="h-5 w-5" />
             Simulation Config
-            <button onClick={loadConfig} className="p-1 rounded hover:bg-muted transition-colors" title="Reload">
-              <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-            </button>
           </SheetTitle>
+          <SheetDescription>
+            Configure runtime and protocol parameters.
+          </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-5">
           {loading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {error && (
-            <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">{error}</p>
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">{error}</p>
           )}
 
           {!loading && config && (
             <>
-              {/* Run section */}
-              <div>
-                <h3 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  <Handshake className="h-3 w-3" />
-                  Runtime
-                </h3>
-                <div className="space-y-1.5">
-                  {RUN_FIELDS.map((field) => (
-                    <ConfigField
-                      key={field.key}
-                      field={field}
-                      value={config.run?.[field.key] ?? ""}
-                      disabled={!editable}
-                      onChange={(v) => handleChange("run", field.key, v)}
-                    />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    Runtime
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {RUN_FIELDS.map((field, i) => (
+                    <div key={field.key}>
+                      <ConfigField
+                        field={field}
+                        value={config.run?.[field.key] ?? ""}
+                        disabled={!editable}
+                        onChange={(v) => handleChange("run", field.key, v)}
+                      />
+                      {i < RUN_FIELDS.length - 1 && <Separator className="mt-4" />}
+                    </div>
                   ))}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* CNP section */}
-              <div>
-                <h3 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  <Handshake className="h-3 w-3" />
-                  Contract Net Protocol
-                </h3>
-                <div className="space-y-1.5">
-                  {CNP_FIELDS.map((field) => (
-                    <ConfigField
-                      key={field.key}
-                      field={field}
-                      value={config.cnp?.[field.key] ?? ""}
-                      disabled={!editable}
-                      onChange={(v) => handleChange("cnp", field.key, v)}
-                    />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <Handshake className="h-4 w-4 text-muted-foreground" />
+                    Contract Net Protocol
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {CNP_FIELDS.map((field, i) => (
+                    <div key={field.key}>
+                      <ConfigField
+                        field={field}
+                        value={config.cnp?.[field.key] ?? ""}
+                        disabled={!editable}
+                        onChange={(v) => handleChange("cnp", field.key, v)}
+                      />
+                      {i < CNP_FIELDS.length - 1 && <Separator className="mt-4" />}
+                    </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Save */}
-              <Button
-                size="sm"
-                className="w-full h-8"
-                disabled={!editable || saving}
-                onClick={handleSave}
-              >
-                {saving ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-3.5 w-3.5" />
-                )}
-                {saved ? "Saved" : "Save Config"}
-              </Button>
-
-              {!editable && (
-                <p className="text-[10px] text-muted-foreground text-center">
-                  Stop or pause the simulation to edit config.
-                </p>
-              )}
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
+
+        {!loading && config && (
+          <SheetFooter className="px-4 pb-4">
+            {!editable && (
+              <p className="text-xs text-muted-foreground text-center w-full mb-2">
+                Stop or pause the simulation to edit config.
+              </p>
+            )}
+            <div className="flex items-center gap-2 w-full">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={loadConfig}
+                disabled={loading}
+                title="Reload config"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!editable || saving}
+                onClick={handleSave}
+              >
+                {saving ? "Saving..." : saved ? "Saved" : "Save"}
+              </Button>
+            </div>
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );
