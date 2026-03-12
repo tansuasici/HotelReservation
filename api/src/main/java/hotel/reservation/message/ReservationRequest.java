@@ -1,6 +1,7 @@
 package hotel.reservation.message;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * Accept message payload.
@@ -26,7 +27,7 @@ public class ReservationRequest implements Serializable {
 
     public ReservationRequest() {
         this.timestamp = System.currentTimeMillis();
-        this.requestId = "req-" + System.currentTimeMillis();
+        this.requestId = "req-" + UUID.randomUUID().toString().substring(0, 8);
         this.numberOfNights = 1;
         this.numberOfGuests = 1;
     }

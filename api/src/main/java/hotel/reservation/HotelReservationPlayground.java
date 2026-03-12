@@ -94,7 +94,8 @@ public class HotelReservationPlayground extends Playground {
                 hotel.getRank(),
                 hotel.getPricePerNight(),
                 hotel.getTotalRooms(),
-                hotel.getAmenities()
+                hotel.getAmenities(),
+                hotel.getRating()
             ));
             hotelEnv.add(agent);
             hotelAgents.add(agent);

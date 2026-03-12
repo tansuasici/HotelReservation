@@ -1,6 +1,7 @@
 package hotel.reservation.message;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * Confirm message payload.
@@ -29,7 +30,7 @@ public class ReservationConfirmation implements Serializable {
 
     public ReservationConfirmation() {
         this.timestamp = System.currentTimeMillis();
-        this.confirmationNumber = "CONF-" + System.currentTimeMillis();
+        this.confirmationNumber = "CONF-" + UUID.randomUUID().toString().substring(0, 8);
         this.status = "CONFIRMED";
         this.currency = "USD";
     }

@@ -35,6 +35,7 @@ public class HotelAgent extends Agent {
     private int rank;
     private double basePrice;
     private List<String> amenities;
+    private double rating;
     private boolean dataLoaded = false;
 
     // Room capacity (1-3 rooms per hotel)
@@ -58,8 +59,13 @@ public class HotelAgent extends Agent {
         this(hotelId, hotelName, location, rank, basePrice, totalRooms, Collections.emptyList());
     }
 
+    public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice,
+                      int totalRooms, List<String> amenities) {
+        this(hotelId, hotelName, location, rank, basePrice, totalRooms, amenities, 0.0);
+    }
+
     /**
-     * Create a hotel agent with pre-loaded data, room count, and amenities.
+     * Create a hotel agent with pre-loaded data, room count, amenities, and rating.
      *
      * @param hotelId    Unique hotel identifier (e.g., "h001")
      * @param hotelName  Display name of the hotel
@@ -68,9 +74,10 @@ public class HotelAgent extends Agent {
      * @param basePrice  Base price per night
      * @param totalRooms Total room capacity (0 = random 1-3)
      * @param amenities  Available amenities (e.g., "wifi", "pool", "spa")
+     * @param rating     User review rating (e.g., 4.5)
      */
     public HotelAgent(String hotelId, String hotelName, String location, int rank, double basePrice,
-                      int totalRooms, List<String> amenities) {
+                      int totalRooms, List<String> amenities, double rating) {
         super("Hotel-" + hotelId);
         this.hotelId = hotelId;
         this.hotelName = hotelName;
@@ -78,6 +85,7 @@ public class HotelAgent extends Agent {
         this.rank = rank;
         this.basePrice = basePrice;
         this.amenities = amenities != null ? amenities : Collections.emptyList();
+        this.rating = rating;
         this.dataLoaded = true;
         this.totalRooms = totalRooms > 0 ? totalRooms : new Random().nextInt(3) + 1;
         this.availableRooms = this.totalRooms;
@@ -126,6 +134,7 @@ public class HotelAgent extends Agent {
     public int getRank() { return rank; }
     public double getBasePrice() { return basePrice; }
     public List<String> getAmenities() { return amenities; }
+    public double getRating() { return rating; }
     public boolean isDataLoaded() { return dataLoaded; }
 
     @Override

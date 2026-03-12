@@ -63,10 +63,11 @@ public class DirectoryFacilitator extends Environment {
      */
     public synchronized boolean deregister(String agentId) {
         DFEntry removed = registry.remove(agentId);
-        if (getLogger() != null) {
+        if (removed != null) {
             getLogger().info("[DF] Deregistered: {} - {}", agentId, removed.getHotelName());
             return true;
         }
+        getLogger().warn("[DF] Deregister failed - agent not found: {}", agentId);
         return false;
     }
 

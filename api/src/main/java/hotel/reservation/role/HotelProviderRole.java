@@ -18,7 +18,8 @@ import com.tnsai.annotations.Responsibility;
 import com.tnsai.annotations.RoleSpec;
 import com.tnsai.annotations.State;
 import com.tnsai.enums.ActionType;
-import java.util.List;
+import com.tnsai.integration.scop.SCOPBridge;
+import com.tnsai.llm.LLMClient;
 import hotel.reservation.ActivityLog;
 import hotel.reservation.agent.DataFetcherAgent;
 import hotel.reservation.agent.HotelAgent;
@@ -27,10 +28,7 @@ import hotel.reservation.df.DFEntry;
 import hotel.reservation.df.DirectoryFacilitator;
 import hotel.reservation.message.*;
 import hotel.reservation.role.pricing.SellerPricingStrategy;
-import java.util.ArrayList;
 import java.util.Collections;
-import com.tnsai.integration.scop.SCOPBridge;
-import com.tnsai.llm.LLMClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -478,7 +476,7 @@ public class HotelProviderRole extends Role {
             "standard"  // Default room type
         );
         proposal.setAmenities(amenities);
-        proposal.setRating(4.5);
+        proposal.setRating(((HotelAgent) getOwner()).getRating());
 
         getLogger().info("[{}] Sending proposal to {}: {} - ${}/night",
             getOwner().getName(), customer, hotelName, dynamicPrice);

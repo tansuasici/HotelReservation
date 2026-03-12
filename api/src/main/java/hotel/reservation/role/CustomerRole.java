@@ -146,7 +146,7 @@ public class CustomerRole extends Role {
     private RoomProposal negotiatingWith = null;
 
     @State(description = "Negotiation history")
-    private final List<NegotiationOffer> negotiationHistory = new ArrayList<>();
+    private final List<NegotiationOffer> negotiationHistory = Collections.synchronizedList(new ArrayList<>());
 
     // Market analytics (populated by @AfterAction hooks)
     @State(description = "Total proposals received for analytics")
@@ -165,7 +165,7 @@ public class CustomerRole extends Role {
     private static final int MAX_CANDIDATES = EnvConfig.cnpMaxCandidates();
 
     @State(description = "Shortlisted hotel candidates for sequential negotiation")
-    private List<RoomProposal> topCandidates = new ArrayList<>();
+    private volatile List<RoomProposal> topCandidates = new ArrayList<>();
 
     @State(description = "Current candidate index being negotiated")
     private int currentCandidateIndex = 0;
